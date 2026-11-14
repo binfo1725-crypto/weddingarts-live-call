@@ -51,6 +51,11 @@ app.post('/api/session', (req, res) => {
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
+  // Use Render external URL if available, else configured URL
+  const serverHost = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
+    ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+    : CALL_SERVER_URL;
+
   const id = sessionId;
   sessions.set(id, {
     geminiWs: null,
@@ -65,7 +70,7 @@ app.post('/api/session', (req, res) => {
   });
 
   console.log(`[session] Created: ${id} | store: ${storeName} | customer: ${customerName}`);
-  res.json({ ok: true, sessionId: id, callUrl: `${CALL_SERVER_URL}/call?s=${id}` });
+  res.json({ ok: true, sessionId: id, callUrl: `${serverHost}/call?s=${id}` });
 });
 
 // Serve call page — also allows GET /call?s=SESSION_ID
