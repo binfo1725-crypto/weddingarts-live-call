@@ -467,11 +467,13 @@ function handleServerMessage(msg) {
       showOrderBanner(msg.order);
       break;
     case 'ended':
-      setStatus('red', 'Call ended');
+      setStatus('red', msg.message || 'Call ended');
+      appendTranscript(msg.message || 'Call ended.', 'ai');
       stopAll();
       break;
     case 'error':
       setStatus('red', msg.message || 'Error');
+      appendTranscript('⚠️ ' + (msg.message || 'Error occurred'), 'ai');
       break;
   }
 }

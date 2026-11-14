@@ -185,8 +185,14 @@ wss.on('connection', (browserWs, req) => {
   });
 
   geminiWs.on('close', (code, reason) => {
-    console.log(`[gemini] Disconnected — session: ${sessionId} | code: ${code}`);
-    safeSend(browserWs, JSON.stringify({ type: 'ended', message: 'Call ended.' }));
+    const reasonStr = reason ? reason.toString() : '';
+    console.log(`[gemini] Disconnected — session: ${sessionId} | code: ${code} | reason: ${reasonStr}`);
+    
+    let errorMsg = 'Call ended.';
+    if (code === 1007 || reasonStr.toLowerCase().includes('api key') || reasonStr.toLowerCase().includes('quota')) {
+      errorMsg = '⚠️ Gemini API Key invalid or expired. Check server settings.';
+    }
+    safeSend(browserWs, JSON.stringify({ type: 'ended', message: errorMsg, reason: reasonStr }));
   });
 
   geminiWs.on('error', (err) => {
