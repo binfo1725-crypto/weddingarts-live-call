@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('./db.js');
 const waEngine = require('./whatsapp.js');
+const pdfParse = require('pdf-parse');
 const {
   CustomerArchetypeEngine,
   AngryCustomerEscalationEngine,
@@ -109,7 +110,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
@@ -349,7 +350,7 @@ app.post('/api/broadcasts', async (req, res) => {
   res.json({ ok: true, broadcast });
 });
 
-// Genuine WhatsApp Multi-Device (Baileys) Endpoints
+// ─── Multi-Account WhatsApp (Baileys Multi-Device) Endpoints ───────────────
 app.get('/api/whatsapp/status', (req, res) => {
   res.json({
     ok: true,
@@ -357,10 +358,68 @@ app.get('/api/whatsapp/status', (req, res) => {
   });
 });
 
-app.post('/api/whatsapp/pairing-code', async (req, res) => {
+app.get('/api/whatsapp/accounts', (req, res) => {
+  res.json({
+    ok: true,
+    accounts: waEngine.getAccounts()
+  });
+});
+
+app.post('/api/whatsapp/accounts/add', async (req, res) => {
+  try {
+    const { label } = req.body;
+    const session = await waEngine.addAccount(label);
+    res.json({
+      ok: true,
+      account: session.getStatus()
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/accounts/:id/pairing-code', async (req, res) => {
   try {
     const { phoneNumber } = req.body;
-    const code = await waEngine.requestPhonePairingCode(phoneNumber);
+    const code = await waEngine.requestPhonePairingCode(phoneNumber, req.params.id);
+    res.json({ ok: true, pairingCode: code, accountId: req.params.id });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/accounts/:id/toggle-bot', async (req, res) => {
+  try {
+    const { botActive } = req.body;
+    const result = await waEngine.toggleBot(req.params.id, botActive);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
+  try {
+    const result = await waEngine.logout(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/accounts/:id/delete', async (req, res) => {
+  try {
+    const result = await waEngine.deleteAccount(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/pairing-code', async (req, res) => {
+  try {
+    const { phoneNumber, accountId } = req.body;
+    const code = await waEngine.requestPhonePairingCode(phoneNumber, accountId || 'default');
     res.json({ ok: true, pairingCode: code });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
@@ -368,13 +427,73 @@ app.post('/api/whatsapp/pairing-code', async (req, res) => {
 });
 
 app.post('/api/whatsapp/logout', async (req, res) => {
-  await waEngine.logout();
+  const { accountId } = req.body;
+  await waEngine.logout(accountId || 'default');
   res.json({ ok: true });
 });
 
 app.post('/api/whatsapp/restart', async (req, res) => {
   await waEngine.start();
   res.json({ ok: true });
+});
+
+// ─── Master Dataset Upload (.TXT & .PDF) ─────────────────────────────────────
+app.post('/api/dataset/upload', async (req, res) => {
+  try {
+    const { fileName, fileType, fileBase64, mode } = req.body;
+    if (!fileBase64) {
+      return res.status(400).json({ ok: false, error: 'fileBase64 data is required' });
+    }
+
+    const buffer = Buffer.from(fileBase64, 'base64');
+    let extractedText = '';
+
+    const isPdf = (fileType && fileType.includes('pdf')) || (fileName && fileName.toLowerCase().endsWith('.pdf'));
+
+    if (isPdf) {
+      console.log(`[dataset-upload] Parsing PDF document: "${fileName}" (${buffer.length} bytes)...`);
+      const parsedPdf = await pdfParse(buffer);
+      extractedText = (parsedPdf.text || '').trim();
+    } else {
+      console.log(`[dataset-upload] Reading text document: "${fileName}" (${buffer.length} bytes)...`);
+      extractedText = buffer.toString('utf8').trim();
+    }
+
+    // Clean up excessive whitespace while preserving structure
+    extractedText = extractedText.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+
+    if (!extractedText || extractedText.length < 5) {
+      return res.status(400).json({ ok: false, error: 'The uploaded file is empty or no text could be extracted.' });
+    }
+
+    const activeBiz = db.getActiveBusiness();
+    const isAppend = mode === 'append';
+    const header = `=== UPLOADED KNOWLEDGE [${fileName || 'Document'}] ===\n`;
+
+    if (isAppend && activeBiz.dataset && activeBiz.dataset.length > 20) {
+      activeBiz.dataset = activeBiz.dataset.trim() + '\n\n' + header + extractedText;
+    } else {
+      activeBiz.dataset = header + extractedText;
+    }
+
+    db.saveBusiness(activeBiz);
+    BUILTIN_DATASET = activeBiz.dataset;
+
+    console.log(`[dataset-upload] ✅ Successfully saved dataset for ${activeBiz.name}. Length: ${extractedText.length} chars (Total: ${activeBiz.dataset.length})`);
+
+    res.json({
+      ok: true,
+      fileName,
+      isPdf,
+      extractedChars: extractedText.length,
+      totalChars: activeBiz.dataset.length,
+      preview: extractedText.slice(0, 500),
+      dataset: activeBiz.dataset
+    });
+  } catch (err) {
+    console.error('[dataset-upload] Failed to process uploaded file:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to parse dataset file: ' + err.message });
+  }
 });
 
 // ─── Session Management ──────────────────────────────────────────────────────

@@ -961,8 +961,52 @@
           <input type="text" id="form-biz-bank" class="form-input" placeholder="Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha">
         </div>
 
+        <!-- Master Dataset File Upload (.TXT & .PDF) -->
+        <div style="background:rgba(139,92,246,0.04);border:1px dashed rgba(139,92,246,0.4);border-radius:16px;padding:20px;margin:20px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="font-size:1.02rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#c4b5fd;">
+                <span>📄</span> Upload Master Dataset File (.TXT or .PDF)
+              </h3>
+              <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+                ඔබගේ Price List, Products Catalog, හෝ Business Profile <strong>.TXT හෝ .PDF</strong> document එක මෙතැනට Upload කරන්න.
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-secondary" onclick="exportCurrentDataset()" style="font-size:0.78rem;padding:6px 14px;">
+                📥 Download Current Dataset (.txt)
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;background:rgba(0,0,0,0.3);padding:10px 14px;border-radius:10px;border:1px solid var(--card-border);">
+            <span style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Upload Mode:</span>
+            <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#ffffff;">
+              <input type="radio" name="dataset-upload-mode" value="append" checked style="accent-color:#8b5cf6;">
+              <span>➕ Append (දැනට ඇති දත්ත වලට එකතු කරන්න)</span>
+            </label>
+            <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#ffffff;">
+              <input type="radio" name="dataset-upload-mode" value="replace" style="accent-color:#8b5cf6;">
+              <span>🔄 Replace (පැරණි දත්ත ඉවත් කර අලුත් file එකෙන් Replace කරන්න)</span>
+            </label>
+          </div>
+
+          <div id="dataset-dropzone" style="border:2px dashed rgba(255,255,255,0.18);border-radius:12px;padding:26px;text-align:center;cursor:pointer;background:rgba(0,0,0,0.25);transition:all 0.2s;" onclick="document.getElementById('dataset-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='#8b5cf6';" ondragleave="this.style.borderColor='rgba(255,255,255,0.18)';" ondrop="handleDatasetDrop(event)">
+            <input type="file" id="dataset-file-input" accept=".txt,.pdf,.csv,.md,.json" style="display:none;" onchange="handleDatasetFileUpload(this)" />
+            <div style="font-size:2.2rem;margin-bottom:6px;">📤</div>
+            <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
+              Click to Browse or Drag & Drop File (.TXT or .PDF)
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);">
+              Supports <strong>.PDF</strong>, <strong>.TXT</strong>, .CSV, .MD • High-speed text extraction directly into Gemini AI memory
+            </div>
+          </div>
+
+          <div id="dataset-upload-status" class="hidden" style="margin-top:14px;padding:12px 16px;border-radius:10px;font-size:0.84rem;"></div>
+        </div>
+
         <div class="form-group">
-          <label class="form-label">Official Master Dataset (භාණ්ඩ, සේවා සහ නිවැරදි මිල ගණන්)</label>
+          <label class="form-label">Official Master Dataset Text (සංස්කරණය කළ හැකි දත්ත ගබඩාව)</label>
           <textarea id="form-biz-dataset" class="form-textarea" style="min-height:220px;"></textarea>
         </div>
 
@@ -1024,86 +1068,92 @@
       </form>
     </section>
 
-    <!-- 9. WHATSAPP MULTI-DEVICE HUB -->
+    <!-- 9. WHATSAPP MULTI-DEVICE & MULTI-ACCOUNT HUB -->
     <section id="tab-whatsapp" class="glass-card hidden">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
         <div>
-          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">WhatsApp Cloud Multi-Device Hub</h2>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span>📱</span> WhatsApp Cloud Multi-Account Hub
+          </h2>
           <p style="font-size:0.84rem;color:var(--text-secondary);">
-            ඔබගේ දුරකථනයේ WhatsApp එක සෘජුවම Server එකට සම්බන්ධ කරන්න. Phone එක Off වුවද Cloud AI 24/7 ක්‍රියාත්මක වේ.
+            WhatsApp ගිණුම් කිහිපයක් (Multi-Accounts) එකවර සම්බන්ධ කර කළමනාකරණය කරන්න. Phone Off වුවද Cloud AI 24/7 ක්‍රියාත්මක වේ.
           </p>
         </div>
-        <div id="wa-connection-badge" style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:0.8rem;font-weight:700;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);">
-          <span style="width:8px;height:8px;border-radius:50%;background:#f87171;"></span>
-          <span id="wa-status-text">Disconnected</span>
-        </div>
-      </div>
-
-      <!-- When Connected View -->
-      <div id="wa-connected-view" class="hidden" style="text-align:center;padding:40px 20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:16px;">
-        <div style="font-size:3rem;margin-bottom:12px;">✅</div>
-        <h3 style="font-size:1.3rem;font-weight:700;color:#34d399;margin-bottom:6px;">WhatsApp Cloud AI is LIVE & Connected!</h3>
-        <p style="font-size:0.88rem;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;">
-          Linked Number: <strong id="wa-connected-phone" style="color:#ffffff;">+94 7x xxx xxxx</strong><br>
-          ඔබගේ WhatsApp පාරිභෝගික පණිවිඩ වලට OmniSix AI ස්වයංක්‍රීයව පිළිතුරු සපයයි.
-        </p>
-        <button class="btn-primary" onclick="logoutWhatsApp()" style="background:#ef4444;border-color:#ef4444;padding:8px 20px;font-size:0.82rem;">
-          🚪 Disconnect / Logout
-        </button>
-      </div>
-
-      <!-- When Disconnected: Pairing Methods -->
-      <div id="wa-disconnected-view" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-        
-        <!-- Method 1: Genuine WhatsApp Web Barcode -->
-        <div class="pairing-box" style="margin:0;">
-          <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
-            <span>📷</span> Method 1: Scan Barcode (WhatsApp Web)
-          </h3>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 16px;">
-            WhatsApp ➜ Settings (හෝ තිත් 3) ➜ <strong>Linked Devices</strong> ➜ <strong>Link a Device</strong> ඔබා පහත Barcode එක Scan කරන්න:
-          </p>
-
-          <div id="wa-qr-wrapper" style="display:flex;justify-content:center;align-items:center;min-height:240px;background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;border:1px dashed rgba(255,255,255,0.15);">
-            <div id="wa-qr-loading" style="text-align:center;color:var(--text-muted);font-size:0.82rem;">
-              <div style="font-size:1.6rem;margin-bottom:8px;">⏳</div>
-              Generating live WhatsApp Web Barcode...
-            </div>
-            <img id="wa-qr-img" src="" alt="WhatsApp QR Code" class="hidden" style="width:220px;height:220px;background:#ffffff;border-radius:10px;padding:6px;box-shadow:0 0 25px rgba(0,0,0,0.6);" />
-          </div>
-
-          <button class="btn-primary" onclick="restartWhatsAppSession()" style="margin-top:14px;width:100%;padding:9px;font-size:0.82rem;">
-            🔄 Refresh Barcode
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="openAddWhatsAppModal()" style="display:flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 18px;">
+            <span>➕</span> Connect New WhatsApp Account
+          </button>
+          <button class="btn-secondary" onclick="fetchWhatsAppStatus()" style="font-size:0.84rem;padding:9px 14px;">
+            🔄 Refresh
           </button>
         </div>
+      </div>
 
-        <!-- Method 2: 8-Digit Pairing Code -->
-        <div class="pairing-box" style="margin:0;">
-          <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
-            <span>🔢</span> Method 2: 8-Digit Pairing Code
-          </h3>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 12px;">
-            Barcode එක Scan කිරීමට අපහසු නම්, ඔබගේ WhatsApp අංකය ඇතුළත් කර 8-digit code එක ලබා ගන්න (No camera needed):
-          </p>
+      <!-- Connected Accounts Grid -->
+      <div id="wa-accounts-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;margin-bottom:24px;">
+        <!-- Dynamically rendered via JavaScript -->
+      </div>
 
-          <div style="display:flex;gap:8px;margin-bottom:14px;">
-            <input type="text" id="wa-phone-input" class="form-input" placeholder="e.g. 94762107801" style="font-family:'JetBrains Mono';font-size:0.85rem;" />
-            <button class="btn-primary" onclick="requestPairingCode()" style="white-space:nowrap;padding:8px 14px;font-size:0.82rem;">
-              Get Code
+      <!-- Quick Add / Pair New Account Section (Inline Expandable) -->
+      <div id="wa-add-account-section" class="hidden" style="background:rgba(255,255,255,0.02);border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:22px;margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <h3 id="wa-pairing-title" style="font-size:1.1rem;font-weight:700;color:#c4b5fd;display:flex;align-items:center;gap:8px;">
+              <span>➕</span> Link New WhatsApp Device
+            </h3>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">
+              නව දුරකථනයක් සම්බන්ධ කිරීමට පහත Barcode එක Scan කරන්න හෝ Pairing Code එක ලබා ගන්න.
+            </p>
+          </div>
+          <button class="btn-secondary" onclick="closeAddWhatsAppSection()" style="padding:4px 10px;">✕ Close</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- Method 1: Barcode -->
+          <div class="pairing-box" style="margin:0;">
+            <h4 style="font-size:0.95rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+              <span>📷</span> Method 1: Scan Barcode
+            </h4>
+            <p style="font-size:0.76rem;color:var(--text-secondary);margin-bottom:12px;">
+              WhatsApp ➜ Settings (හෝ තිත් 3) ➜ <strong>Linked Devices</strong> ➜ <strong>Link a Device</strong> ඔබා Scan කරන්න:
+            </p>
+            <div id="wa-qr-wrapper" style="display:flex;justify-content:center;align-items:center;min-height:220px;background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;border:1px dashed rgba(255,255,255,0.15);">
+              <div id="wa-qr-loading" style="text-align:center;color:var(--text-muted);font-size:0.82rem;">
+                <div style="font-size:1.6rem;margin-bottom:8px;">⏳</div>
+                Generating genuine WhatsApp QR Code...
+              </div>
+              <img id="wa-qr-img" src="" alt="WhatsApp QR Code" class="hidden" style="width:200px;height:200px;background:#ffffff;border-radius:10px;padding:6px;box-shadow:0 0 25px rgba(0,0,0,0.6);" />
+            </div>
+            <button class="btn-secondary" onclick="restartWhatsAppSession()" style="margin-top:12px;width:100%;padding:8px;font-size:0.78rem;">
+              🔄 Refresh Barcode
             </button>
           </div>
 
-          <div style="background:rgba(0,0,0,0.4);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Official Pairing Code</div>
-            <div id="wa-pairing-code-label" class="code-badge" style="font-size:1.35rem;letter-spacing:0.18em;margin:4px auto 10px;">---- ----</div>
-            <p style="font-size:0.75rem;color:var(--text-secondary);line-height:1.4;">
-              1. WhatsApp ➜ Linked Devices ➜ Link a Device<br>
-              2. යට ඇති <strong>"Link with phone number instead"</strong> තෝරන්න<br>
-              3. ඉහත Code එක Type කරන්න.
+          <!-- Method 2: 8-Digit Pairing Code -->
+          <div class="pairing-box" style="margin:0;">
+            <h4 style="font-size:0.95rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+              <span>🔢</span> Method 2: 8-Digit Pairing Code
+            </h4>
+            <p style="font-size:0.76rem;color:var(--text-secondary);margin-bottom:10px;">
+              Barcode Scan නොකර දුරකථන අංකය ඇතුළත් කර 8-digit Code එක ලබා ගන්න:
             </p>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <input type="text" id="wa-phone-input" class="form-input" placeholder="e.g. 94771234567" style="font-family:'JetBrains Mono';font-size:0.84rem;" />
+              <button class="btn-primary" onclick="requestPairingCode()" style="white-space:nowrap;padding:8px 14px;font-size:0.8rem;">
+                Get Code
+              </button>
+            </div>
+            <div style="background:rgba(0,0,0,0.4);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Official Pairing Code</div>
+              <div id="wa-pairing-code-label" class="code-badge" style="font-size:1.35rem;letter-spacing:0.18em;margin:4px auto 10px;">---- ----</div>
+              <p style="font-size:0.74rem;color:var(--text-secondary);line-height:1.4;">
+                1. WhatsApp ➜ Linked Devices ➜ Link a Device<br>
+                2. <strong>"Link with phone number instead"</strong> තෝරන්න<br>
+                3. ඉහත Code එක Type කරන්න.
+              </p>
+            </div>
           </div>
         </div>
-
       </div>
     </section>
 
@@ -1882,9 +1932,12 @@ async function saveSettings(e) {
   } catch(e) { alert('Error: ' + e.message); }
 }
 
-// ─── Real WhatsApp Multi-Device Web Hub ───────────────────────────────────────
+// ─── Multi-Account WhatsApp Cloud Hub ───────────────────────────────────────
+let activePairingAccountId = 'default';
+
 function startWaPolling() {
   if (waPollTimer) clearInterval(waPollTimer);
+  fetchWhatsAppStatus();
   waPollTimer = setInterval(fetchWhatsAppStatus, 3000);
 }
 
@@ -1897,73 +1950,162 @@ function stopWaPolling() {
 
 async function fetchWhatsAppStatus() {
   try {
-    const res = await fetch('/api/whatsapp/status');
+    const res = await fetch('/api/whatsapp/accounts');
     const data = await res.json();
-    if (!data.ok) return;
+    if (!data.ok || !data.accounts) return;
 
-    const badge = document.getElementById('wa-connection-badge');
-    const statusText = document.getElementById('wa-status-text');
-    const connectedView = document.getElementById('wa-connected-view');
-    const disconnectedView = document.getElementById('wa-disconnected-view');
+    const grid = document.getElementById('wa-accounts-grid');
+    if (!grid) return;
 
-    if (data.connected) {
-      if (badge) {
-        badge.style.background = 'rgba(16,185,129,0.15)';
-        badge.style.color = '#34d399';
-        badge.style.borderColor = 'rgba(16,185,129,0.3)';
-        badge.querySelector('span').style.background = '#34d399';
-      }
-      if (statusText) statusText.textContent = `Connected (${data.phoneNumber || 'Active'})`;
+    if (data.accounts.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:40px;background:rgba(255,255,255,0.02);border-radius:14px;border:1px dashed var(--card-border);">
+          <div style="font-size:2.5rem;margin-bottom:8px;">📱</div>
+          <div style="font-size:1.05rem;font-weight:700;">No WhatsApp Accounts Connected</div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 16px;">Click the button above to connect your first WhatsApp line.</p>
+          <button class="btn-primary" onclick="openAddWhatsAppModal()">➕ Connect First Account</button>
+        </div>`;
+      return;
+    }
 
-      if (connectedView) connectedView.classList.remove('hidden');
-      if (disconnectedView) disconnectedView.classList.add('hidden');
-      const phoneLabel = document.getElementById('wa-connected-phone');
-      if (phoneLabel) phoneLabel.textContent = data.phoneNumber ? ('+' + data.phoneNumber) : 'Active Multi-Device';
-    } else {
-      if (badge) {
-        badge.style.background = 'rgba(239,68,68,0.15)';
-        badge.style.color = '#f87171';
-        badge.style.borderColor = 'rgba(239,68,68,0.3)';
-        badge.querySelector('span').style.background = '#f87171';
-      }
-      if (statusText) statusText.textContent = data.statusText || 'Waiting for Scan';
+    grid.innerHTML = data.accounts.map(acc => {
+      const isConn = acc.connected;
+      const statusColor = isConn ? '#34d399' : (acc.hasQr ? '#fbbf24' : '#f87171');
+      const statusBg = isConn ? 'rgba(16,185,129,0.12)' : (acc.hasQr ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)');
+      const statusBorder = isConn ? 'rgba(16,185,129,0.3)' : (acc.hasQr ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)');
+      const statusLabel = isConn ? `🟢 Connected (+${acc.phoneNumber || ''})` : (acc.hasQr ? '🟡 Ready to Scan' : '🔴 Disconnected');
 
-      if (connectedView) connectedView.classList.add('hidden');
-      if (disconnectedView) disconnectedView.classList.remove('hidden');
+      return `
+        <div style="background:var(--card-bg);border:1px solid ${statusBorder};border-radius:16px;padding:20px;position:relative;backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,0.25);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:1.3rem;">📱</span>
+                <h4 style="font-size:1.02rem;font-weight:700;color:var(--text-primary);margin:0;">${escapeHtml(acc.label || 'WhatsApp Account')}</h4>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono';margin-top:3px;">ID: ${acc.id}</div>
+            </div>
+            <div style="padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${statusBg};color:${statusColor};border:1px solid ${statusBorder};">
+              ${statusLabel}
+            </div>
+          </div>
 
-      const qrImg = document.getElementById('wa-qr-img');
-      const qrLoading = document.getElementById('wa-qr-loading');
+          <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:6px;">
+              <span style="color:var(--text-muted);">Phone Number:</span>
+              <span style="font-weight:700;color:#ffffff;font-family:'JetBrains Mono';">${acc.phoneNumber ? ('+' + acc.phoneNumber) : 'Not Linked Yet'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;">
+              <span style="color:var(--text-muted);">🤖 AI Auto-Reply Bot:</span>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" ${acc.botActive ? 'checked' : ''} onchange="toggleAccountBot('${acc.id}', this.checked)" style="accent-color:#10b981;cursor:pointer;">
+                <span style="font-weight:700;color:${acc.botActive ? '#34d399' : '#94a3b8'};font-size:0.74rem;">${acc.botActive ? 'ACTIVE' : 'PAUSED'}</span>
+              </label>
+            </div>
+          </div>
 
-      if (data.qrDataUrl) {
-        if (qrImg) {
-          qrImg.src = data.qrDataUrl;
-          qrImg.classList.remove('hidden');
-        }
-        if (qrLoading) qrLoading.classList.add('hidden');
-      } else {
-        if (qrImg) qrImg.classList.add('hidden');
-        if (qrLoading) qrLoading.classList.remove('hidden');
-      }
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${isConn ? `
+              <button class="btn-secondary" onclick="logoutAccount('${acc.id}')" style="flex:1;padding:7px 12px;font-size:0.78rem;color:#f87171;border-color:rgba(239,68,68,0.3);">
+                🚪 Disconnect
+              </button>
+            ` : `
+              <button class="btn-primary" onclick="openPairingForAccount('${acc.id}', '${escapeHtml(acc.label)}')" style="flex:1;padding:7px 12px;font-size:0.78rem;">
+                📷 Scan / Pair Code
+              </button>
+            `}
+            ${acc.id !== 'default' ? `
+              <button class="btn-secondary" onclick="deleteAccount('${acc.id}')" style="padding:7px 10px;font-size:0.78rem;color:#f87171;" title="Remove this account">
+                🗑️
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
 
-      if (data.pairingCode) {
-        const pairLabel = document.getElementById('wa-pairing-code-label');
-        if (pairLabel) pairLabel.textContent = data.pairingCode;
-      }
+    // If active pairing account is open, update its QR and code
+    const activeAcc = data.accounts.find(a => a.id === activePairingAccountId);
+    if (activeAcc) {
+      updatePairingModalDisplay(activeAcc);
     }
   } catch(e) { console.error('fetchWhatsAppStatus error:', e); }
+}
+
+function updatePairingModalDisplay(acc) {
+  const qrImg = document.getElementById('wa-qr-img');
+  const qrLoading = document.getElementById('wa-qr-loading');
+  const codeLabel = document.getElementById('wa-pairing-code-label');
+
+  if (acc.qrDataUrl) {
+    if (qrImg) {
+      qrImg.src = acc.qrDataUrl;
+      qrImg.classList.remove('hidden');
+    }
+    if (qrLoading) qrLoading.classList.add('hidden');
+  } else {
+    if (qrImg) qrImg.classList.add('hidden');
+    if (qrLoading) qrLoading.classList.remove('hidden');
+  }
+
+  if (codeLabel && acc.pairingCode) {
+    codeLabel.textContent = acc.pairingCode;
+  }
+}
+
+async function openAddWhatsAppModal() {
+  const label = prompt('නව WhatsApp ගිණුම සඳහා නමක් ඇතුළත් කරන්න (e.g. Sales Team, Branch 2 Kandy, VIP Orders):', 'Sales WhatsApp Line');
+  if (!label) return;
+
+  try {
+    const res = await fetch('/api/whatsapp/accounts/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label })
+    });
+    const data = await res.json();
+    if (data.ok && data.account) {
+      activePairingAccountId = data.account.id;
+      const section = document.getElementById('wa-add-account-section');
+      const title = document.getElementById('wa-pairing-title');
+      if (title) title.innerHTML = `<span>➕</span> Link: <strong>${escapeHtml(label)}</strong>`;
+      if (section) section.classList.remove('hidden');
+      section.scrollIntoView({ behavior: 'smooth' });
+      fetchWhatsAppStatus();
+    } else {
+      alert('Error creating new account session: ' + (data.error || 'Failed'));
+    }
+  } catch(e) {
+    alert('Failed to add account: ' + e.message);
+  }
+}
+
+function openPairingForAccount(accId, label) {
+  activePairingAccountId = accId;
+  const section = document.getElementById('wa-add-account-section');
+  const title = document.getElementById('wa-pairing-title');
+  if (title) title.innerHTML = `<span>📱</span> Pair: <strong>${escapeHtml(label)}</strong>`;
+  if (section) section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth' });
+  fetchWhatsAppStatus();
+}
+
+function closeAddWhatsAppSection() {
+  const section = document.getElementById('wa-add-account-section');
+  if (section) section.classList.add('hidden');
 }
 
 async function requestPairingCode() {
   const phone = document.getElementById('wa-phone-input').value.trim();
   if (!phone) {
-    alert('කරුණාකර රට කේතය (Country code 94) සමඟ දුරකථන අංකය ඇතුළත් කරන්න (උදා: 94762107801)');
+    alert('කරුණාකර රට කේතය (Country code 94) සමඟ දුරකථන අංකය ඇතුළත් කරන්න (උදා: 94771234567)');
     return;
   }
   const label = document.getElementById('wa-pairing-code-label');
   if (label) label.textContent = 'GENERATING...';
 
   try {
-    const res = await fetch('/api/whatsapp/pairing-code', {
+    const res = await fetch(`/api/whatsapp/accounts/${activePairingAccountId}/pairing-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phoneNumber: phone })
@@ -1971,7 +2113,8 @@ async function requestPairingCode() {
     const data = await res.json();
     if (data.ok && data.pairingCode) {
       if (label) label.textContent = data.pairingCode;
-      alert(`✅ Pairing Code Generated: ${data.pairingCode}\n\n1. WhatsApp ➜ Linked Devices ➜ Link a Device\n2. "Link with phone number instead" තෝරා ඉහත Code එක ඇතුළත් කරන්න!`);
+      alert(`✅ Pairing Code: ${data.pairingCode}\n\n1. WhatsApp ➜ Linked Devices ➜ Link a Device\n2. "Link with phone number instead" තෝරා ඉහත 8-Digit Code එක ඇතුළත් කරන්න!`);
+      fetchWhatsAppStatus();
     } else {
       alert('Error: ' + (data.error || 'Failed to request code'));
       if (label) label.textContent = '---- ----';
@@ -1990,16 +2133,146 @@ async function restartWhatsAppSession() {
 
   try {
     await fetch('/api/whatsapp/restart', { method: 'POST' });
-    setTimeout(fetchWhatsAppStatus, 2500);
+    setTimeout(fetchWhatsAppStatus, 2000);
   } catch(e){}
 }
 
-async function logoutWhatsApp() {
-  if (!confirm('ඔබට WhatsApp ගිණුම සර්වර් එකෙන් Disconnect කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?')) return;
+async function logoutAccount(accId) {
+  if (!confirm('ඔබට මෙම WhatsApp ගිණුම Logout කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?')) return;
   try {
-    await fetch('/api/whatsapp/logout', { method: 'POST' });
+    await fetch(`/api/whatsapp/accounts/${accId}/logout`, { method: 'POST' });
     fetchWhatsAppStatus();
-  } catch(e){}
+  } catch(e) { alert(e.message); }
+}
+
+async function deleteAccount(accId) {
+  if (!confirm('මෙම WhatsApp ගිණුම සම්පූර්ණයෙන්ම ඉවත් කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?')) return;
+  try {
+    const res = await fetch(`/api/whatsapp/accounts/${accId}/delete`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      if (activePairingAccountId === accId) closeAddWhatsAppSection();
+      fetchWhatsAppStatus();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) { alert(e.message); }
+}
+
+async function toggleAccountBot(accId, botActive) {
+  try {
+    await fetch(`/api/whatsapp/accounts/${accId}/toggle-bot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botActive })
+    });
+    fetchWhatsAppStatus();
+  } catch(e) { console.error('toggleAccountBot error:', e); }
+}
+
+// ─── Master Dataset File Upload (.TXT & .PDF) ───────────────────────────────
+function handleDatasetDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    processDatasetFile(e.dataTransfer.files[0]);
+  }
+}
+
+function handleDatasetFileUpload(input) {
+  if (input.files && input.files.length > 0) {
+    processDatasetFile(input.files[0]);
+    input.value = ''; // Reset input for reuse
+  }
+}
+
+async function processDatasetFile(file) {
+  const statusDiv = document.getElementById('dataset-upload-status');
+  if (!statusDiv) return;
+
+  const validExts = ['.txt', '.pdf', '.csv', '.md', '.json'];
+  const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+  if (!validExts.includes(ext)) {
+    alert('කරුණාකර .TXT හෝ .PDF ගොනුවක් තෝරන්න (.txt, .pdf, .csv, .md, .json පමණක් සහාය දක්වයි)');
+    return;
+  }
+
+  if (file.size > 25 * 1024 * 1024) {
+    alert('ගොනුවේ ප්‍රමාණය 25MB ට වඩා අඩු විය යුතුය.');
+    return;
+  }
+
+  statusDiv.classList.remove('hidden');
+  statusDiv.style.background = 'rgba(139,92,246,0.12)';
+  statusDiv.style.color = '#c4b5fd';
+  statusDiv.style.border = '1px solid rgba(139,92,246,0.3)';
+  statusDiv.innerHTML = `⏳ Uploading and extracting text from <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB)...`;
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const base64Data = reader.result.split(',')[1];
+      const mode = document.querySelector('input[name="dataset-upload-mode"]:checked')?.value || 'append';
+
+      const res = await fetch('/api/dataset/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type || (ext === '.pdf' ? 'application/pdf' : 'text/plain'),
+          fileBase64: base64Data,
+          mode: mode
+        })
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        statusDiv.style.background = 'rgba(16,185,129,0.15)';
+        statusDiv.style.color = '#34d399';
+        statusDiv.style.border = '1px solid rgba(16,185,129,0.35)';
+        statusDiv.innerHTML = `
+          ✅ <strong>${escapeHtml(data.fileName)}</strong> සාර්ථකව Import විය!<br>
+          📄 <strong>${data.extractedChars.toLocaleString()}</strong> Characters extracted from ${data.isPdf ? 'PDF Document' : 'Text File'}.<br>
+          📚 Total Dataset Size: <strong>${data.totalChars.toLocaleString()}</strong> chars • Gemini AI Knowledge Base Updated!
+        `;
+
+        // Update the textarea with updated dataset
+        const textarea = document.getElementById('form-biz-dataset');
+        if (textarea && data.dataset) {
+          textarea.value = data.dataset;
+        }
+      } else {
+        statusDiv.style.background = 'rgba(239,68,68,0.15)';
+        statusDiv.style.color = '#f87171';
+        statusDiv.style.border = '1px solid rgba(239,68,68,0.35)';
+        statusDiv.innerHTML = `❌ Error: ${escapeHtml(data.error || 'Failed to process document')}`;
+      }
+    } catch(err) {
+      statusDiv.style.background = 'rgba(239,68,68,0.15)';
+      statusDiv.style.color = '#f87171';
+      statusDiv.style.border = '1px solid rgba(239,68,68,0.35)';
+      statusDiv.innerHTML = `❌ Network Error: ${escapeHtml(err.message)}`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function exportCurrentDataset() {
+  const text = document.getElementById('form-biz-dataset').value || '';
+  if (!text) {
+    alert('No dataset content to export.');
+    return;
+  }
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dataset_weddingarts_${Date.now()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 </script>
 </body>

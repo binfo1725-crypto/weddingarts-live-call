@@ -338,6 +338,7 @@ class Database {
       orders: [],      // Pure Real Production: Starts with 0 fake orders
       chats: [],       // Pure Real Production: Starts with 0 fake chats
       broadcasts: [],  // Pure Real Production: Starts with 0 fake campaigns
+      whatsappAccounts: [], // Multi-Account WhatsApp Sessions
       whatsapp: {
         connected: false,
         phoneNumber: null,
@@ -366,6 +367,7 @@ class Database {
           this.data.orders = parsed.orders || [];
           this.data.chats = parsed.chats || [];
           this.data.broadcasts = parsed.broadcasts || [];
+          this.data.whatsappAccounts = parsed.whatsappAccounts || [];
           if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
           if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
         }
@@ -683,6 +685,53 @@ class Database {
     this.data.whatsapp = { ...this.data.whatsapp, ...status };
     this.save();
     return this.data.whatsapp;
+  }
+
+  // ─── Multi-Account WhatsApp Sessions ────────────────────────────────────────
+  getWhatsAppAccounts() {
+    if (!this.data.whatsappAccounts || this.data.whatsappAccounts.length === 0) {
+      // Seed default account from existing paired WhatsApp state
+      this.data.whatsappAccounts = [
+        {
+          id: 'default',
+          label: 'Primary Line (Account 1)',
+          phoneNumber: this.data.whatsapp?.phoneNumber || '94724558042',
+          connected: !!this.data.whatsapp?.connected,
+          botActive: true,
+          businessId: this.getActiveBusiness().id,
+          createdAt: this.data.whatsapp?.pairedAt || new Date().toISOString()
+        }
+      ];
+      this.save();
+    }
+    return this.data.whatsappAccounts;
+  }
+
+  saveWhatsAppAccount(acc) {
+    if (!this.data.whatsappAccounts) this.getWhatsAppAccounts();
+    const idx = this.data.whatsappAccounts.findIndex(a => a.id === acc.id);
+    if (idx >= 0) {
+      this.data.whatsappAccounts[idx] = { ...this.data.whatsappAccounts[idx], ...acc };
+    } else {
+      this.data.whatsappAccounts.push(acc);
+    }
+    this.save();
+    return this.data.whatsappAccounts;
+  }
+
+  deleteWhatsAppAccount(id) {
+    if (!this.data.whatsappAccounts) return;
+    this.data.whatsappAccounts = this.data.whatsappAccounts.filter(a => a.id !== id);
+    this.save();
+    return this.data.whatsappAccounts;
+  }
+
+  // ─── Master Dataset Upload / Update ─────────────────────────────────────────
+  updateBusinessDataset(businessId, newDataset) {
+    const biz = this.getBusiness(businessId) || this.getActiveBusiness();
+    biz.dataset = newDataset;
+    this.saveBusiness(biz);
+    return biz;
   }
 
   recordLiveCall() {
