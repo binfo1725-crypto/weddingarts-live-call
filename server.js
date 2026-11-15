@@ -263,6 +263,17 @@ app.post('/api/admin/delete-key', (req, res) => {
 });
 
 // ─── Client Portal Scoped Store API ──────────────────────────────────────────
+function resolveReqBusinessId(req) {
+  if (req.query && req.query.businessId) return req.query.businessId;
+  if (req.body && req.body.businessId) return req.body.businessId;
+  const key = req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key);
+  if (key) {
+    const lic = db.getLicenseByKey(key);
+    if (lic && lic.businessId) return lic.businessId;
+  }
+  return db.getActiveBusiness().id;
+}
+
 app.get('/api/portal/store', (req, res) => {
   const key = req.headers['x-license-key'] || req.query.key;
   if (!key) return res.status(401).json({ ok: false, error: 'Missing license key header.' });
@@ -297,6 +308,18 @@ app.get('/api/portal/store', (req, res) => {
 
 // Business Profile & Preset Management
 app.get('/api/business', (req, res) => {
+  const key = req.headers['x-license-key'];
+  if (key) {
+    const lic = db.getLicenseByKey(key);
+    if (lic) {
+      const biz = db.getAllBusinesses().find(b => b.id === lic.businessId) || db.getActiveBusiness();
+      return res.json({
+        ok: true,
+        active: biz,
+        businesses: [biz]
+      });
+    }
+  }
   res.json({
     ok: true,
     active: db.getActiveBusiness(),
@@ -311,7 +334,9 @@ app.post('/api/business/select', (req, res) => {
 });
 
 app.post('/api/business/save', (req, res) => {
-  const business = db.saveBusiness(req.body);
+  const bId = req.body.id || resolveReqBusinessId(req);
+  const updatedData = { ...req.body, id: bId };
+  const business = db.saveBusiness(updatedData);
   res.json({ ok: true, business });
 });
 
@@ -348,18 +373,19 @@ app.post('/api/business/delete', (req, res) => {
 
 // Real-time Business Analytics
 app.get('/api/analytics', (req, res) => {
+  const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
-    analytics: db.getAnalytics()
+    analytics: db.getAnalytics(bId)
   });
 });
 
 // Orders Pipeline & Slips
 app.get('/api/orders', (req, res) => {
-  const activeBiz = db.getActiveBusiness();
+  const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
-    orders: db.getOrders(activeBiz.id)
+    orders: db.getOrders(bId)
   });
 });
 
@@ -370,10 +396,10 @@ app.post('/api/orders/status', (req, res) => {
 });
 
 app.post('/api/orders/create', (req, res) => {
-  const activeBiz = db.getActiveBusiness();
+  const bId = req.body.businessId || resolveReqBusinessId(req);
   const order = db.addOrder({
     ...req.body,
-    businessId: activeBiz.id,
+    businessId: bId,
     source: 'Manual Dashboard'
   });
   res.json({ ok: true, order });
@@ -387,12 +413,13 @@ app.post('/api/orders/delete', (req, res) => {
 
 // ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────
 app.get('/api/products', (req, res) => {
-  const activeBiz = db.getActiveBusiness();
-  res.json({ ok: true, products: db.getProducts(activeBiz.id) });
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, products: db.getProducts(bId) });
 });
 
 app.post('/api/products', (req, res) => {
-  const product = db.addProduct(req.body);
+  const bId = req.body.businessId || resolveReqBusinessId(req);
+  const product = db.addProduct({ ...req.body, businessId: bId });
   res.json({ ok: true, product });
 });
 
@@ -410,12 +437,13 @@ app.post('/api/products/delete', (req, res) => {
 
 // ─── Custom Keyword Flows CRUD (From APK) ──────────────────────────────────────
 app.get('/api/flows', (req, res) => {
-  const activeBiz = db.getActiveBusiness();
-  res.json({ ok: true, flows: db.getCustomFlows(activeBiz.id) });
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, flows: db.getCustomFlows(bId) });
 });
 
 app.post('/api/flows', (req, res) => {
-  const flow = db.addCustomFlow(req.body);
+  const bId = req.body.businessId || resolveReqBusinessId(req);
+  const flow = db.addCustomFlow({ ...req.body, businessId: bId });
   res.json({ ok: true, flow });
 });
 
@@ -659,7 +687,8 @@ app.post('/api/dataset/upload', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'The uploaded file is empty or no text could be extracted.' });
     }
 
-    const activeBiz = db.getActiveBusiness();
+    const bId = req.body.businessId || resolveReqBusinessId(req);
+    const activeBiz = db.getAllBusinesses().find(b => b.id === bId) || db.getActiveBusiness();
     const isAppend = mode === 'append';
     const header = `=== UPLOADED KNOWLEDGE [${fileName || 'Document'}] ===\n`;
 

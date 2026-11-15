@@ -1,705 +1,2436 @@
 <!DOCTYPE html>
 <html lang="si">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OmniSix AI • Client Store Portal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-page: #F8FAFC;
-      --card-bg: #FFFFFF;
-      --card-border: #E2E8F0;
-      --text-primary: #0F172A;
-      --text-secondary: #475569;
-      --text-muted: #94A3B8;
-      --accent-emerald: #059669;
-      --accent-emerald-light: #ECFDF5;
-      --accent-emerald-border: #A7F3D0;
-      --accent-blue: #2563EB;
-      --accent-amber: #D97706;
-      --accent-red: #DC2626;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08);
-      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>OmniSix AI — Executive Cloud Omnichannel Dashboard</title>
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
-    body {
-      background-color: var(--bg-page);
-      color: var(--text-primary);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-    /* Top Navbar */
-    .topbar {
-      height: 70px;
-      background: #FFFFFF;
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
+  :root {
+    --bg-page: #f8fafc;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    --card-border-subtle: #f1f5f9;
+    --accent-emerald: #059669;
+    --accent-emerald-hover: #047857;
+    --accent-emerald-light: #ecfdf5;
+    --accent-emerald-border: #a7f3d0;
+    --accent-blue: #2563eb;
+    --accent-blue-hover: #1d4ed8;
+    --accent-blue-light: #eff6ff;
+    --accent-blue-border: #bfdbfe;
+    --accent-purple: #7c3aed;
+    --accent-purple-light: #f5f3ff;
+    --accent-amber: #d97706;
+    --accent-amber-light: #fffbeb;
+    --accent-rose: #dc2626;
+    --accent-rose-light: #fef2f2;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-subtle: #94a3b8;
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+    --gradient-brand: linear-gradient(135deg, #059669 0%, #2563eb 100%);
+  }
 
-    .brand-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
 
-    .brand-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 800;
-      font-size: 1.15rem;
-      color: var(--text-primary);
-    }
+  /* Top Navigation Bar */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #ffffff;
+    border-bottom: 1px solid var(--card-border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: var(--shadow-sm);
+  }
 
-    .brand-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--accent-emerald);
-      color: #fff;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-    }
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
 
-    .store-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      background: #F1F5F9;
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-    }
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+  }
+  .brand-logo svg {
+    width: 28px;
+    height: 28px;
+    fill: url(#brandGrad);
+  }
+  .brand-logo span span {
+    color: var(--accent-emerald);
+  }
 
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+  .biz-switcher-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f5f9;
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 4px 10px 4px 14px;
+  }
+  .biz-switcher-wrap label {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .biz-select {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    outline: none;
+    cursor: pointer;
+  }
+  .biz-select option {
+    background: #ffffff;
+    color: var(--text-primary);
+  }
 
-    .license-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      background: var(--accent-emerald-light);
-      border: 1px solid var(--accent-emerald-border);
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--accent-emerald);
-    }
+  .btn-add-store {
+    background: #ffffff;
+    border: 1px solid var(--accent-emerald-border);
+    color: var(--accent-emerald);
+    border-radius: 14px;
+    padding: 3px 10px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .btn-add-store:hover {
+    background: var(--accent-emerald-light);
+  }
 
-    .btn-logout {
-      padding: 7px 14px;
-      background: #F1F5F9;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      cursor: pointer;
-    }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
 
-    .btn-logout:hover {
-      background: #E2E8F0;
-      color: var(--accent-red);
-    }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-emerald-light);
+    border: 1px solid var(--accent-emerald-border);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #065f46;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-emerald);
+    box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+    animation: pulse 2s infinite;
+  }
 
-    /* Layout */
-    .app-layout {
-      display: flex;
-      flex: 1;
-    }
+  .btn-test-call {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--gradient-brand);
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 7px 16px;
+    border-radius: 20px;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-test-call:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+  }
 
-    .sidebar {
-      width: 250px;
-      background: #FFFFFF;
-      border-right: 1px solid var(--card-border);
-      padding: 20px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
 
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      color: var(--text-secondary);
-      font-size: 0.86rem;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
+  /* Main Layout */
+  .dashboard-container {
+    display: flex;
+    flex: 1;
+    z-index: 10;
+    position: relative;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px 24px;
+    gap: 20px;
+  }
 
-    .nav-item:hover {
-      background: #F8FAFC;
-      color: var(--text-primary);
-    }
+  /* Sidebar Navigation */
+  .sidebar {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px 10px;
+    box-shadow: var(--shadow-sm);
+    height: fit-content;
+  }
 
-    .nav-item.active {
-      background: var(--accent-emerald-light);
-      color: var(--accent-emerald);
-      font-weight: 700;
-    }
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    width: 100%;
+  }
+  .tab-btn:hover {
+    background: #f8fafc;
+    color: var(--text-primary);
+  }
+  .tab-btn.active {
+    background: var(--accent-emerald-light);
+    border-color: var(--accent-emerald-border);
+    color: #065f46;
+    font-weight: 700;
+  }
+  .tab-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
 
-    .main-content {
-      flex: 1;
-      padding: 28px 32px;
-      overflow-y: auto;
-    }
+  /* Main Content Area */
+  .main-stage {
+    flex: 1;
+    min-width: 0;
+  }
 
-    .glass-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 18px;
-      padding: 24px;
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 24px;
-    }
+  .glass-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
 
-    .card-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.25rem;
-      font-weight: 800;
-      margin-bottom: 6px;
-    }
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .metric-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .metric-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 8px 0 4px;
+  }
+  .metric-subtitle {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+  }
 
-    .card-sub {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      margin-bottom: 20px;
-    }
+  /* Tables & Lists */
+  .table-responsive {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background: #ffffff;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+    text-align: left;
+  }
+  thead {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--card-border);
+  }
+  th {
+    padding: 12px 16px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-secondary);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
 
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
+  /* Badges & Status Pills */
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .status-tag.pending { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .status-tag.slip { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
+  .status-tag.confirmed { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .status-tag.production { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+  .status-tag.dispatched { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .status-tag.delivered { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+  .status-tag.cancelled { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
-    .stat-card {
-      background: #FFFFFF;
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: var(--shadow-sm);
-    }
+  /* Archetype Pill */
+  .arch-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    color: var(--text-secondary);
+    border: 1px solid var(--card-border);
+  }
 
-    .stat-label {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+  /* Chat Box Layout (Charm White APK Style) */
+  .chat-layout {
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    height: 640px;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: var(--shadow-sm);
+  }
+  .chat-list {
+    background: #f8fafc;
+    border-right: 1px solid var(--card-border);
+    overflow-y: auto;
+  }
+  .chat-item {
+    padding: 13px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .chat-item:hover { background: #f1f5f9; }
+  .chat-item.active {
+    background: #ffffff;
+    border-left: 4px solid var(--accent-emerald);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent-emerald-light);
+    color: var(--accent-emerald);
+    border: 1px solid var(--accent-emerald-border);
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .chat-item-name { font-weight: 700; font-size: 0.86rem; color: var(--text-primary); margin-bottom: 2px; }
+  .chat-item-last { font-size: 0.74rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .stat-value {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.85rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      margin-top: 6px;
-    }
+  .chat-main {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+  }
+  .chat-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f8fafc;
+  }
+  .msg-bubble {
+    max-width: 75%;
+    padding: 11px 16px;
+    border-radius: 16px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .msg-bubble.customer {
+    align-self: flex-start;
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+    box-shadow: var(--shadow-sm);
+  }
+  .msg-bubble.ai {
+    align-self: flex-end;
+    background: var(--accent-emerald-light);
+    border: 1px solid var(--accent-emerald-border);
+    color: #064e3b;
+    border-bottom-right-radius: 4px;
+  }
+  .msg-bubble.agent {
+    align-self: flex-end;
+    background: var(--accent-blue-light);
+    border: 1px solid var(--accent-blue-border);
+    color: #1e3a8a;
+    border-bottom-right-radius: 4px;
+  }
 
-    /* Tables */
-    .table-container {
-      overflow-x: auto;
-    }
+  .chat-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+  }
+  .chat-input {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 10px 18px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .chat-input:focus {
+    border-color: var(--accent-emerald);
+  }
+  .chat-send-btn {
+    background: var(--accent-emerald);
+    border: none;
+    border-radius: 999px;
+    padding: 10px 22px;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .chat-send-btn:hover {
+    background: var(--accent-emerald-hover);
+  }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.85rem;
-    }
+  /* Form Controls */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .form-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .form-input, .form-textarea, .form-select {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    border-color: var(--accent-emerald);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  }
+  .form-select option {
+    background: #ffffff;
+    color: var(--text-primary);
+  }
+  .form-textarea {
+    min-height: 140px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
 
-    th {
-      padding: 12px 14px;
-      background: #F8FAFC;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--card-border);
-    }
+  .btn-primary {
+    background: var(--gradient-brand);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-primary:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+  }
 
-    td {
-      padding: 12px 14px;
-      border-bottom: 1px solid #F1F5F9;
-      color: var(--text-secondary);
-    }
+  .btn-secondary {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 18px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.84rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-secondary:hover {
+    background: #f8fafc;
+  }
 
-    /* Forms */
-    .form-group {
-      margin-bottom: 16px;
-    }
+  .btn-danger {
+    background: var(--accent-rose-light);
+    border: 1px solid #fecaca;
+    color: var(--accent-rose);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-danger:hover {
+    background: #fee2e2;
+  }
 
-    .form-label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
+  /* Clean Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+  .empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
 
-    .form-input, .form-textarea, .form-select {
-      width: 100%;
-      padding: 10px 14px;
-      font-family: inherit;
-      font-size: 0.88rem;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      outline: none;
-      background: #F8FAFC;
-    }
+  .code-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    background: var(--accent-emerald-light);
+    color: #065f46;
+    padding: 8px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--accent-emerald-border);
+    margin: 10px 0;
+    display: inline-block;
+  }
 
-    .form-input:focus, .form-textarea:focus {
-      border-color: var(--accent-emerald);
-      background: #fff;
-    }
+  .hidden { display: none !important; }
 
-    .btn-primary {
-      padding: 10px 18px;
-      background: var(--accent-emerald);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
+  /* Modals (Charm White) */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 540px;
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+  }
 
-    .btn-primary:hover {
-      background: #047857;
-    }
-
-    .hidden { display: none !important; }
-  </style>
+  @media (max-width: 960px) {
+    .dashboard-container { flex-direction: column; padding: 12px; }
+    .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding-bottom: 8px; }
+    .chat-layout { grid-template-columns: 1fr; height: auto; }
+  }
+</style>
 </head>
 <body>
 
-  <!-- Topbar -->
-  <header class="topbar">
-    <div class="brand-group">
-      <div class="brand-badge">
-        <div class="brand-icon">🤖</div>
-        <span>OmniSix Portal</span>
-      </div>
-      <div class="store-pill">
-        🏪 <span id="top-store-name">Loading Store...</span>
-      </div>
+<svg style="display:none;">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- Top Navbar -->
+<header class="navbar">
+  <div class="nav-left">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span>OMNISIX <span>PORTAL</span></span>
     </div>
 
-    <div class="top-actions">
-      <div id="top-plan-pill" class="license-pill">
-        ⚡ Checking License...
-      </div>
-      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    <!-- Client Store Badge (Scoped by License) -->
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:6px 14px;font-size:13px;font-weight:700;color:#fff;">
+      <span style="font-size:16px;">🏪</span>
+      <span id="portal-store-name">Connecting Store...</span>
     </div>
-  </header>
-
-  <!-- App Layout -->
-  <div class="app-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="nav-item active" onclick="switchTab('overview')">📊 Overview</div>
-      <div class="nav-item" onclick="switchTab('whatsapp')">📱 WhatsApp Web Hub</div>
-      <div class="nav-item" onclick="switchTab('dataset')">📄 Business & Dataset</div>
-      <div class="nav-item" onclick="switchTab('products')">🛍️ Products & Pricing</div>
-      <div class="nav-item" onclick="switchTab('flows')">⚡ Custom Keyword Flows</div>
-      <div class="nav-item" onclick="switchTab('orders')">📦 Orders & Slips</div>
-      <div class="nav-item" onclick="switchTab('chats')">💬 Live Chat Inbox</div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-
-      <!-- 1. OVERVIEW -->
-      <section id="tab-overview">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Orders</div>
-            <div id="stat-orders" class="stat-value">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Revenue (LKR)</div>
-            <div id="stat-revenue" class="stat-value">Rs. 0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Live Chats</div>
-            <div id="stat-chats" class="stat-value">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Catalog Products</div>
-            <div id="stat-products" class="stat-value">0</div>
-          </div>
-        </div>
-
-        <div class="glass-card">
-          <h2 class="card-title">Recent Store Inquiries & Orders</h2>
-          <p class="card-sub">ඔබේ ව්‍යාපාරයට ලැබුණු නවතම ඇණවුම් සහ පණිවිඩ.</p>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Item</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="overview-orders-tbody">
-                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">No orders recorded yet.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- 2. WHATSAPP WEB HUB -->
-      <section id="tab-whatsapp" class="hidden">
-        <div class="glass-card">
-          <h2 class="card-title">📱 WhatsApp Cloud Multi-Device Hub</h2>
-          <p class="card-sub">ඔබේ WhatsApp ගිණුම සම්බන්ධ කර Cloud AI 24/7 Autopilot සක්‍රිය කරන්න.</p>
-          <div style="background:#F8FAFC;border:1px dashed var(--card-border);border-radius:14px;padding:32px;text-align:center;">
-            <div style="font-size:3rem;margin-bottom:12px;">📲</div>
-            <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">WhatsApp Cloud AI Connection</h3>
-            <p style="font-size:0.85rem;color:var(--text-secondary);max-width:440px;margin:0 auto 20px;">
-              දුරකථනය Off කර තිබුණත් Server එක තුළින්ම ඔබේ පාරිභෝගිකයින්ට ස්වයංක්‍රීයව පිළිතුරු සැපයේ.
-            </p>
-            <div id="wa-connection-status" style="font-weight:700;color:var(--accent-emerald);margin-bottom:16px;">
-              🟢 WhatsApp Cloud AI Connected & Live (24/7 Active)
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 3. BUSINESS & DATASET -->
-      <section id="tab-dataset" class="hidden">
-        <div class="glass-card">
-          <h2 class="card-title">📄 Store Profile & Master Dataset Upload</h2>
-          <p class="card-sub">ඔබේ සම්පූර්ණ මිල ලැයිස්තුව, නීති රීති, බැංකු ගිණුම් ඇතුළත් .TXT හෝ .PDF ගොනුවක් Upload කරන්න.</p>
-
-          <div style="border:2px dashed var(--card-border);border-radius:12px;padding:28px;text-align:center;background:#F8FAFC;margin-bottom:20px;">
-            <input type="file" id="portal-file-input" accept=".txt,.pdf" style="display:none;" onchange="handleFileUpload(event)">
-            <button class="btn-primary" onclick="document.getElementById('portal-file-input').click()">
-              📤 Upload Master Dataset (.TXT or .PDF)
-            </button>
-            <p style="font-size:0.78rem;color:var(--text-muted);margin-top:8px;">AI මොළය ඔබේ නිල ලියවිල්ල කියවා ක්ෂණිකව පුහුණු වේ.</p>
-          </div>
-
-          <form onsubmit="saveStoreProfile(event)">
-            <div class="form-group">
-              <label class="form-label">Store / Business Name</label>
-              <input type="text" id="biz-name" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Contact / WhatsApp Phone Number</label>
-              <input type="text" id="biz-phone" class="form-input">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bank Details (ගෙවීම් තොරතුරු)</label>
-              <input type="text" id="biz-bank" class="form-input" placeholder="Bank: BOC | Account: 123456 | Name: ...">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Master Dataset Content (ස්වයංක්‍රීයව කියවන තොරතුරු)</label>
-              <textarea id="biz-dataset" class="form-textarea" rows="8"></textarea>
-            </div>
-            <button type="submit" class="btn-primary">💾 Save Profile & Knowledge Base</button>
-          </form>
-        </div>
-      </section>
-
-      <!-- 4. PRODUCTS -->
-      <section id="tab-products" class="hidden">
-        <div class="glass-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <div>
-              <h2 class="card-title">🛍️ Products & Pricing Catalog</h2>
-              <p class="card-sub" style="margin-bottom:0;">ඔබේ වෙළඳසැලේ භාණ්ඩ සහ සේවා මිල ගණන්.</p>
-            </div>
-            <button class="btn-primary" onclick="openAddProductPrompt()">➕ Add Product</button>
-          </div>
-
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>Category</th>
-                  <th>Selling Price</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="portal-products-tbody">
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">No products added yet. Click "➕ Add Product" above.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- 5. FLOWS -->
-      <section id="tab-flows" class="hidden">
-        <div class="glass-card">
-          <h2 class="card-title">⚡ Custom Keyword Flows</h2>
-          <p class="card-sub">පාරිභෝගිකයින් අසන විශේෂිත වචන සඳහා ස්වයංක්‍රීය පිළිතුරු.</p>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Keyword Trigger</th>
-                  <th>Auto-Reply Message</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="portal-flows-tbody">
-                <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">No custom keyword flows configured yet.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- 6. ORDERS -->
-      <section id="tab-orders" class="hidden">
-        <div class="glass-card">
-          <h2 class="card-title">📦 Orders & Slips Pipeline</h2>
-          <p class="card-sub">WhatsApp මගින් පාරිභෝගිකයින් ලබා දුන් සියලුම ඇණවුම් සහ ලැබුණු බැංකු Slip පත්.</p>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Item</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="portal-orders-tbody">
-                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">No orders recorded yet.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- 7. CHATS -->
-      <section id="tab-chats" class="hidden">
-        <div class="glass-card">
-          <h2 class="card-title">💬 Live WhatsApp Chat Inbox</h2>
-          <p class="card-sub">පාරිභෝගිකයින් සමග AI සිදු කරන සජීවී කතාබස් නිරීක්ෂණය කරන්න.</p>
-          <div id="portal-chats-list" style="padding:20px;text-align:center;color:var(--text-muted);">
-            No active chats yet. Once customers message your WhatsApp, chats will appear here in real time.
-          </div>
-        </div>
-      </section>
-
-    </main>
   </div>
 
-  <script>
-    const licenseKey = localStorage.getItem('omnisix_license_key');
-    if (!licenseKey) {
-      window.location.href = '/login';
+  <div class="nav-right">
+    <div class="status-pill" id="portal-plan-badge" style="background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.3);color:#34d399;">
+      <span style="font-size:13px;">⚡</span>
+      <span id="portal-plan-text" style="font-weight:700;">Loading Plan...</span>
+    </div>
+
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span id="nav-cloud-status">Cloud Server 24/7 Active</span>
+    </div>
+
+    <a href="/call" target="_blank" class="btn-test-call">
+      <svg style="width:16px;height:16px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+      Live Voice Call පරීක්ෂා කරන්න
+    </a>
+
+    <button onclick="portalLogout()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:7px 14px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'">
+      🚪 Sign Out
+    </button>
+  </div>
+</header>
+
+<!-- Main Container -->
+<div class="dashboard-container">
+
+  <!-- Sidebar Navigation Tabs -->
+  <aside class="sidebar">
+    <button class="tab-btn active" onclick="showTab('overview')">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Overview
+    </button>
+    <button class="tab-btn" onclick="showTab('inbox')">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      Live Chat Inbox
+    </button>
+    <button class="tab-btn" onclick="showTab('orders')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+      Orders & Slips
+    </button>
+    <button class="tab-btn" onclick="showTab('products')">
+      <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z M3 13.5h18v7H3z"/></svg>
+      Products Catalog
+    </button>
+    <button class="tab-btn" onclick="showTab('flows')">
+      <svg viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+      Custom Flows
+    </button>
+    <button class="tab-btn" onclick="showTab('broadcast')">
+      <svg viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4z"/></svg>
+      Broadcast Marketing
+    </button>
+    <button class="tab-btn" onclick="showTab('business')">
+      <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+      Business & Dataset
+    </button>
+    <button class="tab-btn" onclick="showTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      AI Settings & Persona
+    </button>
+    <button class="tab-btn" onclick="showTab('whatsapp')">
+      <svg viewBox="0 0 24 24"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.99-1.38-.99-2.63 0-1.25.61-1.86.82-2.11.21-.25.46-.31.62-.31.15 0 .31.01.44.02.14.01.32-.05.5.39.19.46.65 1.67.71 1.79.06.12.1.26.02.42-.08.16-.12.26-.24.4-.12.14-.25.31-.36.42-.12.12-.24.25-.1.5.14.25.64 1.08 1.37 1.75.94.86 1.73 1.12 1.98 1.25.25.12.39.11.54-.06.15-.17.65-.76.82-1.02.17-.26.34-.22.58-.13zM12 2a10 10 0 0 0-10 10c0 1.77.46 3.45 1.28 4.92L2 22l5.25-1.25A9.97 9.97 0 0 0 12 22a10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>
+      WhatsApp Web Hub
+    </button>
+    
+  </aside>
+
+  <!-- Content Sections -->
+  <main class="main-stage">
+
+    <!-- 1. OVERVIEW TAB -->
+    <section id="tab-overview" class="glass-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;">Executive Business Overview</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);margin-top:4px;">සජීවී ආදායම, Orders සහ Gemini AI තත්ත්වය තත්‍ය කාලීනව (Real-time)</p>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Active Store:</span>
+          <div style="font-size:1.15rem;font-weight:800;color:var(--accent-emerald);" id="metric-store-name">WEDDING ARTS</div>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Actual Revenue</div>
+          <div class="metric-value" style="color:var(--accent-emerald);">Rs. <span id="metric-revenue">0</span></div>
+          <div class="metric-subtitle">From verified & confirmed orders</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Total Orders</div>
+          <div class="metric-value" id="metric-orders">0</div>
+          <div class="metric-subtitle">WhatsApp & Voice Call pipeline</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Customer Leads</div>
+          <div class="metric-value" id="metric-leads">0</div>
+          <div class="metric-subtitle">Active customer conversations</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Live Voice Calls</div>
+          <div class="metric-value" style="color:var(--accent-purple);" id="metric-calls">0</div>
+          <div class="metric-subtitle">Gemini Live Leda Voice Active</div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="openAddOrderModal()">➕ Record New Order</button>
+        <button class="btn-secondary" onclick="showTab('products')">🛍️ Manage Products</button>
+        <button class="btn-secondary" onclick="showTab('flows')">⚡ Custom Keyword Flows</button>
+        <button class="btn-secondary" onclick="showTab('whatsapp')">📱 WhatsApp Connection</button>
+      </div>
+
+      <!-- Recent Orders Stream -->
+      <div>
+        <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:12px;">Recent Orders Pipeline</h3>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Item / Service</th>
+                <th>Amount</th>
+                <th>Source</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="overview-orders-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="overview-empty-state" class="empty-state hidden">
+          <div class="empty-state-icon">📦</div>
+          <div>No orders recorded yet.</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Incoming orders from Live Voice Calls and WhatsApp will appear here automatically.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. INBOX TAB (Omnichannel Live Chat) -->
+    <section id="tab-inbox" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Omnichannel Live Inbox</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">WhatsApp සහ Voice Call පාරිභෝගික සංවාද සජීවීව බලාගන්න සහ මැදිහත් වන්න (Human Takeover)</p>
+        </div>
+      </div>
+
+      <div class="chat-layout">
+        <div class="chat-list" id="inbox-chat-list">
+          <!-- Injected via JS -->
+        </div>
+
+        <div class="chat-main">
+          <div class="chat-header">
+            <div>
+              <div style="font-weight:700;font-size:0.92rem;" id="chat-active-name">Select a conversation</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);" id="chat-active-phone">-</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span id="chat-active-archetype" class="arch-pill hidden"></span>
+              <button id="btn-takeover-toggle" onclick="toggleHumanTakeover()" class="btn-secondary" style="font-size:0.75rem;padding:6px 12px;">
+                🛑 Human Takeover (Mute AI)
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-messages" id="chat-messages-box">
+            <div class="empty-state" style="margin:auto;">
+              <div class="empty-state-icon">💬</div>
+              <div>Select a chat from the left panel to inspect messages</div>
+            </div>
+          </div>
+
+          <div class="chat-footer">
+            <input type="text" class="chat-input" id="chat-reply-input" placeholder="Type agent reply directly to WhatsApp..." onkeydown="if(event.key==='Enter') sendAgentReply()">
+            <button class="chat-send-btn" onclick="sendAgentReply()">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ORDERS PIPELINE TAB -->
+    <section id="tab-orders" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Orders & Slips Pipeline</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">පාරිභෝගික ඇණවුම්, බැංකු රිසිට්පත් (Slips) සහ Delivery Dispatch කළමනාකරණය</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-primary" onclick="openAddOrderModal()">➕ Add New Order</button>
+          <button class="btn-secondary" onclick="exportOrdersToSheets()">📊 Export to CSV / Sheets</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>Item / Service</th>
+              <th>Amount</th>
+              <th>Address / Notes</th>
+              <th>Tracking #</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="full-orders-tbody">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+      <div id="orders-empty-state" class="empty-state hidden">
+        <div class="empty-state-icon">📦</div>
+        <div>No orders recorded yet.</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">When customers confirm orders on live call or WhatsApp, they will appear here in real-time.</div>
+      </div>
+    </section>
+
+    <!-- 4. PRODUCTS CATALOG TAB (From APK) -->
+    <section id="tab-products" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Products & Pricing Catalog</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">ව්‍යාපාරයේ සියලුම භාණ්ඩ, සේවා, මිල ගණන් සහ Minimum Floor Prices</p>
+        </div>
+        <button class="btn-primary" onclick="openAddProductModal()">➕ Add New Product</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Category</th>
+              <th>Retail Price</th>
+              <th>Cost Price</th>
+              <th>Floor Price (Bargain Limit)</th>
+              <th>Stock Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. CUSTOM KEYWORD FLOWS TAB (From APK) -->
+    <section id="tab-flows" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Automated Custom Keyword Flows</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">පාරිභෝගිකයා යම් Keyword එකක් එවන විට (උදා: bank, delivery, location) ස්වයංක්‍රීයව ලැබෙන පිළිතුරු</p>
+        </div>
+        <button class="btn-primary" onclick="openAddFlowModal()">➕ Add Custom Flow</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Trigger Keyword</th>
+              <th>Match Type</th>
+              <th>Automated Response</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="flows-tbody">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. BROADCAST MARKETING TAB -->
+    <section id="tab-broadcast" class="glass-card hidden">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">Safe Broadcast Marketing Campaigns</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+        WhatsApp Anti-Ban Spacing තාක්ෂණය මඟින් (තත්පර 3-5 ක පරතරයක් සහිතව) පාරිභෝගිකයන් වෙත පණිවිඩ යවන්න.
+      </p>
+
+      <form id="broadcast-form" onsubmit="sendBroadcastCampaign(event)">
+        <div class="form-group">
+          <label class="form-label">Campaign Title (දීමනාවේ නම)</label>
+          <input type="text" id="bc-title" class="form-input" placeholder="උදා: New Year 15% OFF UV Frames" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Target Audience (ඉලක්කගත පාරිභෝගිකයන්)</label>
+          <select id="bc-audience" class="form-select">
+            <option value="All Customers">All Customer Contacts</option>
+            <option value="Past Buyers">Past Confirmed Buyers</option>
+            <option value="Pending Payment">Pending Inquiries & Leads</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Promotional Message (පණිවිඩය)</label>
+          <textarea id="bc-message" class="form-textarea" placeholder="විශේෂ මංගල වාරයේ දීමනාව! 16x24 UV Frames සඳහා නොමිලේ දිවයින පුරා බෙදාහැරීම. අදම ඇණවුම් කරන්න!" required></textarea>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-top:20px;">
+          <button type="submit" class="btn-primary">🚀 Launch Safe Broadcast Campaign</button>
+          <span style="font-size:0.75rem;color:var(--text-muted);">🛡️ Anti-ban jittered rate limiter enabled</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- 7. BUSINESS & MASTER DATASET TAB -->
+    <section id="tab-business" class="glass-card hidden">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">Business Profile & Master Dataset</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+        ව්‍යාපාරයේ නම, දුරකථන අංක, බැංකු ගිණුම් විස්තර සහ Master Dataset එක මෙතැනින් සංස්කරණය කරන්න.
+      </p>
+
+      <form id="business-form" onsubmit="saveBusinessProfile(event)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Store / Business Name</label>
+            <input type="text" id="form-biz-name" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select id="form-biz-category" class="form-select">
+              <option value="studio">Photography & UV Frames Studio</option>
+              <option value="fashion">Fashion & Clothing Boutique</option>
+              <option value="food">Bakery, Cake & Restaurant</option>
+              <option value="electronics">Electronics, Gadgets & Mobile</option>
+              <option value="salon">Salon, Beauty & Spa</option>
+              <option value="other">Other Custom Business</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Owner WhatsApp Number</label>
+            <input type="text" id="form-biz-phone" class="form-input" placeholder="076 210 7801">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Delivery Policy</label>
+            <input type="text" id="form-biz-delivery" class="form-input" placeholder="Islandwide Courier 2-3 days">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Bank Account Details (පාරිභෝගිකයාට ලැබෙන ගිණුම් විස්තර)</label>
+          <input type="text" id="form-biz-bank" class="form-input" placeholder="Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha">
+        </div>
+
+        <!-- Master Dataset File Upload (.TXT & .PDF) -->
+        <div style="background:var(--accent-emerald-light);border:1px dashed var(--accent-emerald-border);border-radius:16px;padding:20px;margin:20px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="font-size:1.02rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#065f46;">
+                <span>📄</span> Upload Master Dataset File (.TXT or .PDF)
+              </h3>
+              <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+                ඔබගේ Price List, Products Catalog, හෝ Business Profile <strong>.TXT හෝ .PDF</strong> document එක මෙතැනට Upload කරන්න.
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-secondary" onclick="exportCurrentDataset()" style="font-size:0.78rem;padding:6px 14px;">
+                📥 Download Current Dataset (.txt)
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;background:#ffffff;padding:10px 14px;border-radius:10px;border:1px solid var(--card-border);">
+            <span style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Upload Mode:</span>
+            <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-primary);">
+              <input type="radio" name="dataset-upload-mode" value="append" checked style="accent-color:var(--accent-emerald);">
+              <span>➕ Append (දැනට ඇති දත්ත වලට එකතු කරන්න)</span>
+            </label>
+            <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-primary);">
+              <input type="radio" name="dataset-upload-mode" value="replace" style="accent-color:var(--accent-emerald);">
+              <span>🔄 Replace (පැරණි දත්ත ඉවත් කර අලුත් file එකෙන් Replace කරන්න)</span>
+            </label>
+          </div>
+
+          <div id="dataset-dropzone" style="border:2px dashed #cbd5e1;border-radius:12px;padding:26px;text-align:center;cursor:pointer;background:#ffffff;transition:all 0.2s;" onclick="document.getElementById('dataset-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent-emerald)';" ondragleave="this.style.borderColor='#cbd5e1';" ondrop="handleDatasetDrop(event)">
+            <input type="file" id="dataset-file-input" accept=".txt,.pdf,.csv,.md,.json" style="display:none;" onchange="handleDatasetFileUpload(this)" />
+            <div style="font-size:2.2rem;margin-bottom:6px;">📤</div>
+            <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
+              Click to Browse or Drag & Drop File (.TXT or .PDF)
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);">
+              Supports <strong>.PDF</strong>, <strong>.TXT</strong>, .CSV, .MD • High-speed text extraction directly into Gemini AI memory
+            </div>
+          </div>
+
+          <div id="dataset-upload-status" class="hidden" style="margin-top:14px;padding:12px 16px;border-radius:10px;font-size:0.84rem;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Official Master Dataset Text (සංස්කරණය කළ හැකි දත්ත ගබඩාව)</label>
+          <textarea id="form-biz-dataset" class="form-textarea" style="min-height:220px;"></textarea>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;flex-wrap:wrap;gap:12px;">
+          <button type="submit" class="btn-primary" style="padding:10px 24px;">💾 Save Profile & Update AI Engine</button>
+          
+        </div>
+      </form>
+    </section>
+
+    <!-- 8. AI SETTINGS & PERSONA TAB (From APK) -->
+    <section id="tab-settings" class="glass-card hidden">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">AI Personality & Operations Settings</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+        OmniSix AI හඬ, ආමන්ත්‍රණ විලාසය (Persona), සහ කාර්යාල වේලාවන් සකසන්න.
+      </p>
+
+      <form id="settings-form" onsubmit="saveSettings(event)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">AI Assistant Name</label>
+            <input type="text" id="setting-ai-name" class="form-input" value="Nethmi (OmniSix AI)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">AI Behavioral Persona</label>
+            <select id="setting-ai-persona" class="form-select">
+              <option value="FRIENDLY_CUSTOMER_CARE">Friendly Customer Care (ස්වභාවික මිත්‍රශීලී)</option>
+              <option value="LUXURY_EXECUTIVE">Luxury Executive Concierge (උසස් ගෞරවනීය)</option>
+              <option value="ENERGETIC_SALES">Energetic Sales Representative (ක්‍රියාකාරී අලෙවිකරණ)</option>
+              <option value="DIRECT_CRISP">Direct & Crisp Specialist (කෙටි හා පැහැදිලි)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Voice Profile</label>
+            <select id="setting-voice-profile" class="form-select">
+              <option value="Leda">Google Gemini Leda HD (Warm Female)</option>
+              <option value="Aoede">Google Gemini Aoede (Breezy Professional)</option>
+              <option value="Kore">Google Gemini Kore (Firm & Calm)</option>
+              <option value="Puck">Google Gemini Puck (Youthful & Energetic)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Human Takeover AI Mute Duration</label>
+            <select id="setting-mute-duration" class="form-select">
+              <option value="15">15 Minutes</option>
+              <option value="30" selected>30 Minutes</option>
+              <option value="60">1 Hour</option>
+              <option value="120">2 Hours</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:10px;">
+          <label class="form-label">Closed Hours Auto-Reply Message (වැඩ කරන වේලාවෙන් පසු ලැබෙන පණිවිඩය)</label>
+          <textarea id="setting-closed-msg" class="form-textarea" style="min-height:90px;"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top:10px;">💾 Save AI Settings</button>
+      </form>
+    </section>
+
+    <!-- 9. WHATSAPP MULTI-DEVICE & MULTI-ACCOUNT HUB -->
+    <section id="tab-whatsapp" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span>📱</span> WhatsApp Cloud Multi-Account Hub
+          </h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">
+            WhatsApp ගිණුම් කිහිපයක් (Multi-Accounts) එකවර සම්බන්ධ කර කළමනාකරණය කරන්න. Phone Off වුවද Cloud AI 24/7 ක්‍රියාත්මක වේ.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="openAddWhatsAppModal()" style="display:flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 18px;">
+            <span>➕</span> Connect New WhatsApp Account
+          </button>
+          <button class="btn-secondary" onclick="fetchWhatsAppStatus()" style="font-size:0.84rem;padding:9px 14px;">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Connected Accounts Grid -->
+      <div id="wa-accounts-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;margin-bottom:24px;">
+        <!-- Dynamically rendered via JavaScript -->
+      </div>
+
+      <!-- Quick Add / Pair New Account Section (Inline Expandable) -->
+      <div id="wa-add-account-section" class="hidden" style="background:#ffffff;border:1px solid var(--accent-emerald-border);border-radius:16px;padding:22px;margin-top:16px;box-shadow:var(--shadow-md);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <h3 id="wa-pairing-title" style="font-size:1.1rem;font-weight:700;color:#065f46;display:flex;align-items:center;gap:8px;">
+              <span>➕</span> Link New WhatsApp Device
+            </h3>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">
+              නව දුරකථනයක් සම්බන්ධ කිරීමට පහත Barcode එක Scan කරන්න හෝ Pairing Code එක ලබා ගන්න.
+            </p>
+          </div>
+          <button class="btn-secondary" onclick="closeAddWhatsAppSection()" style="padding:4px 10px;">✕ Close</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- Method 1: Barcode -->
+          <div class="pairing-box" style="margin:0;background:#f8fafc;border:1px solid var(--card-border);border-radius:12px;padding:16px;">
+            <h4 style="font-size:0.95rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;color:var(--text-primary);">
+              <span>📷</span> Method 1: Scan Barcode
+            </h4>
+            <p style="font-size:0.76rem;color:var(--text-secondary);margin-bottom:12px;">
+              WhatsApp ➜ Settings (හෝ තිත් 3) ➜ <strong>Linked Devices</strong> ➜ <strong>Link a Device</strong> ඔබා Scan කරන්න:
+            </p>
+            <div id="wa-qr-wrapper" style="display:flex;justify-content:center;align-items:center;min-height:220px;background:#ffffff;border-radius:12px;padding:12px;border:1px dashed #cbd5e1;">
+              <div id="wa-qr-loading" style="text-align:center;color:var(--text-muted);font-size:0.82rem;">
+                <div style="font-size:1.6rem;margin-bottom:8px;">⏳</div>
+                Generating genuine WhatsApp QR Code...
+              </div>
+              <img id="wa-qr-img" src="" alt="WhatsApp QR Code" class="hidden" style="width:200px;height:200px;background:#ffffff;border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);" />
+            </div>
+            <button class="btn-secondary" onclick="restartWhatsAppSession()" style="margin-top:12px;width:100%;padding:8px;font-size:0.78rem;">
+              🔄 Refresh Barcode
+            </button>
+          </div>
+
+          <!-- Method 2: 8-Digit Pairing Code -->
+          <div class="pairing-box" style="margin:0;background:#f8fafc;border:1px solid var(--card-border);border-radius:12px;padding:16px;">
+            <h4 style="font-size:0.95rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;color:var(--text-primary);">
+              <span>🔢</span> Method 2: 8-Digit Pairing Code
+            </h4>
+            <p style="font-size:0.76rem;color:var(--text-secondary);margin-bottom:10px;">
+              Barcode Scan නොකර දුරකථන අංකය ඇතුළත් කර 8-digit Code එක ලබා ගන්න:
+            </p>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <input type="text" id="wa-phone-input" class="form-input" placeholder="e.g. 94771234567" style="font-family:'JetBrains Mono';font-size:0.84rem;" />
+              <button class="btn-primary" onclick="requestPairingCode()" style="white-space:nowrap;padding:8px 14px;font-size:0.8rem;">
+                Get Code
+              </button>
+            </div>
+            <div style="background:#ffffff;border-radius:12px;padding:16px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--shadow-sm);">
+              <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Official Pairing Code</div>
+              <div id="wa-pairing-code-label" class="code-badge" style="font-size:1.35rem;letter-spacing:0.18em;margin:4px auto 10px;">---- ----</div>
+              <p style="font-size:0.74rem;color:var(--text-secondary);line-height:1.4;">
+                1. WhatsApp ➜ Linked Devices ➜ Link a Device<br>
+                2. <strong>"Link with phone number instead"</strong> තෝරන්න<br>
+                3. ඉහත Code එක Type කරන්න.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    
+
+  </main>
+</div>
+
+<!-- Modal: Add New Order -->
+<div id="modal-add-order" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:1.15rem;font-weight:700;">Record New Customer Order</h3>
+      <button class="btn-secondary" onclick="closeAddOrderModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <form onsubmit="submitNewOrder(event)">
+      <div class="form-group">
+        <label class="form-label">Customer Name</label>
+        <input type="text" id="mo-customer-name" class="form-input" required placeholder="Kamal Perera">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Customer Phone</label>
+        <input type="text" id="mo-customer-phone" class="form-input" required placeholder="077 123 4567">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Item / Package</label>
+        <input type="text" id="mo-item" class="form-input" required placeholder="16x24 UV Gloss Frameless">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Amount (Rs.)</label>
+          <input type="text" id="mo-amount" class="form-input" required placeholder="7,800">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Initial Status</label>
+          <select id="mo-status" class="form-select">
+            <option value="Pending Payment">Pending Payment</option>
+            <option value="Slip Received">Slip Received</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="In Production">In Production</option>
+            <option value="Dispatched">Dispatched</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Delivery Address / Notes</label>
+        <input type="text" id="mo-address" class="form-input" placeholder="No 12, Kandy Road, Colombo">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button type="button" class="btn-secondary" onclick="closeAddOrderModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Add New Product -->
+<div id="modal-add-product" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:1.15rem;font-weight:700;">Add Product to Catalog</h3>
+      <button class="btn-secondary" onclick="closeAddProductModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <form onsubmit="submitNewProduct(event)">
+      <div class="form-group">
+        <label class="form-label">Product Name</label>
+        <input type="text" id="mp-name" class="form-input" required placeholder="24x36 UV Gloss Grand Frame">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <input type="text" id="mp-category" class="form-input" required placeholder="UV Frames">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Retail Price (Rs.)</label>
+          <input type="number" id="mp-price" class="form-input" required placeholder="13000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Production Cost (Rs.)</label>
+          <input type="number" id="mp-cost" class="form-input" placeholder="7000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Minimum Floor Price (Lowest Bargain Price)</label>
+        <input type="number" id="mp-floor" class="form-input" placeholder="12000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description / Delivery details</label>
+        <input type="text" id="mp-desc" class="form-input" placeholder="Includes free courier delivery">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button type="button" class="btn-secondary" onclick="closeAddProductModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Add Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Add Custom Flow -->
+<div id="modal-add-flow" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:1.15rem;font-weight:700;">Add Automated Keyword Flow</h3>
+      <button class="btn-secondary" onclick="closeAddFlowModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <form onsubmit="submitNewFlow(event)">
+      <div class="form-group">
+        <label class="form-label">Trigger Keyword (පාරිභෝගිකයා එවන වචනය)</label>
+        <input type="text" id="mf-trigger" class="form-input" required placeholder="e.g. location, account, menu, return">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Match Type</label>
+        <select id="mf-match" class="form-select">
+          <option value="contains">Contains (වචනය අඩංගු ඕනෑම පණිවිඩයකට)</option>
+          <option value="exact">Exact (එම වචනය පමණක් ඇති විට)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Automated Response Text</label>
+        <textarea id="mf-response" class="form-textarea" style="min-height:100px;" required placeholder="අපගේ ලිපිනය: No 45, Temple Road, Kandy."></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button type="button" class="btn-secondary" onclick="closeAddFlowModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save Flow</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<script>
+  // ─── Client Portal License Verification & Fetch Interceptor ──────────────────
+  const licenseKey = localStorage.getItem('omnisix_license_key');
+  if (!licenseKey) {
+    window.location.replace('/login');
+  }
+
+  // Wrap fetch to automatically include x-license-key header on all requests
+  const _portalOriginalFetch = window.fetch;
+  window.fetch = function(url, init = {}) {
+    init = init || {};
+    init.headers = init.headers || {};
+    if (init.headers instanceof Headers) {
+      if (!init.headers.has('x-license-key')) init.headers.set('x-license-key', licenseKey);
+    } else if (Array.isArray(init.headers)) {
+      init.headers.push(['x-license-key', licenseKey]);
+    } else {
+      if (!init.headers['x-license-key']) init.headers['x-license-key'] = licenseKey;
+    }
+    return _portalOriginalFetch(url, init);
+  };
+
+  function portalLogout() {
+    localStorage.removeItem('omnisix_license_key');
+    localStorage.removeItem('omnisix_client_name');
+    window.location.replace('/login');
+  }
+
+// ─── Security & Text Helpers ────────────────────────────────────────────────
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ─── Global State ─────────────────────────────────────────────────────────────
+let currentTab = 'overview';
+let activeBiz = null;
+let allBusinesses = [];
+let allOrders = [];
+let allChats = [];
+let allProducts = [];
+let allFlows = [];
+let activeChatId = null;
+let waPollTimer = null;
+
+// ─── Tab Navigation ───────────────────────────────────────────────────────────
+function showTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.main-stage > section').forEach(s => s.classList.add('hidden'));
+
+  const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabName));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const activeSection = document.getElementById(`tab-${tabName}`);
+  if (activeSection) activeSection.classList.remove('hidden');
+
+  // licenses tab omitted for portal
+
+  if (tabName === 'overview') fetchOverview();
+  if (tabName === 'inbox') fetchInbox();
+  if (tabName === 'orders') fetchOrders();
+  if (tabName === 'products') fetchProducts();
+  if (tabName === 'flows') fetchFlows();
+  if (tabName === 'business') loadBusinessForm();
+  if (tabName === 'settings') loadSettingsForm();
+  if (tabName === 'whatsapp') {
+    fetchWhatsAppStatus();
+    startWaPolling();
+  } else {
+    stopWaPolling();
+  }
+}
+
+// ─── Initialization ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  fetchBusinesses();
+  fetchOverview();
+  setInterval(fetchOverview, 10000);
+});
+
+// ─── Business Management ──────────────────────────────────────────────────────
+async function fetchBusinesses() {
+  try {
+    const res = await fetch(`/api/portal/store?key=${encodeURIComponent(licenseKey)}`);
+    const data = await res.json();
+    if (data.ok && data.business) {
+      activeBiz = data.business;
+      allBusinesses = [activeBiz];
+      const storeNameEl = document.getElementById('portal-store-name');
+      if (storeNameEl) storeNameEl.textContent = activeBiz.name;
+      const metricStoreEl = document.getElementById('metric-store-name');
+      if (metricStoreEl) metricStoreEl.textContent = activeBiz.name;
+
+      const planEl = document.getElementById('portal-plan-text');
+      if (planEl && data.license) {
+        const daysText = data.license.daysLeft !== undefined ? `${data.license.daysLeft}d left` : 'Active';
+        planEl.textContent = `${data.license.plan} (● ${daysText})`;
+      }
+      loadBusinessForm();
+    } else {
+      alert('License is expired or invalid. Please log in again.');
+      portalLogout();
+    }
+  } catch (e) {
+    console.error('fetchBusinesses portal error:', e);
+  }
+}
+
+function populateBusinessSelect() {
+  if (activeBiz) {
+    const el = document.getElementById('portal-store-name');
+    if (el) el.textContent = activeBiz.name;
+    const m = document.getElementById('metric-store-name');
+    if (m) m.textContent = activeBiz.name;
+  }
+}
+
+function openAddStoreModal() {}
+function closeAddStoreModal() {}
+async function submitNewStore(e) { if(e) e.preventDefault(); }
+async function deleteCurrentBusiness() {}
+async function switchBusiness(bizId) {}
+
+// ─── Overview & Real Analytics ────────────────────────────────────────────────
+async function fetchOverview() {
+  try {
+    const res = await fetch('/api/analytics');
+    const data = await res.json();
+    if (data.ok) {
+      const a = data.analytics;
+      document.getElementById('metric-revenue').textContent = a.revenueLKR || '0';
+      document.getElementById('metric-orders').textContent = a.totalOrders || '0';
+      document.getElementById('metric-leads').textContent = a.totalLeads || '0';
+      document.getElementById('metric-calls').textContent = a.liveCallsCount || '0';
+      document.getElementById('metric-store-name').textContent = a.activeBusiness || activeBiz?.name || 'STORE';
     }
 
-    let tenantData = null;
+    const ordRes = await fetch('/api/orders');
+    const ordData = await ordRes.json();
+    if (ordData.ok) {
+      allOrders = ordData.orders || [];
+      renderOrdersOverview(allOrders.slice(0, 5));
+      renderOrdersFull(allOrders);
+    }
+  } catch (e) { console.error('fetchOverview error:', e); }
+}
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadPortalData();
+function renderOrdersOverview(orders) {
+  const tbody = document.getElementById('overview-orders-tbody');
+  const emptyState = document.getElementById('overview-empty-state');
+  tbody.innerHTML = '';
+
+  if (orders.length === 0) {
+    emptyState.classList.remove('hidden');
+    return;
+  }
+  emptyState.classList.add('hidden');
+
+  orders.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-purple);">${o.id}</td>
+      <td style="font-weight:700;">${o.customerName}</td>
+      <td>${o.customerPhone || '-'}</td>
+      <td>${o.item}</td>
+      <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${o.amount}</td>
+      <td><span style="font-size:0.75rem;color:var(--text-muted);">${o.source || 'Voice Call'}</span></td>
+      <td><span class="status-tag ${getStatusClass(o.status)}">${o.status}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function getStatusClass(status) {
+  const s = (status || '').toLowerCase();
+  if (s.includes('slip')) return 'slip';
+  if (s.includes('confirm')) return 'confirmed';
+  if (s.includes('production')) return 'production';
+  if (s.includes('dispatch')) return 'dispatched';
+  if (s.includes('deliver')) return 'delivered';
+  if (s.includes('cancel')) return 'cancelled';
+  return 'pending';
+}
+
+// ─── Orders Pipeline ──────────────────────────────────────────────────────────
+async function fetchOrders() {
+  try {
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    if (data.ok) {
+      allOrders = data.orders || [];
+      renderOrdersFull(allOrders);
+    }
+  } catch (e) {}
+}
+
+function renderOrdersFull(orders) {
+  const tbody = document.getElementById('full-orders-tbody');
+  const empty = document.getElementById('orders-empty-state');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (orders.length === 0) {
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  orders.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-purple);">${escapeHtml(o.id)}</td>
+      <td style="font-weight:700;color:var(--text-primary);">${escapeHtml(o.customerName)}</td>
+      <td>${escapeHtml(o.customerPhone || '-')}</td>
+      <td>${escapeHtml(o.item)}</td>
+      <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${escapeHtml(o.amount)}</td>
+      <td><span style="font-size:0.75rem;">${escapeHtml(o.address || '-')}</span></td>
+      <td>
+        <input type="text" value="${escapeHtml(o.trackingNumber || '')}" placeholder="Tracking #" 
+          style="background:#ffffff;border:1px solid var(--card-border);border-radius:6px;padding:4px 8px;color:var(--text-primary);font-size:0.75rem;width:110px;"
+          onchange="updateOrderTracking('${escapeHtml(o.id)}', this.value)" />
+      </td>
+      <td>
+        <select onchange="updateOrderStatus('${escapeHtml(o.id)}', this.value)" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--card-border);border-radius:6px;padding:4px 8px;font-size:0.75rem;">
+          <option value="Pending Payment" ${o.status==='Pending Payment'?'selected':''}>Pending Payment</option>
+          <option value="Slip Received" ${o.status==='Slip Received'?'selected':''}>Slip Received</option>
+          <option value="Confirmed" ${o.status==='Confirmed'?'selected':''}>Confirmed</option>
+          <option value="In Production" ${o.status==='In Production'?'selected':''}>In Production</option>
+          <option value="Dispatched" ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
+          <option value="Delivered" ${o.status==='Delivered'?'selected':''}>Delivered</option>
+          <option value="Cancelled" ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
+        </select>
+      </td>
+      <td>
+        <button class="btn-danger" onclick="deleteOrder('${escapeHtml(o.id)}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+  try {
+    await fetch('/api/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: orderId, status: newStatus })
     });
+    fetchOverview();
+  } catch(e){}
+}
 
-    async function loadPortalData() {
-      try {
-        const res = await fetch(`/api/portal/store?key=${encodeURIComponent(licenseKey)}`);
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          alert('Session expired or invalid license: ' + (data.error || 'Please login again.'));
-          logout();
-          return;
-        }
+async function updateOrderTracking(orderId, trackingNum) {
+  try {
+    await fetch('/api/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: orderId, trackingNumber: trackingNum })
+    });
+  } catch(e){}
+}
 
-        tenantData = data;
-        renderPortal();
-      } catch (err) {
-        console.error('Portal load failed:', err);
+async function deleteOrder(orderId) {
+  if (!confirm('Are you sure you want to delete this order?')) return;
+  try {
+    await fetch('/api/orders/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: orderId })
+    });
+    fetchOverview();
+  } catch(e){}
+}
+
+function openAddOrderModal() { document.getElementById('modal-add-order').classList.remove('hidden'); }
+function closeAddOrderModal() { document.getElementById('modal-add-order').classList.add('hidden'); }
+
+async function submitNewOrder(e) {
+  e.preventDefault();
+  const newOrder = {
+    customerName: document.getElementById('mo-customer-name').value,
+    customerPhone: document.getElementById('mo-customer-phone').value,
+    item: document.getElementById('mo-item').value,
+    amount: document.getElementById('mo-amount').value,
+    status: document.getElementById('mo-status').value,
+    address: document.getElementById('mo-address').value
+  };
+
+  try {
+    const res = await fetch('/api/orders/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeAddOrderModal();
+      fetchOverview();
+      alert('✅ Order recorded successfully!');
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function exportOrdersToSheets() {
+  if (allOrders.length === 0) {
+    alert('No orders to export yet.');
+    return;
+  }
+  const csvContent = "data:text/csv;charset=utf-8," 
+    + "Order ID,Customer Name,Phone,Item,Amount,Address,Status,Tracking,Date\n"
+    + allOrders.map(o => `"${o.id}","${o.customerName}","${o.customerPhone}","${o.item}","${o.amount}","${o.address}","${o.status}","${o.trackingNumber || ''}","${o.createdAt}"`).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Orders_${activeBiz?.name.replace(/\s+/g,'_') || 'store'}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ─── Products Catalog (From APK) ──────────────────────────────────────────────
+async function fetchProducts() {
+  try {
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    if (data.ok) {
+      allProducts = data.products || [];
+      renderProducts(allProducts);
+    }
+  } catch(e){}
+}
+
+function renderProducts(products) {
+  const tbody = document.getElementById('products-tbody');
+  tbody.innerHTML = '';
+  if (!products || products.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:48px 20px;color:var(--text-muted);font-size:0.9rem;">
+      <div style="font-size:1.75rem;margin-bottom:8px;">📦</div>
+      <div style="font-weight:600;color:var(--text-secondary);margin-bottom:4px;">No Products in Catalog (Products ඇතුළත් කර නොමැත)</div>
+      <div style="font-size:0.8rem;">ඉහත <b>"➕ Add Product"</b> බොත්තම ඔබා ඔබේ නව භාණ්ඩ හෝ සේවාවන් එක් කරන්න.</div>
+    </td></tr>`;
+    return;
+  }
+  products.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;color:var(--text-primary);">${escapeHtml(p.name)}</td>
+      <td><span class="status-tag" style="background:#f1f5f9;color:var(--text-secondary);border:1px solid var(--card-border);">${escapeHtml(p.category || 'General')}</span></td>
+      <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${p.price.toLocaleString()}</td>
+      <td style="color:var(--text-muted);">Rs. ${(p.cost || 0).toLocaleString()}</td>
+      <td style="color:var(--accent-amber);">Rs. ${(p.minFloorPrice || p.price * 0.9).toLocaleString()}</td>
+      <td>
+        <span style="font-size:0.75rem;color:${p.inStock ? '#047857' : '#dc2626'};font-weight:700;">
+          ${p.inStock ? '● In Stock' : '○ Out of Stock'}
+        </span>
+      </td>
+      <td>
+        <button class="btn-danger" onclick="deleteProduct('${p.id}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openAddProductModal() { document.getElementById('modal-add-product').classList.remove('hidden'); }
+function closeAddProductModal() { document.getElementById('modal-add-product').classList.add('hidden'); }
+
+async function submitNewProduct(e) {
+  e.preventDefault();
+  const prod = {
+    name: document.getElementById('mp-name').value,
+    category: document.getElementById('mp-category').value,
+    price: document.getElementById('mp-price').value,
+    cost: document.getElementById('mp-cost').value,
+    minFloorPrice: document.getElementById('mp-floor').value,
+    description: document.getElementById('mp-desc').value
+  };
+
+  try {
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prod)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeAddProductModal();
+      fetchProducts();
+      alert('✨ Product added to store catalog!');
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Are you sure you want to remove this product?')) return;
+  try {
+    await fetch('/api/products/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    });
+    fetchProducts();
+  } catch(e){}
+}
+
+// ─── Custom Flows (From APK) ──────────────────────────────────────────────────
+async function fetchFlows() {
+  try {
+    const res = await fetch('/api/flows');
+    const data = await res.json();
+    if (data.ok) {
+      allFlows = data.flows || [];
+      renderFlows(allFlows);
+    }
+  } catch(e){}
+}
+
+function renderFlows(flows) {
+  const tbody = document.getElementById('flows-tbody');
+  tbody.innerHTML = '';
+  if (!flows || flows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:48px 20px;color:var(--text-muted);font-size:0.9rem;">
+      <div style="font-size:1.75rem;margin-bottom:8px;">⚡</div>
+      <div style="font-weight:600;color:var(--text-secondary);margin-bottom:4px;">No Custom Flows (Custom Flows සකස් කර නොමැත)</div>
+      <div style="font-size:0.8rem;">ඉහත <b>"➕ New Flow"</b> ඔබා පාරිභෝගිකයින් නිතර අසන ප්‍රශ්න සඳහා ස්වයංක්‍රීය පිළිතුරු සකස් කරන්න.</div>
+    </td></tr>`;
+    return;
+  }
+  flows.forEach(f => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-blue);">${escapeHtml(f.trigger)}</td>
+      <td><span style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(f.matchType || 'contains')}</span></td>
+      <td style="max-width:320px;font-size:0.8rem;white-space:pre-wrap;color:var(--text-secondary);">${escapeHtml(f.response)}</td>
+      <td>
+        <span style="font-size:0.75rem;color:${f.isActive ? '#047857' : '#dc2626'};font-weight:700;">
+          ${f.isActive ? 'Active' : 'Disabled'}
+        </span>
+      </td>
+      <td>
+        <button class="btn-danger" onclick="deleteFlow('${f.id}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openAddFlowModal() { document.getElementById('modal-add-flow').classList.remove('hidden'); }
+function closeAddFlowModal() { document.getElementById('modal-add-flow').classList.add('hidden'); }
+
+async function submitNewFlow(e) {
+  e.preventDefault();
+  const flow = {
+    trigger: document.getElementById('mf-trigger').value,
+    matchType: document.getElementById('mf-match').value,
+    response: document.getElementById('mf-response').value
+  };
+
+  try {
+    const res = await fetch('/api/flows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(flow)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeAddFlowModal();
+      fetchFlows();
+      alert('✨ Custom automated flow added!');
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteFlow(id) {
+  if (!confirm('Are you sure you want to remove this keyword flow?')) return;
+  try {
+    await fetch('/api/flows/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    });
+    fetchFlows();
+  } catch(e){}
+}
+
+// ─── Live Chat Inbox ──────────────────────────────────────────────────────────
+async function fetchInbox() {
+  try {
+    const res = await fetch('/api/chats');
+    const data = await res.json();
+    if (data.ok) {
+      allChats = data.chats || [];
+      renderChatList(allChats);
+      if (allChats.length > 0 && !activeChatId) {
+        selectChat(allChats[0].id);
       }
     }
+  } catch(e){}
+}
 
-    function renderPortal() {
-      if (!tenantData) return;
-      const { license, business, stats, products, orders } = tenantData;
+function renderChatList(chats) {
+  const container = document.getElementById('inbox-chat-list');
+  container.innerHTML = '';
+  if (chats.length === 0) {
+    container.innerHTML = `
+      <div style="padding:40px 16px;text-align:center;font-size:0.82rem;color:var(--text-muted);">
+        <div style="font-size:1.8rem;margin-bottom:8px;">💬</div>
+        No active chats yet.<br>
+        Incoming WhatsApp customer messages will stream here in real-time.
+      </div>`;
+    return;
+  }
 
-      document.getElementById('top-store-name').textContent = business.name || 'My Store';
-      document.getElementById('top-plan-pill').innerHTML = `💎 <b>${license.plan} Plan</b> • ${license.daysLeft} Days Remaining`;
+  chats.forEach(c => {
+    const div = document.createElement('div');
+    div.className = `chat-item ${c.id === activeChatId ? 'active' : ''}`;
+    div.onclick = () => selectChat(c.id);
 
-      // Stats
-      document.getElementById('stat-orders').textContent = stats.totalOrders;
-      document.getElementById('stat-revenue').textContent = `Rs. ${stats.revenueLKR}`;
-      document.getElementById('stat-chats').textContent = stats.totalChats;
-      document.getElementById('stat-products').textContent = stats.productsCount;
+    const initial = (c.customerName || 'C').charAt(0).toUpperCase();
+    const escTag = c.isEscalated ? `<span style="font-size:0.65rem;color:var(--accent-rose);font-weight:700;">⚠️ Escalated</span>` : '';
+    div.innerHTML = `
+      <div class="chat-avatar">${escapeHtml(initial)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <div class="chat-item-name">${escapeHtml(c.customerName || 'Customer')}</div>
+          ${escTag}
+        </div>
+        <div class="chat-item-last">${escapeHtml(c.lastMessage || 'New conversation')}</div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
 
-      // Business Form
-      document.getElementById('biz-name').value = business.name || '';
-      document.getElementById('biz-phone').value = business.phone || '';
-      document.getElementById('biz-bank').value = business.bankDetails || '';
-      document.getElementById('biz-dataset').value = business.dataset || '';
+function selectChat(chatId) {
+  activeChatId = chatId;
+  const chat = allChats.find(c => c.id === chatId);
+  if (!chat) return;
 
-      // Products Table
-      const prodTbody = document.getElementById('portal-products-tbody');
-      if (products && products.length > 0) {
-        prodTbody.innerHTML = products.map(p => `
-          <tr>
-            <td style="font-weight:700;">${escapeHtml(p.name)}</td>
-            <td>${escapeHtml(p.category || 'General')}</td>
-            <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${p.price.toLocaleString()}</td>
-            <td><span style="color:#047857;font-weight:700;">● Active</span></td>
-          </tr>
-        `).join('');
-      }
+  document.getElementById('chat-active-name').textContent = chat.customerName || 'Customer';
+  document.getElementById('chat-active-phone').textContent = chat.customerPhone ? ('+' + chat.customerPhone) : chatId;
 
-      // Orders Table
-      const ordTbody = document.getElementById('overview-orders-tbody');
-      const fullOrdTbody = document.getElementById('portal-orders-tbody');
-      if (orders && orders.length > 0) {
-        const rows = orders.map(o => `
-          <tr>
-            <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-blue);">${escapeHtml(o.id)}</td>
-            <td style="font-weight:700;">${escapeHtml(o.customerName)}</td>
-            <td>${escapeHtml(o.item)}</td>
-            <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${escapeHtml(o.amount)}</td>
-            <td><span style="font-weight:700;color:#047857;">${escapeHtml(o.status)}</span></td>
-          </tr>
-        `).join('');
-        ordTbody.innerHTML = rows;
-        fullOrdTbody.innerHTML = rows;
-      }
+  const archPill = document.getElementById('chat-active-archetype');
+  if (chat.archetype && chat.archetype !== 'GENERAL') {
+    archPill.textContent = `🎯 ${chat.archetype}`;
+    archPill.classList.remove('hidden');
+  } else {
+    archPill.classList.add('hidden');
+  }
+
+  const btn = document.getElementById('btn-takeover-toggle');
+  if (chat.aiMuted) {
+    btn.textContent = '🟢 Resume AI Auto-Reply';
+    btn.style.color = '#047857';
+  } else {
+    btn.textContent = '🛑 Human Takeover (Mute AI)';
+    btn.style.color = '#d97706';
+  }
+
+  const box = document.getElementById('chat-messages-box');
+  box.innerHTML = '';
+  (chat.messages || []).forEach(m => {
+    const bubble = document.createElement('div');
+    bubble.className = `msg-bubble ${m.sender}`;
+    const formattedText = escapeHtml(m.text || '').replace(/\n/g, '<br>');
+    bubble.innerHTML = `
+      <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;">
+        ${m.sender === 'customer' ? 'Customer' : (m.sender === 'ai' ? 'OmniSix AI' : 'Live Agent')}
+      </div>
+      <div>${formattedText}</div>
+      <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;text-align:right;">${escapeHtml(m.time || '')}</div>
+    `;
+    box.appendChild(bubble);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendAgentReply() {
+  const input = document.getElementById('chat-reply-input');
+  const text = input.value.trim();
+  if (!text || !activeChatId) return;
+
+  input.value = '';
+  try {
+    const res = await fetch('/api/chats/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: activeChatId, text: text })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      fetchInbox().then(() => selectChat(activeChatId));
+    }
+  } catch(e){}
+}
+
+async function toggleHumanTakeover() {
+  if (!activeChatId) return;
+  const chat = allChats.find(c => c.id === activeChatId);
+  const newMuted = !chat?.aiMuted;
+  try {
+    await fetch('/api/chats/mute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: activeChatId, isMuted: newMuted })
+    });
+    fetchInbox();
+  } catch(e){}
+}
+
+// ─── Safe Broadcast ───────────────────────────────────────────────────────────
+async function sendBroadcastCampaign(e) {
+  e.preventDefault();
+  const title = document.getElementById('bc-title').value;
+  const msg = document.getElementById('bc-message').value;
+  const aud = document.getElementById('bc-audience').value;
+
+  try {
+    const res = await fetch('/api/broadcasts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, message: msg, targetAudience: aud })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`🚀 Broadcast Campaign "${title}" launched successfully! Message is being dispatched safely via WhatsApp Multi-Device.`);
+      document.getElementById('bc-title').value = '';
+      document.getElementById('bc-message').value = '';
+    }
+  } catch(e) { alert('Broadcast error: ' + e.message); }
+}
+
+// ─── Business Form ────────────────────────────────────────────────────────────
+function loadBusinessForm() {
+  if (!activeBiz) return;
+  document.getElementById('form-biz-name').value = activeBiz.name || '';
+  document.getElementById('form-biz-category').value = activeBiz.category || 'studio';
+  document.getElementById('form-biz-phone').value = activeBiz.phone || '';
+  document.getElementById('form-biz-bank').value = activeBiz.bankDetails || '';
+  document.getElementById('form-biz-delivery').value = activeBiz.deliveryPolicy || '';
+  document.getElementById('form-biz-dataset').value = activeBiz.dataset || '';
+}
+
+async function saveBusinessProfile(e) {
+  e.preventDefault();
+  const updated = {
+    id: activeBiz.id,
+    name: document.getElementById('form-biz-name').value,
+    category: document.getElementById('form-biz-category').value,
+    phone: document.getElementById('form-biz-phone').value,
+    bankDetails: document.getElementById('form-biz-bank').value,
+    deliveryPolicy: document.getElementById('form-biz-delivery').value,
+    dataset: document.getElementById('form-biz-dataset').value
+  };
+
+  try {
+    const res = await fetch('/api/business/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      activeBiz = data.business;
+      populateBusinessSelect();
+      alert('✨ Business Profile & Master Dataset saved! Live AI is updated.');
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ─── Settings Form ────────────────────────────────────────────────────────────
+async function loadSettingsForm() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    if (data.ok && data.settings) {
+      const s = data.settings;
+      document.getElementById('setting-ai-name').value = s.aiName || 'Nethmi';
+      document.getElementById('setting-ai-persona').value = s.aiPersona || 'FRIENDLY_CUSTOMER_CARE';
+      document.getElementById('setting-voice-profile').value = s.voiceProfile || 'Leda';
+      document.getElementById('setting-mute-duration').value = s.humanTakeoverDurationMinutes || 30;
+      document.getElementById('setting-closed-msg').value = s.closedMessage || '';
+    }
+  } catch(e){}
+}
+
+async function saveSettings(e) {
+  e.preventDefault();
+  const settings = {
+    aiName: document.getElementById('setting-ai-name').value,
+    aiPersona: document.getElementById('setting-ai-persona').value,
+    voiceProfile: document.getElementById('setting-voice-profile').value,
+    humanTakeoverDurationMinutes: parseInt(document.getElementById('setting-mute-duration').value) || 30,
+    closedMessage: document.getElementById('setting-closed-msg').value
+  };
+
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert('✨ AI Personality & Settings saved!');
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ─── Multi-Account WhatsApp Cloud Hub ───────────────────────────────────────
+let activePairingAccountId = 'default';
+
+function startWaPolling() {
+  if (waPollTimer) clearInterval(waPollTimer);
+  fetchWhatsAppStatus();
+  waPollTimer = setInterval(fetchWhatsAppStatus, 3000);
+}
+
+function stopWaPolling() {
+  if (waPollTimer) {
+    clearInterval(waPollTimer);
+    waPollTimer = null;
+  }
+}
+
+let lastWaAccountsHash = '';
+
+async function fetchWhatsAppStatus() {
+  try {
+    const res = await fetch('/api/whatsapp/accounts');
+    const data = await res.json();
+    if (!data.ok || !data.accounts) return;
+
+    const grid = document.getElementById('wa-accounts-grid');
+    if (!grid) return;
+
+    if (data.accounts.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:40px;background:#ffffff;border-radius:14px;border:1px dashed var(--card-border);box-shadow:var(--shadow-sm);">
+          <div style="font-size:2.5rem;margin-bottom:8px;">📱</div>
+          <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">No WhatsApp Accounts Connected</div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 16px;">Click the button above to connect your first WhatsApp line.</p>
+          <button class="btn-primary" onclick="openAddWhatsAppModal()">➕ Connect First Account</button>
+        </div>`;
+      lastWaAccountsHash = '';
+      return;
     }
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.main-content > section').forEach(el => el.classList.add('hidden'));
+    const accountsHash = JSON.stringify(data.accounts.map(a => ({ id: a.id, connected: a.connected, phone: a.phoneNumber, botActive: a.botActive, hasQr: !!a.qrDataUrl, code: a.pairingCode })));
 
-      const activeBtn = Array.from(document.querySelectorAll('.sidebar .nav-item')).find(el => el.getAttribute('onclick')?.includes(tabId));
-      if (activeBtn) activeBtn.classList.add('active');
+    if (accountsHash !== lastWaAccountsHash || grid.children.length === 0) {
+      lastWaAccountsHash = accountsHash;
+      grid.innerHTML = data.accounts.map(acc => {
+        const isConn = acc.connected;
+        const statusColor = isConn ? '#047857' : (acc.hasQr ? '#b45309' : '#b91c1c');
+        const statusBg = isConn ? 'var(--accent-emerald-light)' : (acc.hasQr ? 'var(--accent-amber-light)' : 'var(--accent-rose-light)');
+        const statusBorder = isConn ? 'var(--accent-emerald-border)' : (acc.hasQr ? '#fde68a' : '#fecaca');
+        const statusLabel = isConn ? `🟢 Connected (+${acc.phoneNumber || ''})` : (acc.hasQr ? '🟡 Ready to Scan' : '🔴 Disconnected');
 
-      const targetSec = document.getElementById(`tab-${tabId}`);
-      if (targetSec) targetSec.classList.remove('hidden');
+        return `
+          <div style="background:#ffffff;border:1px solid ${statusBorder};border-radius:16px;padding:20px;position:relative;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:1.3rem;">📱</span>
+                  <h4 style="font-size:1.02rem;font-weight:700;color:var(--text-primary);margin:0;">${escapeHtml(acc.label || 'WhatsApp Account')}</h4>
+                </div>
+                <div style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono';margin-top:3px;">ID: ${escapeHtml(acc.id)}</div>
+              </div>
+              <div style="padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${statusBg};color:${statusColor};border:1px solid ${statusBorder};">
+                ${statusLabel}
+              </div>
+            </div>
+
+            <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid var(--card-border);">
+              <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:6px;">
+                <span style="color:var(--text-muted);">Phone Number:</span>
+                <span style="font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono';">${acc.phoneNumber ? ('+' + escapeHtml(acc.phoneNumber)) : 'Not Linked Yet'}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;">
+                <span style="color:var(--text-secondary);font-weight:600;">🤖 AI Auto-Reply Bot:</span>
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="checkbox" ${acc.botActive ? 'checked' : ''} onchange="toggleAccountBot('${escapeHtml(acc.id)}', this.checked)" style="accent-color:var(--accent-emerald);cursor:pointer;width:15px;height:15px;">
+                  <span style="font-weight:700;color:${acc.botActive ? '#047857' : '#64748b'};font-size:0.74rem;">${acc.botActive ? 'ACTIVE' : 'PAUSED'}</span>
+                </label>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${isConn ? `
+                <button class="btn-secondary" onclick="logoutAccount('${escapeHtml(acc.id)}')" style="flex:1;padding:7px 12px;font-size:0.78rem;color:var(--accent-rose);border-color:#fecaca;">
+                  🚪 Disconnect
+                </button>
+              ` : `
+                <button class="btn-primary" onclick="openPairingForAccount('${escapeHtml(acc.id)}')" style="flex:1;padding:7px 12px;font-size:0.78rem;">
+                  📷 Scan / Pair Code
+                </button>
+              `}
+              ${acc.id !== 'default' ? `
+                <button class="btn-secondary" onclick="deleteAccount('${escapeHtml(acc.id)}')" style="padding:7px 10px;font-size:0.78rem;color:var(--accent-rose);" title="Remove this account">
+                  🗑️
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
-    async function saveStoreProfile(e) {
-      e.preventDefault();
-      if (!tenantData) return;
-      const updated = {
-        id: tenantData.business.id,
-        name: document.getElementById('biz-name').value.trim(),
-        phone: document.getElementById('biz-phone').value.trim(),
-        bankDetails: document.getElementById('biz-bank').value.trim(),
-        dataset: document.getElementById('biz-dataset').value.trim()
-      };
-
-      try {
-        const res = await fetch('/api/business/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated)
-        });
-        const data = await res.json();
-        if (data.ok) {
-          alert('✅ Store profile & dataset saved successfully!');
-          loadPortalData();
-        }
-      } catch (err) {
-        alert('Save failed: ' + err.message);
-      }
+    // If active pairing account is open, update its QR and code
+    const activeAcc = data.accounts.find(a => a.id === activePairingAccountId);
+    if (activeAcc) {
+      updatePairingModalDisplay(activeAcc);
     }
+  } catch(e) { console.error('fetchWhatsAppStatus error:', e); }
+}
 
-    async function handleFileUpload(e) {
-      const file = e.target.files?.[0];
-      if (!file) return;
+function updatePairingModalDisplay(acc) {
+  const qrImg = document.getElementById('wa-qr-img');
+  const qrLoading = document.getElementById('wa-qr-loading');
+  const codeLabel = document.getElementById('wa-pairing-code-label');
 
-      const formData = new FormData();
-      formData.append('datasetFile', file);
-      formData.append('mode', 'replace');
-
-      try {
-        const res = await fetch('/api/dataset/upload', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (data.ok) {
-          alert('✅ Dataset file uploaded and processed into AI memory!');
-          loadPortalData();
-        } else {
-          alert('Upload failed: ' + (data.error || 'Server error'));
-        }
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
+  if (acc.qrDataUrl) {
+    if (qrImg) {
+      qrImg.src = acc.qrDataUrl;
+      qrImg.classList.remove('hidden');
     }
+    if (qrLoading) qrLoading.classList.add('hidden');
+  } else {
+    if (qrImg) qrImg.classList.add('hidden');
+    if (qrLoading) qrLoading.classList.remove('hidden');
+  }
 
-    function openAddProductPrompt() {
-      const name = prompt('Product Name:');
-      if (!name) return;
-      const price = prompt('Selling Price (LKR):');
-      if (!price) return;
+  if (codeLabel && acc.pairingCode) {
+    codeLabel.textContent = acc.pairingCode;
+  }
+}
 
-      fetch('/api/products', {
+async function openAddWhatsAppModal() {
+  const label = prompt('නව WhatsApp ගිණුම සඳහා නමක් ඇතුළත් කරන්න (e.g. Sales Team, Branch 2 Kandy, VIP Orders):', 'Sales WhatsApp Line');
+  if (!label) return;
+
+  try {
+    const res = await fetch('/api/whatsapp/accounts/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label })
+    });
+    const data = await res.json();
+    if (data.ok && data.account) {
+      activePairingAccountId = data.account.id;
+      const section = document.getElementById('wa-add-account-section');
+      const title = document.getElementById('wa-pairing-title');
+      if (title) title.innerHTML = `<span>➕</span> Link: <strong>${escapeHtml(label)}</strong>`;
+      if (section) section.classList.remove('hidden');
+      section.scrollIntoView({ behavior: 'smooth' });
+      fetchWhatsAppStatus();
+    } else {
+      alert('Error creating new account session: ' + (data.error || 'Failed'));
+    }
+  } catch(e) {
+    alert('Failed to add account: ' + e.message);
+  }
+}
+
+function openPairingForAccount(accId) {
+  activePairingAccountId = accId;
+  const section = document.getElementById('wa-add-account-section');
+  const title = document.getElementById('wa-pairing-title');
+  if (title) title.innerHTML = `<span>📱</span> Pair Device (Account: ${escapeHtml(accId)})`;
+  if (section) section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth' });
+  fetchWhatsAppStatus();
+}
+
+function closeAddWhatsAppSection() {
+  const section = document.getElementById('wa-add-account-section');
+  if (section) section.classList.add('hidden');
+}
+
+async function requestPairingCode() {
+  const phone = document.getElementById('wa-phone-input').value.trim();
+  if (!phone) {
+    alert('කරුණාකර රට කේතය (Country code 94) සමඟ දුරකථන අංකය ඇතුළත් කරන්න (උදා: 94771234567)');
+    return;
+  }
+  const label = document.getElementById('wa-pairing-code-label');
+  if (label) label.textContent = 'GENERATING...';
+
+  try {
+    const res = await fetch(`/api/whatsapp/accounts/${activePairingAccountId}/pairing-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone })
+    });
+    const data = await res.json();
+    if (data.ok && data.pairingCode) {
+      if (label) label.textContent = data.pairingCode;
+      alert(`✅ Pairing Code: ${data.pairingCode}\n\n1. WhatsApp ➜ Linked Devices ➜ Link a Device\n2. "Link with phone number instead" තෝරා ඉහත 8-Digit Code එක ඇතුළත් කරන්න!`);
+      fetchWhatsAppStatus();
+    } else {
+      alert('Error: ' + (data.error || 'Failed to request code'));
+      if (label) label.textContent = '---- ----';
+    }
+  } catch(e) {
+    alert('Request failed: ' + e.message);
+    if (label) label.textContent = '---- ----';
+  }
+}
+
+async function restartWhatsAppSession() {
+  const qrImg = document.getElementById('wa-qr-img');
+  const qrLoading = document.getElementById('wa-qr-loading');
+  if (qrImg) qrImg.classList.add('hidden');
+  if (qrLoading) qrLoading.classList.remove('hidden');
+
+  try {
+    await fetch('/api/whatsapp/restart', { method: 'POST' });
+    setTimeout(fetchWhatsAppStatus, 2000);
+  } catch(e){}
+}
+
+async function logoutAccount(accId) {
+  if (!confirm('ඔබට මෙම WhatsApp ගිණුම Logout කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?')) return;
+  try {
+    await fetch(`/api/whatsapp/accounts/${accId}/logout`, { method: 'POST' });
+    fetchWhatsAppStatus();
+  } catch(e) { alert(e.message); }
+}
+
+async function deleteAccount(accId) {
+  if (!confirm('මෙම WhatsApp ගිණුම සම්පූර්ණයෙන්ම ඉවත් කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?')) return;
+  try {
+    const res = await fetch(`/api/whatsapp/accounts/${accId}/delete`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      if (activePairingAccountId === accId) closeAddWhatsAppSection();
+      fetchWhatsAppStatus();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) { alert(e.message); }
+}
+
+async function toggleAccountBot(accId, botActive) {
+  try {
+    await fetch(`/api/whatsapp/accounts/${accId}/toggle-bot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botActive })
+    });
+    fetchWhatsAppStatus();
+  } catch(e) { console.error('toggleAccountBot error:', e); }
+}
+
+// ─── Master Dataset File Upload (.TXT & .PDF) ───────────────────────────────
+function handleDatasetDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    processDatasetFile(e.dataTransfer.files[0]);
+  }
+}
+
+function handleDatasetFileUpload(input) {
+  if (input.files && input.files.length > 0) {
+    processDatasetFile(input.files[0]);
+    input.value = ''; // Reset input for reuse
+  }
+}
+
+async function processDatasetFile(file) {
+  const statusDiv = document.getElementById('dataset-upload-status');
+  if (!statusDiv) return;
+
+  const validExts = ['.txt', '.pdf', '.csv', '.md', '.json'];
+  const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+  if (!validExts.includes(ext)) {
+    alert('කරුණාකර .TXT හෝ .PDF ගොනුවක් තෝරන්න (.txt, .pdf, .csv, .md, .json පමණක් සහාය දක්වයි)');
+    return;
+  }
+
+  if (file.size > 25 * 1024 * 1024) {
+    alert('ගොනුවේ ප්‍රමාණය 25MB ට වඩා අඩු විය යුතුය.');
+    return;
+  }
+
+  statusDiv.classList.remove('hidden');
+  statusDiv.style.background = 'var(--accent-blue-light)';
+  statusDiv.style.color = 'var(--accent-blue)';
+  statusDiv.style.border = '1px solid var(--accent-blue-border)';
+  statusDiv.innerHTML = `⏳ Uploading and extracting text from <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB)...`;
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const base64Data = reader.result.split(',')[1];
+      const mode = document.querySelector('input[name="dataset-upload-mode"]:checked')?.value || 'append';
+
+      const res = await fetch('/api/dataset/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          businessId: tenantData?.business?.id,
-          name: name.trim(),
-          category: 'General',
-          price: parseInt(price.replace(/\D/g, '')) || 0,
-          inStock: true
+          fileName: file.name,
+          fileType: file.type || (ext === '.pdf' ? 'application/pdf' : 'text/plain'),
+          fileBase64: base64Data,
+          mode: mode
         })
-      }).then(() => loadPortalData());
-    }
+      });
 
-    function logout() {
-      localStorage.removeItem('omnisix_license_key');
-      localStorage.removeItem('omnisix_client_name');
-      localStorage.removeItem('omnisix_business_id');
-      window.location.href = '/login';
-    }
+      const data = await res.json();
+      if (data.ok) {
+        statusDiv.style.background = 'var(--accent-emerald-light)';
+        statusDiv.style.color = '#047857';
+        statusDiv.style.border = '1px solid var(--accent-emerald-border)';
+        statusDiv.innerHTML = `
+          ✅ <strong>${escapeHtml(data.fileName)}</strong> සාර්ථකව Import විය!<br>
+          📄 <strong>${data.extractedChars.toLocaleString()}</strong> Characters extracted from ${data.isPdf ? 'PDF Document' : 'Text File'}.<br>
+          📚 Total Dataset Size: <strong>${data.totalChars.toLocaleString()}</strong> chars • Gemini AI Knowledge Base Updated!
+        `;
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        // Update the textarea with updated dataset
+        const textarea = document.getElementById('form-biz-dataset');
+        if (textarea && data.dataset) {
+          textarea.value = data.dataset;
+        }
+      } else {
+        statusDiv.style.background = 'var(--accent-rose-light)';
+        statusDiv.style.color = 'var(--accent-rose)';
+        statusDiv.style.border = '1px solid #fecaca';
+        statusDiv.innerHTML = `❌ Error: ${escapeHtml(data.error || 'Failed to process document')}`;
+      }
+    } catch(err) {
+      statusDiv.style.background = 'var(--accent-rose-light)';
+      statusDiv.style.color = 'var(--accent-rose)';
+      statusDiv.style.border = '1px solid #fecaca';
+      statusDiv.innerHTML = `❌ Network Error: ${escapeHtml(err.message)}`;
     }
-  </script>
+  };
+  reader.readAsDataURL(file);
+}
+
+// Super admin keygen omitted for portal
+</script>
 </body>
 </html>

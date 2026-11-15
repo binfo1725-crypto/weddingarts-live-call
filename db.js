@@ -665,8 +665,8 @@ class Database {
   }
 
   // ─── Real Production Analytics (Zero Fake Figures) ───────────────────────────
-  getAnalytics() {
-    const biz = this.getActiveBusiness();
+  getAnalytics(businessId) {
+    const biz = businessId ? (this.getAllBusinesses().find(b => b.id === businessId) || this.getActiveBusiness()) : this.getActiveBusiness();
     const orders = this.getOrders(biz.id);
     const confirmedOrders = orders.filter(o => ['Confirmed', 'In Production', 'Dispatched', 'Delivered', 'Slip Received'].includes(o.status));
     const totalRev = confirmedOrders.reduce((sum, o) => {
@@ -674,7 +674,7 @@ class Database {
       return sum + val;
     }, 0);
 
-    const chats = this.data.chats || [];
+    const chats = (this.data.chats || []).filter(c => !businessId || !c.businessId || c.businessId === biz.id);
     const unreadChats = chats.filter(c => (c.unread || 0) > 0).length;
     const escalatedChats = chats.filter(c => c.isEscalated).length;
 
