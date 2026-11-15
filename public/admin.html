@@ -677,7 +677,7 @@
 </svg>
 
 <!-- Top Navbar -->
-<header class="navbar">
+<header class="navbar" id="admin-header" style="display:none;">
   <div class="nav-left">
     <div class="brand-logo">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -712,13 +712,29 @@
   </div>
 </header>
 
-<!-- Super Admin Security PIN Gate Overlay -->
-<div id="admin-lock-overlay" style="position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at top, #1e293b 0%, #090d16 100%);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(24px);">
-  <div style="max-width:440px;width:100%;background:rgba(15,23,42,0.94);border:1px solid rgba(255,255,255,0.14);box-shadow:0 25px 60px rgba(0,0,0,0.85),0 0 45px rgba(99,102,241,0.2);border-radius:22px;padding:36px 30px;text-align:center;">
-    <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(168,85,247,0.2));border:1px solid rgba(168,85,247,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px auto;box-shadow:0 0 25px rgba(99,102,241,0.3);">
-      <svg style="width:36px;height:36px;fill:#818cf8;" viewBox="0 0 24 24">
-        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-      </svg>
+<!-- Super Admin Security PIN Gate Overlay (Ultra Fast & Lightweight) -->
+<div id="admin-lock-overlay" style="position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 15%, #172554 0%, #0f172a 55%, #030712 100%);display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:440px;width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.14);box-shadow:0 25px 60px rgba(0,0,0,0.85),0 0 45px rgba(37,99,235,0.25);border-radius:24px;padding:36px 30px;text-align:center;">
+    
+    <!-- Hero: Official OmniSix App Icon & Security Badge -->
+    <div style="position:relative;width:86px;height:86px;margin:0 auto 20px auto;">
+      <!-- OmniSix App Icon Squircle -->
+      <div style="width:86px;height:86px;border-radius:24px;background:linear-gradient(135deg, #059669 0%, #2563eb 100%);padding:15px;box-shadow:0 12px 32px rgba(37,99,235,0.45), 0 0 24px rgba(5,150,105,0.35);display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,0.24);">
+        <svg viewBox="0 0 32 32" style="width:100%;height:100%;">
+          <rect width="32" height="32" rx="8" fill="transparent"/>
+          <path d="M8 16a8 8 0 0 1 16 0c0 4.418-3.582 8-8 8s-8-3.582-8-8z" fill="#ffffff" opacity="0.25"/>
+          <circle cx="12" cy="15" r="2.5" fill="#ffffff"/>
+          <circle cx="20" cy="15" r="2.5" fill="#ffffff"/>
+          <path d="M12 20c1.2 1.4 2.8 1.4 4 0" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          <circle cx="24" cy="8" r="3.2" fill="#10b981" stroke="#ffffff" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <!-- Floating Security Badge -->
+      <div style="position:absolute;bottom:-4px;right:-4px;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg, #6366f1, #a855f7);border:2.5px solid #0f172a;box-shadow:0 4px 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;">
+        <svg style="width:16px;height:16px;fill:#ffffff;" viewBox="0 0 24 24">
+          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+        </svg>
+      </div>
     </div>
 
     <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-0.02em;">
@@ -754,7 +770,7 @@
 </div>
 
 <!-- Main Container -->
-<div class="dashboard-container">
+<div class="dashboard-container" id="admin-dashboard-container" style="display:none;">
 
   <!-- Sidebar Navigation Tabs -->
   <aside class="sidebar">
@@ -1672,10 +1688,31 @@ window.fetch = function(url, init = {}) {
   return _adminOriginalFetch(url, init);
 };
 
-async function checkAdminAuth() {
+function revealDashboard() {
   const overlay = document.getElementById('admin-lock-overlay');
+  const header = document.getElementById('admin-header');
+  const container = document.getElementById('admin-dashboard-container');
+  if (overlay) overlay.style.display = 'none';
+  if (header) header.style.display = 'flex';
+  if (container) container.style.display = 'flex';
+}
+
+function showLockScreen() {
+  const overlay = document.getElementById('admin-lock-overlay');
+  const header = document.getElementById('admin-header');
+  const container = document.getElementById('admin-dashboard-container');
+  if (header) header.style.display = 'none';
+  if (container) container.style.display = 'none';
+  if (overlay) overlay.style.display = 'flex';
+  setTimeout(() => {
+    const input = document.getElementById('admin-pass-input');
+    if (input) input.focus();
+  }, 40);
+}
+
+async function checkAdminAuth() {
   if (!adminToken) {
-    if (overlay) overlay.style.display = 'flex';
+    showLockScreen();
     return false;
   }
   try {
@@ -1684,14 +1721,14 @@ async function checkAdminAuth() {
     });
     const data = await res.json();
     if (data.ok && data.authenticated) {
-      if (overlay) overlay.style.display = 'none';
+      revealDashboard();
       return true;
     }
   } catch(e) {}
   adminToken = null;
   sessionStorage.removeItem('omnisix_admin_token');
   localStorage.removeItem('omnisix_admin_token');
-  if (overlay) overlay.style.display = 'flex';
+  showLockScreen();
   return false;
 }
 
@@ -1715,7 +1752,7 @@ async function handleAdminLogin(e) {
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span>⏳</span> Verifying Security Password...';
+  btn.innerHTML = '<span>⏳</span> Verifying PIN...';
 
   try {
     const res = await _adminOriginalFetch('/api/admin/login', {
@@ -1731,17 +1768,17 @@ async function handleAdminLogin(e) {
       msg.style.background = 'rgba(16,185,129,0.15)';
       msg.style.color = '#34d399';
       msg.style.border = '1px solid rgba(16,185,129,0.3)';
-      msg.textContent = '✅ Access Granted! Loading Admin Dashboard...';
-      setTimeout(() => {
-        const overlay = document.getElementById('admin-lock-overlay');
-        if (overlay) overlay.style.display = 'none';
-        btn.disabled = false;
-        btn.innerHTML = '<span>🔓</span> Unlock Super Admin Panel';
-        // Initialize dashboard
-        fetchBusinesses();
-        fetchOverview();
-        if (typeof loadLicenses === 'function') loadLicenses();
-      }, 500);
+      msg.textContent = '✅ Access Granted! Opening Dashboard...';
+
+      // Instant transition without artificial delay
+      revealDashboard();
+      btn.disabled = false;
+      btn.innerHTML = '<span>🔓</span> Unlock Super Admin Panel';
+      
+      // Initialize dashboard data
+      fetchBusinesses();
+      fetchOverview();
+      if (typeof loadLicenses === 'function') loadLicenses();
     } else {
       failedAdminAttempts++;
       msg.style.display = 'block';
@@ -1782,14 +1819,7 @@ async function lockAdminSession() {
   adminToken = null;
   sessionStorage.removeItem('omnisix_admin_token');
   localStorage.removeItem('omnisix_admin_token');
-  const overlay = document.getElementById('admin-lock-overlay');
-  if (overlay) {
-    overlay.style.display = 'flex';
-    const input = document.getElementById('admin-pass-input');
-    if (input) { input.value = ''; input.focus(); }
-    const msg = document.getElementById('admin-auth-msg');
-    if (msg) msg.style.display = 'none';
-  }
+  showLockScreen();
 }
 
 // ─── Security & Text Helpers ────────────────────────────────────────────────

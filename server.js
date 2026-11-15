@@ -153,9 +153,9 @@ function createRateLimiter({ windowMs, maxRequests, message }) {
 }
 
 const adminLoginLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  maxRequests: 5,
-  message: 'වැඩි වාර ගණනක් වැරදි Password ඇතුළත් කර ඇත. ආරක්ෂාව සඳහා විනාඩි 15 කින් නැවත උත්සාහ කරන්න.'
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 30,
+  message: 'වැඩි වාර ගණනක් වැරදි Password ඇතුළත් කර ඇත. ආරක්ෂාව සඳහා විනාඩි 5 කින් නැවත උත්සාහ කරන්න.'
 });
 
 const licenseLoginLimiter = createRateLimiter({
