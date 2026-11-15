@@ -1943,13 +1943,13 @@ function renderOrdersOverview(orders) {
   orders.forEach(o => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-purple);">${o.id}</td>
-      <td style="font-weight:700;">${o.customerName}</td>
-      <td>${o.customerPhone || '-'}</td>
-      <td>${o.item}</td>
-      <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${o.amount}</td>
-      <td><span style="font-size:0.75rem;color:var(--text-muted);">${o.source || 'Voice Call'}</span></td>
-      <td><span class="status-tag ${getStatusClass(o.status)}">${o.status}</span></td>
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-purple);">${escapeHtml(o.id)}</td>
+      <td style="font-weight:700;">${escapeHtml(o.customerName)}</td>
+      <td>${escapeHtml(o.customerPhone || '-')}</td>
+      <td>${escapeHtml(o.item)}</td>
+      <td style="font-weight:700;color:var(--accent-emerald);">Rs. ${escapeHtml(o.amount)}</td>
+      <td><span style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(o.source || 'Voice Call')}</span></td>
+      <td><span class="status-tag ${getStatusClass(o.status)}">${escapeHtml(o.status)}</span></td>
     `;
     tbody.appendChild(tr);
   });

@@ -104,12 +104,76 @@ setInterval(() => {
 // ─── Express App ─────────────────────────────────────────────────────────────
 const app = express();
 
-// Disable aggressive browser caching for all HTML and dynamic responses
+// ─── HTTP Security Headers & Browser Caching Control ──────────────────────────
 app.use((req, res, next) => {
+  // OWASP Recommended Security Headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
+
+  // Disable aggressive browser caching for dynamic HTML & data
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   next();
+});
+
+// ─── In-Memory Rate Limiting Engine (Anti-Brute Force & Anti-DDoS) ───────────
+function createRateLimiter({ windowMs, maxRequests, message }) {
+  const ipHits = new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, timestamps] of ipHits.entries()) {
+      const valid = timestamps.filter(t => now - t < windowMs);
+      if (valid.length === 0) ipHits.delete(ip);
+      else ipHits.set(ip, valid);
+    }
+  }, windowMs);
+
+  return (req, res, next) => {
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const ip = String(rawIp).split(',')[0].trim();
+    const now = Date.now();
+    const history = ipHits.get(ip) || [];
+    const recent = history.filter(t => now - t < windowMs);
+
+    if (recent.length >= maxRequests) {
+      return res.status(429).json({
+        ok: false,
+        error: message || 'Too many requests. Please slow down.'
+      });
+    }
+
+    recent.push(now);
+    ipHits.set(ip, recent);
+    next();
+  };
+}
+
+const adminLoginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 5,
+  message: 'වැඩි වාර ගණනක් වැරදි Password ඇතුළත් කර ඇත. ආරක්ෂාව සඳහා විනාඩි 15 කින් නැවත උත්සාහ කරන්න.'
+});
+
+const licenseLoginLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many license login attempts. Please wait 1 minute.'
+});
+
+const freeTrialLimiter = createRateLimiter({
+  windowMs: 24 * 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Daily trial license registration limit reached for this IP.'
+});
+
+const datasetUploadLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Upload rate limit reached. Please wait a few minutes before uploading again.'
 });
 
 app.use(express.json({ limit: '50mb' }));
@@ -150,7 +214,7 @@ app.get('/free', (req, res) => {
 });
 
 // ─── Multi-Tenant License Authentication APIs ────────────────────────────────
-app.post('/api/auth/license-login', (req, res) => {
+app.post('/api/auth/license-login', licenseLoginLimiter, (req, res) => {
   const { licenseKey } = req.body;
   if (!licenseKey) {
     return res.status(400).json({ ok: false, error: 'Please enter your License Key (කරුණාකර License Key ඇතුළත් කරන්න).' });
@@ -182,7 +246,7 @@ app.post('/api/auth/license-login', (req, res) => {
   });
 });
 
-app.post('/api/auth/free-trial', (req, res) => {
+app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
   const { clientName, clientPhone } = req.body;
   if (!clientName || !clientPhone) {
     return res.status(400).json({ ok: false, error: 'Store Name and Phone number are required (නම සහ දුරකථන අංකය අවශ්‍යයි).' });
@@ -213,31 +277,43 @@ app.post('/api/auth/free-trial', (req, res) => {
   });
 });
 
-// ─── Super Admin Master Password & Authentication ───────────────────────────
+// ─── Super Admin Master Password & Token Management ──────────────────────────
 const ADMIN_MASTER_PASSWORD = process.env.ADMIN_PASSWORD || '486485';
-const activeAdminSessions = new Set();
+const activeAdminSessions = new Map(); // token -> expiresAt
+const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+function pruneAdminSessions() {
+  const now = Date.now();
+  for (const [token, expiresAt] of activeAdminSessions.entries()) {
+    if (now > expiresAt) activeAdminSessions.delete(token);
+  }
+}
+setInterval(pruneAdminSessions, 30 * 60 * 1000);
 
 function requireAdminAuth(req, res, next) {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
-  if (!token || !activeAdminSessions.has(token)) {
+  const now = Date.now();
+  if (!token || !activeAdminSessions.has(token) || activeAdminSessions.get(token) < now) {
+    if (token && activeAdminSessions.has(token)) activeAdminSessions.delete(token);
     return res.status(401).json({ ok: false, error: 'Unauthorized: Master Admin Security PIN required.' });
   }
   next();
 }
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
   const { password } = req.body || {};
   if (!password || String(password).trim() !== ADMIN_MASTER_PASSWORD) {
     return res.status(401).json({ ok: false, error: 'වැරදි Master Security Password එකක්. නැවත උත්සාහ කරන්න.' });
   }
   const token = 'adm_' + crypto.randomBytes(32).toString('hex');
-  activeAdminSessions.add(token);
+  activeAdminSessions.set(token, Date.now() + ADMIN_SESSION_DURATION);
   res.json({ ok: true, token, message: 'Super Admin Security Access Granted' });
 });
 
 app.get('/api/admin/verify', (req, res) => {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
-  if (token && activeAdminSessions.has(token)) {
+  const now = Date.now();
+  if (token && activeAdminSessions.has(token) && activeAdminSessions.get(token) > now) {
     return res.json({ ok: true, authenticated: true });
   }
   res.status(401).json({ ok: false, authenticated: false });
@@ -696,24 +772,29 @@ app.post('/api/whatsapp/restart', async (req, res) => {
 });
 
 // ─── Master Dataset Upload (.TXT & .PDF) ─────────────────────────────────────
-app.post('/api/dataset/upload', async (req, res) => {
+app.post('/api/dataset/upload', datasetUploadLimiter, async (req, res) => {
   try {
     const { fileName, fileType, fileBase64, mode } = req.body;
     if (!fileBase64) {
       return res.status(400).json({ ok: false, error: 'fileBase64 data is required' });
     }
 
+    if (fileBase64.length > 35 * 1024 * 1024) {
+      return res.status(400).json({ ok: false, error: 'File size exceeds 25MB limit.' });
+    }
+
+    const safeFileName = path.basename(fileName || 'Document.txt').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
     const buffer = Buffer.from(fileBase64, 'base64');
     let extractedText = '';
 
-    const isPdf = (fileType && fileType.includes('pdf')) || (fileName && fileName.toLowerCase().endsWith('.pdf'));
+    const isPdf = (fileType && fileType.includes('pdf')) || safeFileName.toLowerCase().endsWith('.pdf');
 
     if (isPdf) {
-      console.log(`[dataset-upload] Parsing PDF document: "${fileName}" (${buffer.length} bytes)...`);
+      console.log(`[dataset-upload] Parsing PDF document: "${safeFileName}" (${buffer.length} bytes)...`);
       const parsedPdf = await pdfParse(buffer);
       extractedText = (parsedPdf.text || '').trim();
     } else {
-      console.log(`[dataset-upload] Reading text document: "${fileName}" (${buffer.length} bytes)...`);
+      console.log(`[dataset-upload] Reading text document: "${safeFileName}" (${buffer.length} bytes)...`);
       extractedText = buffer.toString('utf8').trim();
     }
 
@@ -727,7 +808,7 @@ app.post('/api/dataset/upload', async (req, res) => {
     const bId = req.body.businessId || resolveReqBusinessId(req);
     const activeBiz = db.getAllBusinesses().find(b => b.id === bId) || db.getActiveBusiness();
     const isAppend = mode === 'append';
-    const header = `=== UPLOADED KNOWLEDGE [${fileName || 'Document'}] ===\n`;
+    const header = `=== UPLOADED KNOWLEDGE [${safeFileName}] ===\n`;
 
     if (isAppend && activeBiz.dataset && activeBiz.dataset.length > 20) {
       activeBiz.dataset = activeBiz.dataset.trim() + '\n\n' + header + extractedText;
@@ -742,7 +823,7 @@ app.post('/api/dataset/upload', async (req, res) => {
 
     res.json({
       ok: true,
-      fileName,
+      fileName: safeFileName,
       isPdf,
       extractedChars: extractedText.length,
       totalChars: activeBiz.dataset.length,
@@ -761,18 +842,27 @@ app.post('/api/session', (req, res) => {
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
+  // Limit memory growth by pruning old sessions if map exceeds 200
+  if (sessions.size > 200) {
+    const oldestKey = sessions.keys().next().value;
+    if (oldestKey) {
+      try { sessions.get(oldestKey)?.browserWs?.close(); } catch {}
+      sessions.delete(oldestKey);
+    }
+  }
+
   const serverHost = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
     ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
     : CALL_SERVER_URL;
 
-  const id = sessionId;
+  const id = String(sessionId).slice(0, 100);
   sessions.set(id, {
     browserWs: null,
-    customerName: customerName || 'Customer',
-    customerPhone: customerPhone || '',
-    storeName: storeName || activeBiz.name,
+    customerName: customerName ? String(customerName).slice(0, 100) : 'Customer',
+    customerPhone: customerPhone ? String(customerPhone).slice(0, 30) : '',
+    storeName: storeName ? String(storeName).slice(0, 100) : activeBiz.name,
     apiKey: geminiApiKey || DEFAULT_GEMINI_API_KEY,
-    dataset: (dataset && dataset.trim().length > 50) ? dataset : (activeBiz.dataset || BUILTIN_DATASET),
+    dataset: (dataset && dataset.trim().length > 50) ? dataset.slice(0, 50000) : (activeBiz.dataset || BUILTIN_DATASET),
     history: [],
     createdAt: Date.now(),
   });
@@ -882,6 +972,10 @@ wss.on('connection', (browserWs, req) => {
 
   browserWs.on('message', async (data) => {
     try {
+      if (!data || data.length > 500000) {
+        console.warn('[ws] Payload exceeds safe size limit (500KB), dropping.');
+        return;
+      }
       const msg = JSON.parse(data.toString());
 
       // Barge-in cancel notification from browser

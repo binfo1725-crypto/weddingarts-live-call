@@ -141,9 +141,11 @@ class Database {
 
   save() {
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+      const tmpFile = DB_FILE + '.tmp';
+      fs.writeFileSync(tmpFile, JSON.stringify(this.data, null, 2), 'utf8');
+      fs.renameSync(tmpFile, DB_FILE);
     } catch (e) {
-      console.warn('[db] Failed to save DB file:', e.message);
+      console.warn('[db] Failed to save DB file atomically:', e.message);
     }
   }
 
