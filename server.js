@@ -939,4 +939,14 @@ server.listen(PORT, () => {
 
   // Start WhatsApp Multi-Device Web Engine
   waEngine.start();
+
+  // Keep-alive self-ping to prevent cloud container sleep
+  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || (CALL_SERVER_URL.startsWith('http') && !CALL_SERVER_URL.includes('localhost') ? CALL_SERVER_URL : 'https://weddingarts-live-call.onrender.com');
+  if (keepAliveUrl.startsWith('https://')) {
+    const httpsModule = require('https');
+    setInterval(() => {
+      httpsModule.get(`${keepAliveUrl}/health`, () => {}).on('error', () => {});
+    }, 10 * 60 * 1000); // Ping every 10 minutes
+    console.log(`⏱️ Keep-alive self-ping configured for: ${keepAliveUrl}/health`);
+  }
 });
