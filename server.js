@@ -222,6 +222,10 @@ async function getGeminiReply(userMessage, sess) {
 // ─── Gemini Voice Audio Synthesis (Natural Sri Lankan Female Voice) ──────────
 async function synthesizeGeminiAudio(text, apiKey) {
   const key = apiKey || DEFAULT_GEMINI_API_KEY;
+  if (!key) {
+    console.warn('[Gemini TTS] No API key available');
+    return null;
+  }
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`;
 
   // Clean text for speech pronunciation
@@ -253,9 +257,15 @@ async function synthesizeGeminiAudio(text, apiKey) {
       body: JSON.stringify(payload)
     });
     const data = await res.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+    if (data.error) {
+      console.error('[Gemini TTS] API Error:', JSON.stringify(data.error));
+      return null;
+    }
+    const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+    console.log(`[Gemini TTS] Generated audio chunk length: ${audioData ? audioData.length : 0}`);
+    return audioData;
   } catch (err) {
-    console.error('[Gemini TTS] Error:', err.message);
+    console.error('[Gemini TTS] Exception:', err.message);
     return null;
   }
 }
