@@ -1357,6 +1357,30 @@
         </div>
       </div>
 
+      <!-- Database Persistence & Cloud Protection -->
+      <div style="background:#F8FAFC;border:1px solid var(--card-border);border-radius:14px;padding:20px;margin-bottom:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+              <span>💾</span> Server Update Persistence & Database Backup
+            </h3>
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:2px;">
+              Server Updates, Code Pushes සහ Redeploy වලදී License Keys සහ Store Data සුරක්ෂිතව තබා ගැනීමේ පහසුකම.
+            </p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn-primary" onclick="exportDatabaseBackup()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:0.82rem;">
+              <span>📥</span> Download Full DB Backup (.json)
+            </button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('import-db-file').click()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:0.82rem;">
+              <span>📤</span> Restore From Backup
+            </button>
+            <input type="file" id="import-db-file" accept=".json" style="display:none;" onchange="handleImportDatabaseFile(this)">
+          </div>
+        </div>
+        <div id="db-backup-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;margin-top:12px;"></div>
+      </div>
+
       <!-- Licenses Table -->
       <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:14px;color:var(--text-primary);">All Issued Client Licenses</h3>
       <div class="table-responsive">
@@ -2975,6 +2999,78 @@ function exportCurrentDataset() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ─── Super Admin Database Persistence (Backup & Restore) ────────────────────
+async function exportDatabaseBackup() {
+  try {
+    const res = await fetch('/api/admin/db/export', {
+      headers: { 'x-admin-token': adminToken }
+    });
+    if (!res.ok) throw new Error('Unauthorized or failed to export.');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `omnisix_database_backup_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Export failed: ' + err.message);
+  }
+}
+
+function handleImportDatabaseFile(input) {
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  const statusEl = document.getElementById('db-backup-status');
+
+  reader.onload = async () => {
+    try {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(99,102,241,0.15)';
+        statusEl.style.color = '#818cf8';
+        statusEl.textContent = '⏳ Importing and merging database records...';
+      }
+      const parsed = JSON.parse(reader.result);
+      const res = await fetch('/api/admin/db/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': adminToken
+        },
+        body: JSON.stringify({ databaseJson: parsed })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (statusEl) {
+          statusEl.style.background = 'rgba(16,185,129,0.15)';
+          statusEl.style.color = '#047857';
+          statusEl.innerHTML = `✅ ${data.message} (${data.stats.licensesCount} Licenses, ${data.stats.businessesCount} Stores, ${data.stats.ordersCount} Orders).`;
+        }
+        alert('🎉 Database successfully restored & merged!');
+        loadLicenses();
+        fetchBusinesses();
+        fetchOverview();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch(err) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(239,68,68,0.15)';
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = '❌ Import failed: ' + err.message;
+      }
+      alert('Import failed: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 </script>
 </body>

@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'));
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 
 if (!fs.existsSync(DATA_DIR)) {
@@ -667,6 +667,64 @@ class Database {
   }
 
   // ─── Real Production Analytics (Zero Fake Figures) ───────────────────────────
+  exportDatabase() {
+    return this.data;
+  }
+
+  importDatabase(imported) {
+    if (!imported || typeof imported !== 'object') throw new Error('Invalid JSON format');
+
+    if (Array.isArray(imported.licenses)) {
+      const existingKeys = new Set((this.data.licenses || []).map(l => l.key));
+      imported.licenses.forEach(lic => {
+        if (!existingKeys.has(lic.key)) {
+          this.data.licenses.push(lic);
+        } else {
+          const idx = this.data.licenses.findIndex(l => l.key === lic.key);
+          if (idx >= 0) this.data.licenses[idx] = { ...this.data.licenses[idx], ...lic };
+        }
+      });
+    }
+
+    if (Array.isArray(imported.businesses)) {
+      const existingBizIds = new Set((this.data.businesses || []).map(b => b.id));
+      imported.businesses.forEach(b => {
+        if (!existingBizIds.has(b.id)) {
+          this.data.businesses.push(b);
+        }
+      });
+    }
+
+    if (Array.isArray(imported.orders)) {
+      const existingOrderIds = new Set((this.data.orders || []).map(o => o.id));
+      imported.orders.forEach(o => {
+        if (!existingOrderIds.has(o.id)) this.data.orders.push(o);
+      });
+    }
+
+    if (Array.isArray(imported.products)) {
+      const existingProdIds = new Set((this.data.products || []).map(p => p.id));
+      imported.products.forEach(p => {
+        if (!existingProdIds.has(p.id)) this.data.products.push(p);
+      });
+    }
+
+    if (Array.isArray(imported.customFlows)) {
+      const existingFlowIds = new Set((this.data.customFlows || []).map(f => f.id));
+      imported.customFlows.forEach(f => {
+        if (!existingFlowIds.has(f.id)) this.data.customFlows.push(f);
+      });
+    }
+
+    this.save();
+    return {
+      ok: true,
+      licensesCount: (this.data.licenses || []).length,
+      businessesCount: (this.data.businesses || []).length,
+      ordersCount: (this.data.orders || []).length
+    };
+  }
+
   getAnalytics(businessId) {
     const biz = businessId ? (this.getAllBusinesses().find(b => b.id === businessId) || this.getActiveBusiness()) : this.getActiveBusiness();
     const orders = this.getOrders(biz.id);

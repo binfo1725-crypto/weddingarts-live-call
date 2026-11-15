@@ -375,6 +375,33 @@ app.post('/api/admin/delete-key', requireAdminAuth, (req, res) => {
   }
 });
 
+// ─── Super Admin Database Backup & Restore APIs ──────────────────────────────
+app.get('/api/admin/db/export', requireAdminAuth, (req, res) => {
+  const data = db.exportDatabase();
+  const dateStr = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="omnisix_database_backup_${dateStr}.json"`);
+  res.send(JSON.stringify(data, null, 2));
+});
+
+app.post('/api/admin/db/import', requireAdminAuth, (req, res) => {
+  try {
+    const { databaseJson } = req.body;
+    if (!databaseJson) {
+      return res.status(400).json({ ok: false, error: 'Database JSON payload is required.' });
+    }
+    const parsed = typeof databaseJson === 'string' ? JSON.parse(databaseJson) : databaseJson;
+    const result = db.importDatabase(parsed);
+    res.json({
+      ok: true,
+      message: 'Database backup imported and merged successfully!',
+      stats: result
+    });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: 'Invalid backup file: ' + err.message });
+  }
+});
+
 // ─── Client Portal Scoped Store API ──────────────────────────────────────────
 function resolveReqBusinessId(req) {
   if (req.query && req.query.businessId) return req.query.businessId;
