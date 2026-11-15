@@ -42,6 +42,29 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', sessions: sessions.size, time: new Date().toISOString() });
 });
 
+// Diagnostic TTS endpoint
+app.get('/api/test-tts', async (req, res) => {
+  const apiKey = req.query.key || DEFAULT_GEMINI_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${apiKey}`;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'Ayubowan' }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: VOICE_NAME } } }
+        }
+      })
+    });
+    const data = await r.json();
+    res.json({ status: r.status, data });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
+
 app.post('/api/session', (req, res) => {
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
