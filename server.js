@@ -22,8 +22,9 @@ const GEMINI_TEXT_MODELS = [
   'gemini-3.8-flash'
 ];
 const GEMINI_TTS_MODELS = [
-  'gemini-3.8-flash-tts',
-  'gemini-3.8-flash-lite-tts'
+  'gemini-3.1-flash-tts-preview',
+  'gemini-3.8-flash-lite-tts',
+  'gemini-3.8-flash-tts'
 ];
 const VOICE_NAME = 'Leda'; // Exact soft, youthful, warm female voice profile from the app
 
@@ -449,14 +450,9 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
   const voice = preferredVoice || VOICE_NAME;
   const keysToTry = getOrderedKeys(sessionKey);
 
-  // 1. Primary Engine: Official Google Gemini Voice AI (Leda / Aoede)
-  // Limit to at most 3 rapid attempts to keep voice latency under 2 seconds
-  let attempts = 0;
+  // 1. Exclusive Engine: Official Google Gemini Live Voice AI (Leda HD)
   for (const model of GEMINI_TTS_MODELS) {
     for (const key of keysToTry) {
-      if (attempts >= 3) break;
-      attempts++;
-
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
       const payload = {
         contents: [{ parts: [{ text: speechText }] }],
@@ -475,14 +471,14 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(4500)
+          signal: AbortSignal.timeout(5000)
         });
         const data = await res.json();
         if (data.error) {
           if (data.error.code === 429 || data.error.code === 401) {
-            markKeyCooldown(key, 30 * 60 * 1000);
+            markKeyCooldown(key, 15 * 60 * 1000);
           }
-          continue; // Try next key in pool!
+          continue; // Try next key/model in pool!
         }
         const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (audioData) {
@@ -495,49 +491,9 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
     }
   }
 
-  // 2. Secondary Safety Net Fallback (Only if all Gemini keys are temporarily busy)
-  try {
-    console.warn('[TTS Fallback] Gemini keys busy. Using Google TTS fallback...');
-    const result = await fetchGoogleTTS(speechText);
-    return { audioBase64: result.base64, mimeType: 'audio/mpeg', isGemini: false };
-  } catch (err) {
-    console.error('[TTS Fallback] Google TTS error:', err.message);
-    return { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
-  }
-}
-
-// ─── Free Unlimited Google Sinhala/English MP3 TTS ────────────────────────────
-async function fetchGoogleTTS(cleanText) {
-  const isSinhala = /[\u0D80-\u0DFF]/.test(cleanText);
-  const targetLang = isSinhala ? 'si' : 'en';
-
-  const chunks = [];
-  const sentences = cleanText.match(/[^.!?\n,]+[.!?\n,]?|.+/g) || [cleanText];
-  let cur = '';
-  for (const s of sentences) {
-    if ((cur + ' ' + s).length > 170) {
-      if (cur) chunks.push(cur.trim());
-      cur = s;
-    } else {
-      cur = (cur ? cur + ' ' : '') + s;
-    }
-  }
-  if (cur) chunks.push(cur.trim());
-
-  const buffers = [];
-  for (const chunk of chunks) {
-    if (!chunk.trim()) continue;
-    const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=' + targetLang + '&client=tw-ob&q=' + encodeURIComponent(chunk);
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
-    if (!res.ok) throw new Error('Google TTS HTTP error ' + res.status);
-    buffers.push(Buffer.from(await res.arrayBuffer()));
-  }
-  const combined = Buffer.concat(buffers);
-  return {
-    base64: combined.toString('base64'),
-    mimeType: 'audio/mpeg',
-    bytes: combined.byteLength
-  };
+  // Normal / Robotic TTS has been completely removed per user instruction.
+  console.warn('[Gemini TTS] All Gemini Voice keys temporarily busy.');
+  return { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
 }
 
 function buildSystemPrompt(sess, datasetText, userLang) {

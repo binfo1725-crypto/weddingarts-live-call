@@ -1034,10 +1034,7 @@ function connectWs(url) {
             onAiSpeechFinished();
           }, data.mimeType || 'audio/wav');
         } else {
-          // Secondary fallback: Browser Web Speech API
-          speakBrowserVoice(data.text, () => {
-            onAiSpeechFinished();
-          });
+          onAiSpeechFinished();
         }
       } else if (data.type === 'ai_thinking') {
         pauseListening();
@@ -1078,32 +1075,6 @@ function onAiSpeechFinished() {
   }, 400);
 }
 
-// ─── Browser Fallback TTS ─────────────────────────────────────────────────────
-function speakBrowserVoice(text, onEnd) {
-  if (!('speechSynthesis' in window)) {
-    if (onEnd) onEnd();
-    return;
-  }
-  window.speechSynthesis.cancel();
-  isAiSpeaking = true;
-
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = /[\u0D80-\u0DFF]/.test(text) ? 'si-LK' : 'en-US';
-  u.rate = 1.0;
-  u.pitch = 1.08;
-
-  u.onend = () => {
-    isAiSpeaking = false;
-    if (onEnd) onEnd();
-  };
-  u.onerror = () => {
-    isAiSpeaking = false;
-    if (onEnd) onEnd();
-  };
-
-  window.speechSynthesis.speak(u);
-}
-
 // ─── High-Definition Audio Playback ───────────────────────────────────────────
 function playAudioBase64(base64Data, onEnd, mimeType) {
   stopCurrentAudio();
@@ -1142,9 +1113,6 @@ function stopCurrentAudio() {
       currentAudio.currentTime = 0;
     } catch(e){}
     currentAudio = null;
-  }
-  if ('speechSynthesis' in window) {
-    try { window.speechSynthesis.cancel(); } catch(e){}
   }
   isAiSpeaking = false;
 }
@@ -1279,9 +1247,7 @@ function sendUserMessage(text) {
             onAiSpeechFinished();
           }, data.mimeType || 'audio/wav');
         } else {
-          speakBrowserVoice(data.reply, () => {
-            onAiSpeechFinished();
-          });
+          onAiSpeechFinished();
         }
       }
     })
