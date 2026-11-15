@@ -8,6 +8,7 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const db = require('./db.js');
 const waEngine = require('./whatsapp.js');
 const pdfParse = require('pdf-parse');
@@ -212,15 +213,51 @@ app.post('/api/auth/free-trial', (req, res) => {
   });
 });
 
+// ─── Super Admin Master Password & Authentication ───────────────────────────
+const ADMIN_MASTER_PASSWORD = process.env.ADMIN_PASSWORD || '486485';
+const activeAdminSessions = new Set();
+
+function requireAdminAuth(req, res, next) {
+  const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
+  if (!token || !activeAdminSessions.has(token)) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized: Master Admin Security PIN required.' });
+  }
+  next();
+}
+
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body || {};
+  if (!password || String(password).trim() !== ADMIN_MASTER_PASSWORD) {
+    return res.status(401).json({ ok: false, error: 'වැරදි Master Security Password එකක්. නැවත උත්සාහ කරන්න.' });
+  }
+  const token = 'adm_' + crypto.randomBytes(32).toString('hex');
+  activeAdminSessions.add(token);
+  res.json({ ok: true, token, message: 'Super Admin Security Access Granted' });
+});
+
+app.get('/api/admin/verify', (req, res) => {
+  const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
+  if (token && activeAdminSessions.has(token)) {
+    return res.json({ ok: true, authenticated: true });
+  }
+  res.status(401).json({ ok: false, authenticated: false });
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
+  if (token) activeAdminSessions.delete(token);
+  res.json({ ok: true });
+});
+
 // ─── Super Admin License Management APIs ─────────────────────────────────────
-app.get('/api/admin/licenses', (req, res) => {
+app.get('/api/admin/licenses', requireAdminAuth, (req, res) => {
   res.json({
     ok: true,
     licenses: db.getLicenses()
   });
 });
 
-app.post('/api/admin/generate-key', (req, res) => {
+app.post('/api/admin/generate-key', requireAdminAuth, (req, res) => {
   try {
     const { plan, clientName, clientPhone, notes } = req.body;
     const lic = db.generateLicense({ plan, clientName, clientPhone, notes });
@@ -230,7 +267,7 @@ app.post('/api/admin/generate-key', (req, res) => {
   }
 });
 
-app.post('/api/admin/extend-key', (req, res) => {
+app.post('/api/admin/extend-key', requireAdminAuth, (req, res) => {
   try {
     const { key, days } = req.body;
     const lic = db.extendLicense(key, parseInt(days) || 30);
@@ -241,7 +278,7 @@ app.post('/api/admin/extend-key', (req, res) => {
   }
 });
 
-app.post('/api/admin/toggle-key', (req, res) => {
+app.post('/api/admin/toggle-key', requireAdminAuth, (req, res) => {
   try {
     const { key } = req.body;
     const lic = db.toggleLicenseActive(key);
@@ -252,7 +289,7 @@ app.post('/api/admin/toggle-key', (req, res) => {
   }
 });
 
-app.post('/api/admin/delete-key', (req, res) => {
+app.post('/api/admin/delete-key', requireAdminAuth, (req, res) => {
   try {
     const { key } = req.body;
     const ok = db.deleteLicense(key);
@@ -340,7 +377,7 @@ app.post('/api/business/save', (req, res) => {
   res.json({ ok: true, business });
 });
 
-app.post('/api/business/create', (req, res) => {
+app.post('/api/business/create', requireAdminAuth, (req, res) => {
   try {
     const newBiz = db.createBusiness(req.body);
     if (req.body.setActive) {
@@ -357,7 +394,7 @@ app.post('/api/business/create', (req, res) => {
   }
 });
 
-app.post('/api/business/delete', (req, res) => {
+app.post('/api/business/delete', requireAdminAuth, (req, res) => {
   try {
     const { id } = req.body;
     const active = db.deleteBusiness(id);
