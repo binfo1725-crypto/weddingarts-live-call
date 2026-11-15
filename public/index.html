@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#07080d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Live AI Voice Assistant — WEDDING ARTS</title>
 
 <!-- Fonts -->
@@ -622,6 +625,50 @@
     margin-top: 6px;
   }
 
+  /* Dynamic Language Switcher Dock */
+  .lang-switcher-dock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 8px 0 10px 0;
+    width: 100%;
+  }
+  .lang-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .lang-pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.22s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+  .lang-pill:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+  .lang-pill:active { transform: scale(0.95); }
+  .lang-pill.active {
+    background: rgba(139, 92, 246, 0.24);
+    border-color: var(--accent-purple);
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(139, 92, 246, 0.4);
+  }
+
   /* Start Screen Hero */
   #start-screen {
     flex: 1;
@@ -745,6 +792,18 @@
         </div>
       </div>
 
+      <!-- Language selector on start screen -->
+      <div style="margin: 4px 0 2px 0; width: 100%;">
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+          කතා කිරීමට භාෂාව (Voice Mode):
+        </div>
+        <div class="lang-switcher-dock">
+          <button type="button" class="lang-pill active" data-lang="si-LK" onclick="setSpeechLanguage('si-LK')">🇱🇰 සිංහල</button>
+          <button type="button" class="lang-pill" data-lang="en-LK" onclick="setSpeechLanguage('en-LK')">🔤 Singlish</button>
+          <button type="button" class="lang-pill" data-lang="en-US" onclick="setSpeechLanguage('en-US')">🇬🇧 English</button>
+        </div>
+      </div>
+
       <button class="start-btn" id="btn-start-call" onclick="startCall()">
         <svg style="width:20px;height:20px;fill:currentColor;" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
         Call Start කරන්න
@@ -787,6 +846,14 @@
         <span id="status-text">සම්බන්ධ විය — AI සූදානම්</span>
       </div>
     </section>
+
+    <!-- Dynamic In-Call Language Selector -->
+    <div class="lang-switcher-dock">
+      <span class="lang-label">Voice:</span>
+      <button type="button" class="lang-pill active" data-lang="si-LK" onclick="setSpeechLanguage('si-LK')">🇱🇰 සිංහල</button>
+      <button type="button" class="lang-pill" data-lang="en-LK" onclick="setSpeechLanguage('en-LK')">🔤 Singlish</button>
+      <button type="button" class="lang-pill" data-lang="en-US" onclick="setSpeechLanguage('en-US')">🇬🇧 English</button>
+    </div>
 
     <!-- Quick Suggestion Prompt Chips -->
     <nav class="quick-chips">
@@ -877,6 +944,43 @@ let isAiSpeaking = false;
 let isRecognitionActive = false;
 let isMicMuted = false;
 let lastAiSpokenText = "";
+let currentSpeechLang = 'si-LK';
+
+// ─── Multilingual Language Switcher ───────────────────────────────────────────
+function setSpeechLanguage(langCode) {
+  currentSpeechLang = langCode;
+
+  // Sync button active state across all panels
+  document.querySelectorAll('.lang-pill').forEach(btn => {
+    if (btn.getAttribute('data-lang') === langCode) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  const langStatusMap = {
+    'si-LK': '🇱🇰 සිංහල මාදිලිය සක්‍රියයි',
+    'en-LK': '🔤 Singlish මාදිලිය සක්‍රියයි',
+    'en-US': '🇬🇧 English Mode Active'
+  };
+  setStatus('green', langStatusMap[langCode] || 'සූදානම්');
+
+  if (recognition) {
+    recognition.lang = langCode;
+    if (isRecognitionActive && !isAiSpeaking) {
+      try {
+        recognition.stop();
+        setTimeout(() => {
+          if (!isAiSpeaking && !isMicMuted && recognition) {
+            recognition.start();
+            isRecognitionActive = true;
+          }
+        }, 150);
+      } catch (e) {}
+    }
+  }
+}
 
 // ─── Start Call ───────────────────────────────────────────────────────────────
 function startCall() {
@@ -1053,7 +1157,7 @@ function setupSpeechRecognition() {
   recognition = new SpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = false;
-  recognition.lang = 'si-LK';
+  recognition.lang = currentSpeechLang || 'si-LK';
 
   recognition.onresult = (event) => {
     // 🛡️ Echo Guard 1: Ignore any speech recorded if AI was speaking
@@ -1154,12 +1258,12 @@ function sendUserMessage(text) {
   setSpectrumActive(true);
 
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'user_speech', text: text }));
+    ws.send(JSON.stringify({ type: 'user_speech', text: text, lang: currentSpeechLang }));
   } else {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: SESSION_ID, message: text, voice: VOICE_NAME })
+      body: JSON.stringify({ sessionId: SESSION_ID, message: text, lang: currentSpeechLang, voice: VOICE_NAME })
     })
     .then(r => r.json())
     .then(data => {

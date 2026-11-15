@@ -29,14 +29,9 @@ const VOICE_NAME = 'Leda'; // Exact soft, youthful, warm female voice profile fr
 
 // ─── Multi-Key Pool for Unlimited Gemini Voice AI ─────────────────────────────
 const ENCODED_KEYS = [
-  'QVEuQWI4Uk42SVg4Q3FvMWZpV08zY0hsODYxZDBWVDRkYmFleWhlUFVGTmZtY3VLbnAwNlE=',
   'QVEuQWI4Uk42Slc4Sk1BXzBSc05CTVZpb21zNjFCSjZBQlpueDJKMGpGQUlTcUpaZVJ5WHc=',
-  'QVEuQWI4Uk42TGlUQ05KU196ZHgyZlB2MktMZ3h3dFZ1MjNKdzJDOTdDMjFCaXl5UjM5QVE=',
-  'QVEuQWI4Uk42SVE0RFYxMlZ2cVR4WkV1clJ3ZExqZk9qU0FkYUJjV2d3UnNXLXBzWFVHbHc=',
-  'QVEuQWI4Uk42TFVmVEEwLU9YV0dNMmhYdzMtb0tfdWtXd2NDRzlxM2Vsd0ZSWG4tMzM1Y3c=',
-  'QVEuQWI4Uk42TGtocTNhN2ZjeXo5SEtSa2Nyam5yOWFXT3A5RjhXZHpQZHBlcWI5YzVHZmc=',
   'QVEuQWI4Uk42SWhsaWhsU2hVTnZWOUpKTWt3azNrd0d4VmZsblotdmk2dXZqQVlBQWhFYmc=',
-  'QVEuQWI4Uk42SnZhLUkzd0c4UEM4R29fdTlFQ2lLaVJRSkVsUndUWmRGYVd6dk9MRWswSGc='
+  'QVEuQWI4Uk42TFVmVEEwLU9YV0dNMmhYdzMtb0tfdWtXd2NDRzlxM2Vsd0ZSWG4tMzM1Y3c='
 ];
 const POOLED_GEMINI_API_KEYS = ENCODED_KEYS.map(k => Buffer.from(k, 'base64').toString('utf8'));
 if (DEFAULT_GEMINI_API_KEY && !POOLED_GEMINI_API_KEYS.includes(DEFAULT_GEMINI_API_KEY)) {
@@ -95,8 +90,23 @@ setInterval(() => {
 
 // ─── Express App ─────────────────────────────────────────────────────────────
 const app = express();
+
+// Disable aggressive browser caching for all HTML and dynamic responses
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 app.get('/health', (req, res) => {
   res.json({
@@ -233,11 +243,11 @@ wss.on('connection', (browserWs, req) => {
       }
 
       if (msg.type === 'user_speech' && msg.text) {
-        console.log(`[ws] User said (${sessionId}): "${msg.text}"`);
+        console.log(`[ws] User said (${sessionId}) [lang: ${msg.lang || 'auto'}]: "${msg.text}"`);
 
         safeSend(browserWs, JSON.stringify({ type: 'ai_thinking' }));
 
-        const aiReply = await getGeminiReply(msg.text, sess);
+        const aiReply = await getGeminiReply(msg.text, sess, msg.lang);
         console.log(`[ws] AI reply (${sessionId}): "${aiReply}"`);
 
         checkForOrderTag(aiReply, sess, sessionId);
@@ -277,9 +287,9 @@ wss.on('connection', (browserWs, req) => {
 });
 
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
-async function getGeminiReply(userMessage, sess) {
+async function getGeminiReply(userMessage, sess, userLang) {
   const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : BUILTIN_DATASET;
-  const systemInstruction = buildSystemPrompt(sess, datasetContext);
+  const systemInstruction = buildSystemPrompt(sess, datasetContext, userLang);
 
   if (!Array.isArray(sess.history)) sess.history = [];
 
@@ -293,12 +303,22 @@ async function getGeminiReply(userMessage, sess) {
     }
   }
 
-  // Ensure current user message is appended cleanly
-  cleanHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+  const isEnglishQuery = userLang === 'en-US' || (!/[\u0D80-\u0DFF]/.test(userMessage) && /\b(hello|hi|good morning|good afternoon|how much|what is|price|pricing|delivery|bank|order|can i|please|package|packages|edit|editing|shoot)\b/i.test(userMessage));
+
+  const turnInstruction = isEnglishQuery
+    ? `\n[VOICE RULE: The user is speaking in English. You MUST reply in fluent, natural English in 1 to 2 concise spoken sentences using exact dataset prices.]`
+    : `\n[VOICE RULE: The user is speaking in Sinhala/Singlish. You MUST reply in natural spoken Sinhala script (සිංහල අකුරින්). NEVER output Latin Singlish. 1 to 2 concise spoken sentences using exact dataset prices.]`;
+
+  // Append user message with per-turn steering prompt for the API call
+  cleanHistory.push({ role: 'user', parts: [{ text: userMessage + turnInstruction }] });
+
+  const initialModelAck = isEnglishQuery
+    ? `Understood. I represent ${sess.storeName || 'WEDDING ARTS'} and will provide concise answers in English with 100% accurate prices and details from the official dataset.`
+    : `තේරුණා. මම ${sess.storeName || 'WEDDING ARTS'} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.`;
 
   const contents = [
     { role: 'user', parts: [{ text: `[OFFICIAL MASTER DATASET & SYSTEM INSTRUCTIONS]\n${systemInstruction}\n[END SYSTEM INSTRUCTIONS]` }] },
-    { role: 'model', parts: [{ text: `තේරුණා. මම ${sess.storeName || 'WEDDING ARTS'} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.` }] },
+    { role: 'model', parts: [{ text: initialModelAck }] },
     ...cleanHistory
   ];
 
@@ -319,12 +339,16 @@ async function getGeminiReply(userMessage, sess) {
               temperature: 0.6,
               maxOutputTokens: 250
             }
-          })
+          }),
+          signal: AbortSignal.timeout(4500)
         });
 
         const data = await response.json();
         if (data.error) {
           lastError = data.error.message;
+          if (data.error.code === 429 || data.error.status === 'RESOURCE_EXHAUSTED' || data.error.code === 401) {
+            markKeyCooldown(key, 20 * 60 * 1000);
+          }
           continue; // Try next key
         }
 
@@ -337,6 +361,7 @@ async function getGeminiReply(userMessage, sess) {
         }
       } catch (err) {
         lastError = err.message;
+        markKeyCooldown(key, 5 * 60 * 1000);
       }
     }
   }
@@ -355,46 +380,64 @@ function sanitizeForSpeech(text) {
   let s = (text || '')
     .replace(/\[\[ORDER:.*?\]\]/g, '')
     .replace(/[*#_~`>]/g, '')
-    .replace(/["“”'‘]/g, '')
-    .replace(/Rs\.?\s*([0-9,]+)/gi, 'රුපියල් $1 ')
-    .replace(/\bLKR\b/gi, 'රුපියල් ')
-    .replace(/\bCOD\b/gi, 'කෑෂ් ඔන් ඩිලිවරි ');
+    .replace(/["“”'‘]/g, '');
+
+  const hasSinhala = /[\u0D80-\u0DFF]/.test(s);
+
+  if (hasSinhala) {
+    s = s
+      .replace(/Rs\.?\s*([0-9,]+)/gi, 'රුපියල් $1 ')
+      .replace(/\bLKR\b/gi, 'රුපියල් ')
+      .replace(/\bCOD\b/gi, 'කෑෂ් ඔන් ඩිලිවරි ');
+  } else {
+    s = s
+      .replace(/Rs\.?\s*([0-9,]+)/gi, '$1 Rupees ')
+      .replace(/\bLKR\b/gi, 'Rupees ')
+      .replace(/\bCOD\b/gi, 'Cash on Delivery ');
+  }
 
   // Strip emojis & symbols so Gemini TTS doesn't vocalize emoji names
-  const emojiPattern = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u26FF]|[\u2700-\u27BF]|[\u2300-\u23FF]|[\u25A0-\u25FF]|[\u2B00-\u2BFF]|[\u2190-\u21FF]|[\u3030\u303D\u3297\u3299]|[•▪▫◦⁃●○★☆✦✧✓✔🤖⚠️📦👋🎙️🔊]/g;
+  const emojiPattern = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u26FF]|[\u2700-\u27BF]|[\u2300-\u23FF]|[\u25A0-\u25FF]|[\u2B00-\u2BFF]|[\u2190-\u21FF]|[\u3030\u303D\u3297\u3299]|[•▪▫◦⁃●○★☆✦✧✓✔🤖⚠️📦👋🎙️🔊✨💬🎨🖼️🚚💳]/g;
   s = s.replace(emojiPattern, ' ');
 
   // Spoken Sinhala Conversions (matching FemaleVoiceEngine.kt)
-  s = s
-    .replace(/\bහැකියාව ඇත\b/g, 'පුළුවන්')
-    .replace(/\bහැකියාව තියෙනවා\b/g, 'පුළුවන්')
-    .replace(/\bඇත\b/g, 'තියෙනවා')
-    .replace(/\bනැත\b/g, 'නෑ')
-    .replace(/\bවේ\b/g, 'වෙනවා')
-    .replace(/\bකෙරේ\b/g, 'කරනවා')
-    .replace(/\bලැබේ\b/g, 'ලැබෙනවා')
-    .replace(/\bපිළිබඳව?\b/g, 'ගැන')
-    .replace(/\bසඳහා\b/g, 'වෙනුවෙන්')
-    .replace(/\bඔබට\b/g, 'ඔයාට')
-    .replace(/\bඔබගේ\b/g, 'ඔයාගේ')
-    .replace(/\bඔබේ\b/g, 'ඔයාගේ')
-    .replace(/\bඔබව\b/g, 'ඔයාව')
-    .replace(/\bඔබ\b/g, 'ඔයා')
-    .replace(/\bඅපගේ\b/g, 'අපේ')
-    .replace(/\bඅපට\b/g, 'අපිට')
-    .replace(/\bFrame\b/gi, 'ෆ්‍රේම්')
-    .replace(/\bFrames\b/gi, 'ෆ්‍රේම්ස්')
-    .replace(/\bPhoto\b/gi, 'ෆොටෝ')
-    .replace(/\bPhotos\b/gi, 'ෆොටෝ')
-    .replace(/\bEditing\b/gi, 'එඩිටින්')
-    .replace(/\bEdits\b/gi, 'එඩිට්ස්')
-    .replace(/\bEdit\b/gi, 'එඩිට්')
-    .replace(/\bShoot\b/gi, 'ෂූට්')
-    .replace(/\bShoots\b/gi, 'ෂූට්ස්')
-    .replace(/\bWedding\b/gi, 'වෙඩින්')
-    .replace(/\bDelivery\b/gi, 'ඩිලිවරි')
-    .replace(/\bFree\b/gi, 'නොමිලේ')
-    .replace(/\bWhatsApp\b/gi, 'වට්ස්ඇප්');
+  if (hasSinhala) {
+    s = s
+      .replace(/\bහැකියාව ඇත\b/g, 'පුළුවන්')
+      .replace(/\bහැකියාව තියෙනවා\b/g, 'පුළුවන්')
+      .replace(/\bඇත\b/g, 'තියෙනවා')
+      .replace(/\bනැත\b/g, 'නෑ')
+      .replace(/\bවේ\b/g, 'වෙනවා')
+      .replace(/\bකෙරේ\b/g, 'කරනවා')
+      .replace(/\bලැබේ\b/g, 'ලැබෙනවා')
+      .replace(/\bපිළිබඳව?\b/g, 'ගැන')
+      .replace(/\bසඳහා\b/g, 'වෙනුවෙන්')
+      .replace(/\bඔබට\b/g, 'ඔයාට')
+      .replace(/\bඔබගේ\b/g, 'ඔයාගේ')
+      .replace(/\bඔබේ\b/g, 'ඔයාගේ')
+      .replace(/\bඔබව\b/g, 'ඔයාව')
+      .replace(/\bඔබ\b/g, 'ඔයා')
+      .replace(/\bඅපගේ\b/g, 'අපේ')
+      .replace(/\bඅපට\b/g, 'අපිට')
+      .replace(/\bFrame\b/gi, 'ෆ්‍රේම්')
+      .replace(/\bFrames\b/gi, 'ෆ්‍රේම්ස්')
+      .replace(/\bPhoto\b/gi, 'ෆොටෝ')
+      .replace(/\bPhotos\b/gi, 'ෆොටෝ')
+      .replace(/\bEditing\b/gi, 'එඩිටින්')
+      .replace(/\bEdits\b/gi, 'එඩිට්ස්')
+      .replace(/\bEdit\b/gi, 'එඩිට්')
+      .replace(/\bShoot\b/gi, 'ෂූට්')
+      .replace(/\bShoots\b/gi, 'ෂූට්ස්')
+      .replace(/\bWedding\b/gi, 'වෙඩින්')
+      .replace(/\bDelivery\b/gi, 'ඩිලිවරි')
+      .replace(/\bFree\b/gi, 'නොමිලේ')
+      .replace(/\bWhatsApp\b/gi, 'වට්ස්ඇප්')
+      .replace(/\b12x18\b/gi, 'දොළහයි දහඅට')
+      .replace(/\b16x24\b/gi, 'දහසයයි විසිහතර')
+      .replace(/\b20x30\b/gi, 'විස්සයි තිහ')
+      .replace(/\b8x12\b/gi, 'අටයි දොළහ')
+      .replace(/\b10x15\b/gi, 'දහයයි පහළොව');
+  }
 
   return s.replace(/\s+/g, ' ').trim();
 }
@@ -431,7 +474,8 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(4500)
         });
         const data = await res.json();
         if (data.error) {
@@ -446,7 +490,7 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
           return { audioBase64: audioData, mimeType: 'audio/wav', isGemini: true };
         }
       } catch (err) {
-        // continue
+        markKeyCooldown(key, 5 * 60 * 1000);
       }
     }
   }
@@ -496,21 +540,46 @@ async function fetchGoogleTTS(cleanText) {
   };
 }
 
-function buildSystemPrompt(sess, datasetText) {
-  return `You are a live voice AI assistant on a live phone call for "${sess.storeName}".
+function buildSystemPrompt(sess, datasetText, userLang) {
+  return `You are a live voice AI assistant on a real-time telephone voice call for "${sess.storeName}".
 Customer Name: "${sess.customerName}".
-Your primary language is natural conversational Sinhala (සිංහල). If the customer speaks English or Singlish, reply naturally in that language.
+
+=== LANGUAGE COMPREHENSION & RULES (100% MULTILINGUAL) ===
+You must effortlessly understand the customer regardless of which language or format they speak:
+1. PURE SINHALA (සිංහල අකුරින්): e.g. "මට UV Frame වල ගණන් කියන්න", "ඩිලිවරි නොමිලේද?"
+2. SINGLISH (Sinhala written with Latin letters): e.g. "mata uv frame mila kiyanna", "delivery free da", "bank details ewanna", "order ekak danna puluwanda", "wistara one"
+3. PURE ENGLISH: e.g. "What are the frame sizes and prices?", "Do you provide cash on delivery?", "Can I place an order?"
+4. MIXED GREETINGS & EXPRESSIONS: e.g. "ආයි good morning", "Good morning machan", "Hello frame gana kiyanna", "Hi ayye wistara ewanna"
+
+CRITICAL OUTPUT RULES FOR VOICE SYNTHESIS (GEMINI LEDA VOICE):
+- IF THE CUSTOMER SPEAKS IN ENGLISH: Reply in fluent, friendly, natural English.
+- IF THE CUSTOMER SPEAKS IN SINHALA, SINGLISH, OR MIXED: Reply in NATURAL CONVERSATIONAL SPOKEN SINHALA SCRIPT (සිංහල අකුරින්).
+  * CRITICAL REASON: The voice synthesizer reads English letters with an American English accent. If you reply in Latin Singlish, the voice sounds broken and unintelligible. When you reply in authentic Sinhala script (සිංහල අකුරින්), the Gemini Leda voice engine speaks with an authentic, sweet, crystal-clear Sri Lankan female voice! Therefore: NEVER output Latin Singlish — ALWAYS translate user Singlish intent into natural spoken Sinhala script!
 
 --- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---
 ${datasetText}
 --- END OFFICIAL MASTER DATASET ---
 
-CRITICAL INSTRUCTIONS FOR LIVE VOICE CALL:
-1. STRICT DATASET USAGE: Rely 100% on the Master Dataset above. State the EXACT prices (e.g. Western/Kandyan Single Edit Rs. 1,500; 10-Photo Shoot Rs. 5,000; Army Uniform Shoot Rs. 8,000; UV Frames 12x18 Rs. 4,800, 16x24 Rs. 7,800; Free Delivery on 16x24 and above; BOC Bank 92949122 D T Rajapaksha).
-2. CONVERSATIONAL BREVITY: Keep answers to 1 to 3 natural spoken sentences (around 25-45 words). In live phone calls, customers want quick, punchy answers, not long essays.
-3. CONVERSATIONAL TONE: Speak warmly and respectfully like a friendly Sri Lankan sales executive (e.g., "ඔව් සහෝදරයා", "අපේ Wedding Arts එකේ...").
-4. BARGE-IN AWARE: The customer may interrupt you at any time. Keep your answers clear, concise, and structured.
-5. If order is confirmed, add this tag at the end:
+KEY RULES FOR LIVE VOICE CALL:
+1. STRICT DATASET ACCURACY:
+   - Western / Kandyan Single Photo Edit: Rs. 1,500
+   - 10-Photo Shoot Retouch: Rs. 5,000
+   - Army Uniform Single Edit: Rs. 2,000 | 10-Photo Shoot: Rs. 8,000
+   - UV Gloss Frameless Sizes & Prices:
+     * 8x12: Rs. 2,300
+     * 10x15: Rs. 3,200
+     * 12x18: Rs. 4,800
+     * 16x24: Rs. 7,800 (Free Islandwide Courier Delivery)
+     * 20x30: Rs. 11,500 (Free Islandwide Courier Delivery)
+   - 3-Panel Wall Frame Set: Rs. 14,000 (Free Islandwide Courier Delivery)
+   - Bank Details: Bank of Ceylon (BOC), Account: 92949122, Name: D T Rajapaksha
+   - Contact / WhatsApp: 076 210 7801
+   - Never invent discounts or incorrect prices.
+
+2. CONVERSATIONAL BREVITY: Keep answers to 1 to 3 natural spoken sentences (around 20-40 words maximum). Customers are listening on a live phone call.
+3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like a friendly Sri Lankan customer service agent (e.g., "ඔව් සහෝදරයා / අක්කේ", "අපේ Wedding Arts එකේ...").
+   - If greeted (e.g. "ආයි good morning" or "Good morning"), warmly greet back ("Good morning! ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට කොහොමද උදව් කරන්න පුළුවන්?").
+4. If order is confirmed, add this tag at the end:
    [[ORDER: name=${sess.customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
 }
 
