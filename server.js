@@ -9,6 +9,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
 const db = require('./db.js');
+const waEngine = require('./whatsapp.js');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -177,10 +178,17 @@ app.get('/api/chats', (req, res) => {
   });
 });
 
-app.post('/api/chats/reply', (req, res) => {
+app.post('/api/chats/reply', async (req, res) => {
   const { chatId, text } = req.body;
   if (!chatId || !text) return res.status(400).json({ error: 'chatId and text required' });
   const result = db.addChatMessage(chatId, 'agent', text);
+  if (waEngine && waEngine.connected) {
+    try {
+      await waEngine.sendTextMessage(chatId, text);
+    } catch (e) {
+      console.warn('[chats/reply] WhatsApp send failed:', e.message);
+    }
+  }
   res.json({ ok: true, ...result });
 });
 
@@ -238,30 +246,55 @@ app.get('/api/broadcasts', (req, res) => {
   });
 });
 
-app.post('/api/broadcasts', (req, res) => {
+app.post('/api/broadcasts', async (req, res) => {
   const activeBiz = db.getActiveBusiness();
   const broadcast = db.addBroadcast({
     ...req.body,
     businessId: activeBiz.id
   });
+
+  if (waEngine && waEngine.connected && req.body.message) {
+    const chats = db.getChats();
+    const uniquePhones = [...new Set(chats.map(c => c.customerPhone).filter(Boolean))];
+    (async () => {
+      for (const phone of uniquePhones.slice(0, 100)) {
+        try {
+          await waEngine.sendTextMessage(phone, req.body.message);
+          await new Promise(r => setTimeout(r, 2500 + Math.random() * 2000));
+        } catch (e) {}
+      }
+    })();
+  }
+
   res.json({ ok: true, broadcast });
 });
 
-// WhatsApp Multi-Device Pairing State
+// Genuine WhatsApp Multi-Device (Baileys) Endpoints
 app.get('/api/whatsapp/status', (req, res) => {
   res.json({
     ok: true,
-    ...db.getWhatsAppStatus()
+    ...waEngine.getStatus()
   });
 });
 
-app.post('/api/whatsapp/pair', (req, res) => {
-  const newCode = 'OMNI-' + Math.floor(1000 + Math.random() * 9000);
-  const updated = db.updateWhatsAppStatus({
-    pairingCode: newCode,
-    lastSeen: new Date().toISOString()
-  });
-  res.json({ ok: true, ...updated });
+app.post('/api/whatsapp/pairing-code', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    const code = await waEngine.requestPhonePairingCode(phoneNumber);
+    res.json({ ok: true, pairingCode: code });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/logout', async (req, res) => {
+  await waEngine.logout();
+  res.json({ ok: true });
+});
+
+app.post('/api/whatsapp/restart', async (req, res) => {
+  await waEngine.start();
+  res.json({ ok: true });
 });
 
 // ─── Session Management ──────────────────────────────────────────────────────
@@ -753,8 +786,21 @@ function safeSend(ws, data) {
   } catch {}
 }
 
+// ─── Attach Handlers to WhatsApp Multi-Device Engine ────────────────────────
+waEngine.setHandlers({
+  aiReplyHandler: async (text, sess) => {
+    return await getGeminiReply(text, sess);
+  },
+  orderCheckHandler: (text, sess, id) => {
+    checkForOrderTag(text, sess, id);
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`\n🎙️  OmniSix Live Call Server running on port ${PORT}`);
   console.log(`📡  Call URL: ${CALL_SERVER_URL}/call?s=SESSION_ID`);
   console.log(`💚  Health:  ${CALL_SERVER_URL}/health\n`);
+
+  // Start WhatsApp Multi-Device Web Engine
+  waEngine.start();
 });

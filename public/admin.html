@@ -800,35 +800,84 @@
 
     <!-- 6. WHATSAPP CONNECTION TAB -->
     <section id="tab-whatsapp" class="glass-card hidden">
-      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">WhatsApp Cloud Multi-Device Pairing</h2>
-      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
-        ඔබගේ දුරකථනයේ WhatsApp එක Cloud Server එකට සම්බන්ධ කරගන්න. එක්වරක් සම්බන්ධ කළ පසු Phone එක Off වුවද 24/7 ක්‍රියාත්මක වේ.
-      </p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">WhatsApp Cloud Multi-Device Hub</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">
+            ඔබගේ දුරකථනයේ WhatsApp එක සෘජුවම Server එකට සම්බන්ධ කරන්න. Phone එක Off වුවද Cloud AI 24/7 ක්‍රියාත්මක වේ.
+          </p>
+        </div>
+        <div id="wa-connection-badge" style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:0.8rem;font-weight:700;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);">
+          <span style="width:8px;height:8px;border-radius:50%;background:#f87171;"></span>
+          <span id="wa-status-text">Disconnected</span>
+        </div>
+      </div>
 
-      <div class="pairing-box">
-        <h3 style="font-size:1.1rem;font-weight:700;">Scan QR Code (Method 1)</h3>
-        <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:4px;">
-          WhatsApp ➜ Linked Devices ➜ Link a Device ඔබා පහත QR Code එක Scan කරන්න:
+      <!-- When Connected View -->
+      <div id="wa-connected-view" class="hidden" style="text-align:center;padding:40px 20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:16px;">
+        <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+        <h3 style="font-size:1.3rem;font-weight:700;color:#34d399;margin-bottom:6px;">WhatsApp Cloud AI is LIVE & Connected!</h3>
+        <p style="font-size:0.88rem;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;">
+          Linked Number: <strong id="wa-connected-phone" style="color:#ffffff;">+94 7x xxx xxxx</strong><br>
+          ඔබගේ WhatsApp පාරිභෝගික පණිවිඩ වලට OmniSix AI ස්වයංක්‍රීයව පිළිතුරු සපයයි.
         </p>
+        <button class="btn-primary" onclick="logoutWhatsApp()" style="background:#ef4444;border-color:#ef4444;padding:8px 20px;font-size:0.82rem;">
+          🚪 Disconnect / Logout
+        </button>
+      </div>
 
-        <div class="qr-placeholder" id="qr-container">
-          <!-- Real SVG QR Code -->
-          <svg style="width:100%;height:100%;" viewBox="0 0 100 100">
-            <rect width="100" height="100" fill="#ffffff" />
-            <path d="M10 10h30v30h-30z M60 10h30v30h-30z M10 60h30v30h-30z M20 20h10v10h-10z M70 20h10v10h-10z M20 70h10v10h-10z M45 20h10v10h-10z M20 45h10v10h-10z M45 45h10v10h-10z M60 45h10v10h-10z M45 60h10v10h-10z M60 60h10v10h-10z M75 75h15v15h-15z" fill="#000000" />
-          </svg>
+      <!-- When Disconnected: Pairing Methods -->
+      <div id="wa-disconnected-view" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        
+        <!-- Method 1: Genuine WhatsApp Web Barcode -->
+        <div class="pairing-box" style="margin:0;">
+          <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+            <span>📷</span> Method 1: Scan Barcode (WhatsApp Web)
+          </h3>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 16px;">
+            WhatsApp ➜ Settings (හෝ තිත් 3) ➜ <strong>Linked Devices</strong> ➜ <strong>Link a Device</strong> ඔබා පහත Barcode එක Scan කරන්න:
+          </p>
+
+          <div id="wa-qr-wrapper" style="display:flex;justify-content:center;align-items:center;min-height:240px;background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;border:1px dashed rgba(255,255,255,0.15);">
+            <div id="wa-qr-loading" style="text-align:center;color:var(--text-muted);font-size:0.82rem;">
+              <div style="font-size:1.6rem;margin-bottom:8px;animation:spin 1.5s linear infinite;">⏳</div>
+              Generating live WhatsApp Web Barcode...
+            </div>
+            <img id="wa-qr-img" src="" alt="WhatsApp QR Code" class="hidden" style="width:220px;height:220px;background:#ffffff;border-radius:10px;padding:6px;box-shadow:0 0 25px rgba(0,0,0,0.6);" />
+          </div>
+
+          <button class="btn-primary" onclick="restartWhatsAppSession()" style="margin-top:14px;width:100%;padding:9px;font-size:0.82rem;">
+            🔄 Refresh Barcode
+          </button>
         </div>
 
-        <div style="font-size:0.8rem;color:var(--text-muted);margin:10px 0;">— OR USE 8-DIGIT PAIRING CODE (Method 2) —</div>
-        
-        <div class="code-badge" id="pairing-code-label">WED-8842</div>
-        <p style="font-size:0.78rem;color:var(--text-secondary);">
-          දුරකථනයේ <em>"Link with phone number instead"</em> තෝරා ඉහත Code එක ලබා දෙන්න.
-        </p>
+        <!-- Method 2: 8-Digit Pairing Code (Phone Number) -->
+        <div class="pairing-box" style="margin:0;">
+          <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+            <span>🔢</span> Method 2: 8-Digit Pairing Code
+          </h3>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 12px;">
+            Barcode එක Scan කිරීමට අපහසු නම්, ඔබගේ WhatsApp අංකය ඇතුළත් කර 8-digit code එක ලබා ගන්න (No camera needed):
+          </p>
 
-        <button class="btn-primary" onclick="refreshPairing()" style="margin-top:20px;padding:9px 18px;font-size:0.84rem;">
-          🔄 Generate Fresh Pairing Code
-        </button>
+          <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <input type="text" id="wa-phone-input" class="form-input" placeholder="e.g. 94762107801" style="font-family:'JetBrains Mono';font-size:0.85rem;" />
+            <button class="btn-primary" onclick="requestPairingCode()" style="white-space:nowrap;padding:8px 14px;font-size:0.82rem;">
+              Get Code
+            </button>
+          </div>
+
+          <div style="background:rgba(0,0,0,0.4);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Official Pairing Code</div>
+            <div id="wa-pairing-code-label" class="code-badge" style="font-size:1.35rem;letter-spacing:0.18em;margin:4px auto 10px;">---- ----</div>
+            <p style="font-size:0.75rem;color:var(--text-secondary);line-height:1.4;">
+              1. WhatsApp ➜ Linked Devices ➜ Link a Device<br>
+              2. යට ඇති <strong>"Link with phone number instead"</strong> තෝරන්න<br>
+              3. ඉහත Code එක Type කරන්න.
+            </p>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -861,6 +910,12 @@ function showTab(tabName) {
   if (tabName === 'inbox') fetchInbox();
   if (tabName === 'orders') fetchOrders();
   if (tabName === 'business') loadBusinessForm();
+  if (tabName === 'whatsapp') {
+    fetchWhatsAppStatus();
+    startWaPolling();
+  } else {
+    stopWaPolling();
+  }
 }
 
 // ─── Initial Load ─────────────────────────────────────────────────────────────
@@ -1192,15 +1247,127 @@ async function sendBroadcastCampaign(e) {
   } catch(e) { alert('Broadcast error: ' + e.message); }
 }
 
-// ─── Pairing Refresh ──────────────────────────────────────────────────────────
-async function refreshPairing() {
+// ─── Real WhatsApp Multi-Device (WhatsApp Web) Functions ───────────────────
+let waPollTimer = null;
+
+function startWaPolling() {
+  if (waPollTimer) clearInterval(waPollTimer);
+  waPollTimer = setInterval(fetchWhatsAppStatus, 3000); // 3s fast polling on WA tab
+}
+
+function stopWaPolling() {
+  if (waPollTimer) {
+    clearInterval(waPollTimer);
+    waPollTimer = null;
+  }
+}
+
+async function fetchWhatsAppStatus() {
   try {
-    const res = await fetch('/api/whatsapp/pair', { method: 'POST' });
+    const res = await fetch('/api/whatsapp/status');
     const data = await res.json();
-    if (data.ok) {
-      document.getElementById('pairing-code-label').textContent = data.pairingCode || 'WED-9921';
-      alert('New WhatsApp pairing code generated! Link it in WhatsApp > Linked Devices.');
+    if (!data.ok) return;
+
+    const badge = document.getElementById('wa-connection-badge');
+    const statusText = document.getElementById('wa-status-text');
+    const connectedView = document.getElementById('wa-connected-view');
+    const disconnectedView = document.getElementById('wa-disconnected-view');
+
+    if (data.connected) {
+      if (badge) {
+        badge.style.background = 'rgba(16,185,129,0.15)';
+        badge.style.color = '#34d399';
+        badge.style.borderColor = 'rgba(16,185,129,0.3)';
+        badge.querySelector('span').style.background = '#34d399';
+      }
+      if (statusText) statusText.textContent = `Connected (${data.phoneNumber || 'Active'})`;
+
+      if (connectedView) connectedView.classList.remove('hidden');
+      if (disconnectedView) disconnectedView.classList.add('hidden');
+      const phoneLabel = document.getElementById('wa-connected-phone');
+      if (phoneLabel) phoneLabel.textContent = data.phoneNumber ? ('+' + data.phoneNumber) : 'Active Multi-Device';
+    } else {
+      if (badge) {
+        badge.style.background = 'rgba(239,68,68,0.15)';
+        badge.style.color = '#f87171';
+        badge.style.borderColor = 'rgba(239,68,68,0.3)';
+        badge.querySelector('span').style.background = '#f87171';
+      }
+      if (statusText) statusText.textContent = data.statusText || 'Waiting for Scan';
+
+      if (connectedView) connectedView.classList.add('hidden');
+      if (disconnectedView) disconnectedView.classList.remove('hidden');
+
+      const qrImg = document.getElementById('wa-qr-img');
+      const qrLoading = document.getElementById('wa-qr-loading');
+
+      if (data.qrDataUrl) {
+        if (qrImg) {
+          qrImg.src = data.qrDataUrl;
+          qrImg.classList.remove('hidden');
+        }
+        if (qrLoading) qrLoading.classList.add('hidden');
+      } else {
+        if (qrImg) qrImg.classList.add('hidden');
+        if (qrLoading) qrLoading.classList.remove('hidden');
+      }
+
+      if (data.pairingCode) {
+        const pairLabel = document.getElementById('wa-pairing-code-label');
+        if (pairLabel) pairLabel.textContent = data.pairingCode;
+      }
     }
+  } catch(e) {
+    console.error('fetchWhatsAppStatus error:', e);
+  }
+}
+
+async function requestPairingCode() {
+  const phone = document.getElementById('wa-phone-input').value.trim();
+  if (!phone) {
+    alert('කරුණාකර රට කේතය (Country code 94) සමඟ දුරකථන අංකය ඇතුළත් කරන්න (උදා: 94762107801)');
+    return;
+  }
+  const label = document.getElementById('wa-pairing-code-label');
+  if (label) label.textContent = 'GENERATING...';
+
+  try {
+    const res = await fetch('/api/whatsapp/pairing-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone })
+    });
+    const data = await res.json();
+    if (data.ok && data.pairingCode) {
+      if (label) label.textContent = data.pairingCode;
+      alert(`✅ Pairing Code Generated: ${data.pairingCode}\n\n1. WhatsApp ➜ Linked Devices ➜ Link a Device\n2. "Link with phone number instead" තෝරා ඉහත Code එක ඇතුළත් කරන්න!`);
+    } else {
+      alert('Error: ' + (data.error || 'Failed to request code'));
+      if (label) label.textContent = '---- ----';
+    }
+  } catch(e) {
+    alert('Request failed: ' + e.message);
+    if (label) label.textContent = '---- ----';
+  }
+}
+
+async function restartWhatsAppSession() {
+  const qrImg = document.getElementById('wa-qr-img');
+  const qrLoading = document.getElementById('wa-qr-loading');
+  if (qrImg) qrImg.classList.add('hidden');
+  if (qrLoading) qrLoading.classList.remove('hidden');
+
+  try {
+    await fetch('/api/whatsapp/restart', { method: 'POST' });
+    setTimeout(fetchWhatsAppStatus, 2500);
+  } catch(e){}
+}
+
+async function logoutWhatsApp() {
+  if (!confirm('ඔබට WhatsApp ගිණුම සර්වර් එකෙන් Disconnect කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?')) return;
+  try {
+    await fetch('/api/whatsapp/logout', { method: 'POST' });
+    fetchWhatsAppStatus();
   } catch(e){}
 }
 </script>
