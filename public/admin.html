@@ -750,6 +750,10 @@
       <svg viewBox="0 0 24 24"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.99-1.38-.99-2.63 0-1.25.61-1.86.82-2.11.21-.25.46-.31.62-.31.15 0 .31.01.44.02.14.01.32-.05.5.39.19.46.65 1.67.71 1.79.06.12.1.26.02.42-.08.16-.12.26-.24.4-.12.14-.25.31-.36.42-.12.12-.24.25-.1.5.14.25.64 1.08 1.37 1.75.94.86 1.73 1.12 1.98 1.25.25.12.39.11.54-.06.15-.17.65-.76.82-1.02.17-.26.34-.22.58-.13zM12 2a10 10 0 0 0-10 10c0 1.77.46 3.45 1.28 4.92L2 22l5.25-1.25A9.97 9.97 0 0 0 12 22a10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>
       WhatsApp Web Hub
     </button>
+    <button class="tab-btn" onclick="showTab('licenses')">
+      <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+      🔑 License KeyGen & Clients
+    </button>
   </aside>
 
   <!-- Content Sections -->
@@ -1248,6 +1252,90 @@
       </div>
     </section>
 
+    <!-- 10. LICENSE KEYGEN & CLIENTS (SUPER ADMIN) -->
+    <section id="tab-licenses" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span>🔑</span> SaaS License KeyGen & Client Management
+          </h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">
+            නව Clients ලා සඳහා License Keys Generate කිරීම, Plans (1M, 3M, 6M, 1Y, Free Trial) කළමනාකරණය සහ Expiry Dates පාලනය.
+          </p>
+        </div>
+        <button class="btn-primary" onclick="loadLicenses()">🔄 Refresh Licenses</button>
+      </div>
+
+      <!-- Key Generator Box -->
+      <div style="background:#F8FAFC;border:1px solid var(--card-border);border-radius:14px;padding:22px;margin-bottom:28px;">
+        <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:14px;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+          <span>⚡</span> Generate New Client License Key
+        </h3>
+        <form onsubmit="handleGenerateKey(event)">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Subscription Plan</label>
+              <select id="keygen-plan" class="form-select">
+                <option value="1M">1 Month Pro (30 Days)</option>
+                <option value="3M">3 Months Pro (90 Days)</option>
+                <option value="6M">6 Months Pro (180 Days)</option>
+                <option value="1Y">1 Year Ultimate (365 Days)</option>
+                <option value="TRIAL">Free Trial (3 Days)</option>
+                <option value="LIFETIME">Lifetime Enterprise (10 Years)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Client / Store Name</label>
+              <input type="text" id="keygen-name" class="form-input" placeholder="e.g. Royal Fashion Boutique" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Client WhatsApp Number</label>
+              <input type="text" id="keygen-phone" class="form-input" placeholder="e.g. 0771234567" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Internal Notes / Payment Reference (Optional)</label>
+            <input type="text" id="keygen-notes" class="form-input" placeholder="e.g. Paid Rs. 3,500 via BOC Slip">
+          </div>
+          <button type="submit" class="btn-primary" style="display:inline-flex;align-items:center;gap:8px;">
+            <span>✨</span> Generate & Issue License Key
+          </button>
+        </form>
+
+        <!-- Generated Key Box -->
+        <div id="keygen-result-box" style="display:none;margin-top:20px;background:#FFFFFF;border:1px solid var(--accent-emerald-border);border-radius:12px;padding:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-weight:700;color:var(--accent-emerald);font-size:0.95rem;">🎉 License Key Successfully Generated!</div>
+            <button class="btn-secondary" onclick="copyWhatsAppInvite()" style="padding:6px 12px;font-size:0.78rem;">📋 Copy WhatsApp Message</button>
+          </div>
+          <div id="keygen-key-text" style="font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:800;color:var(--text-primary);background:#F1F5F9;padding:10px 14px;border-radius:8px;text-align:center;letter-spacing:0.08em;margin-bottom:12px;"></div>
+          <textarea id="keygen-invite-text" class="form-textarea" style="min-height:120px;font-size:0.8rem;background:#F8FAFC;" readonly></textarea>
+        </div>
+      </div>
+
+      <!-- Licenses Table -->
+      <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:14px;color:var(--text-primary);">All Issued Client Licenses</h3>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>License Key</th>
+              <th>Client / Store</th>
+              <th>Phone</th>
+              <th>Plan</th>
+              <th>Expires At</th>
+              <th>Days Left</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="licenses-tbody">
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Loading licenses...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -1471,6 +1559,10 @@ function showTab(tabName) {
 
   const activeSection = document.getElementById(`tab-${tabName}`);
   if (activeSection) activeSection.classList.remove('hidden');
+
+  if (tabName === 'licenses') {
+    loadLicenses();
+  }
 
   if (tabName === 'overview') fetchOverview();
   if (tabName === 'inbox') fetchInbox();
@@ -2544,6 +2636,141 @@ async function processDatasetFile(file) {
     }
   };
   reader.readAsDataURL(file);
+}
+
+// ─── Super Admin License Management Scripts ──────────────────────────────────
+async function loadLicenses() {
+  const tbody = document.getElementById('licenses-tbody');
+  if (!tbody) return;
+  try {
+    const res = await fetch('/api/admin/licenses');
+    const data = await res.json();
+    if (!data.ok || !data.licenses || data.licenses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">No client licenses issued yet. Use the Key Generator above to issue your first license.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.licenses.map(l => {
+      const statusColor = l.status === 'Active' ? '#047857' : (l.status === 'Expired' ? '#D97706' : '#DC2626');
+      return `
+        <tr>
+          <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-blue);">${escapeHtml(l.key)}</td>
+          <td style="font-weight:700;">${escapeHtml(l.clientName || 'N/A')}</td>
+          <td>${escapeHtml(l.clientPhone || '-')}</td>
+          <td><span class="status-tag" style="background:#f1f5f9;color:var(--text-primary);border:1px solid var(--card-border);">${escapeHtml(l.plan)}</span></td>
+          <td style="font-size:0.8rem;">${new Date(l.expiresAt).toLocaleDateString()}</td>
+          <td style="font-weight:700;color:${statusColor};">${l.daysLeft} Days</td>
+          <td><span style="font-size:0.75rem;font-weight:700;color:${statusColor};">● ${l.status}</span></td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="btn-secondary" style="padding:4px 8px;font-size:0.72rem;" onclick="extendLicense('${l.key}', 30)">+30d</button>
+              <button class="btn-secondary" style="padding:4px 8px;font-size:0.72rem;" onclick="extendLicense('${l.key}', 90)">+90d</button>
+              <button class="btn-secondary" style="padding:4px 8px;font-size:0.72rem;color:${l.isActive ? '#dc2626' : '#047857'};" onclick="toggleLicense('${l.key}')">${l.isActive ? 'Suspend' : 'Activate'}</button>
+              <button class="btn-danger" style="padding:4px 8px;font-size:0.72rem;" onclick="deleteLicense('${l.key}')">Del</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load licenses:', err);
+  }
+}
+
+async function handleGenerateKey(e) {
+  e.preventDefault();
+  const plan = document.getElementById('keygen-plan').value;
+  const name = document.getElementById('keygen-name').value.trim();
+  const phone = document.getElementById('keygen-phone').value.trim();
+  const notes = document.getElementById('keygen-notes').value.trim();
+
+  try {
+    const res = await fetch('/api/admin/generate-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan, clientName: name, clientPhone: phone, notes })
+    });
+    const data = await res.json();
+    if (data.ok && data.license) {
+      const lic = data.license;
+      const resBox = document.getElementById('keygen-result-box');
+      const keyText = document.getElementById('keygen-key-text');
+      const inviteText = document.getElementById('keygen-invite-text');
+
+      keyText.textContent = lic.key;
+      const loginUrl = `${window.location.origin}/login`;
+      inviteText.value = `🎉 *OmniSix AI WhatsApp Sales Robot - License Activated!*\n\n` +
+        `🏪 *Store Name:* ${name}\n` +
+        `🔑 *License Key:* ${lic.key}\n` +
+        `⏱️ *Plan:* ${plan} (Valid until: ${new Date(lic.expiresAt).toLocaleDateString()})\n\n` +
+        `🌐 *Login to your Dashboard:* ${loginUrl}\n\n` +
+        `Enter your License Key above to connect your WhatsApp and start selling 24/7! 🚀`;
+
+      resBox.style.display = 'block';
+      loadLicenses();
+      alert(`✅ License key generated for ${name}!`);
+    }
+  } catch (err) {
+    alert('Failed to generate key: ' + err.message);
+  }
+}
+
+function copyWhatsAppInvite() {
+  const text = document.getElementById('keygen-invite-text');
+  text.select();
+  document.execCommand('copy');
+  alert('📋 WhatsApp message copied to clipboard!');
+}
+
+async function extendLicense(key, days) {
+  if (!confirm(`Extend license ${key} by ${days} days?`)) return;
+  try {
+    const res = await fetch('/api/admin/extend-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, days })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`✅ License extended by ${days} days!`);
+      loadLicenses();
+    }
+  } catch(err) {
+    alert('Error extending key: ' + err.message);
+  }
+}
+
+async function toggleLicense(key) {
+  try {
+    const res = await fetch('/api/admin/toggle-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      loadLicenses();
+    }
+  } catch(err) {
+    alert('Error updating status: ' + err.message);
+  }
+}
+
+async function deleteLicense(key) {
+  if (!confirm(`Are you sure you want to delete license ${key}?`)) return;
+  try {
+    const res = await fetch('/api/admin/delete-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      loadLicenses();
+    }
+  } catch(err) {
+    alert('Error deleting key: ' + err.message);
+  }
 }
 
 function exportCurrentDataset() {

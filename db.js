@@ -88,6 +88,7 @@ class Database {
       orders: [],      // Pure Real Production: Starts with 0 fake orders
       chats: [],       // Pure Real Production: Starts with 0 fake chats
       broadcasts: [],  // Pure Real Production: Starts with 0 fake campaigns
+      licenses: [],    // Multi-Tenant SaaS Client License Keys
       whatsappAccounts: [], // Multi-Account WhatsApp Sessions
       whatsapp: {
         connected: false,
@@ -125,6 +126,7 @@ class Database {
           this.data.orders = parsed.orders || [];
           this.data.chats = parsed.chats || [];
           this.data.broadcasts = parsed.broadcasts || [];
+          this.data.licenses = parsed.licenses || [];
           this.data.whatsappAccounts = parsed.whatsappAccounts || [];
           if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
           if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
@@ -531,6 +533,135 @@ class Database {
     if (!this.data.analytics) this.data.analytics = { totalCalls: 0 };
     this.data.analytics.totalCalls = (this.data.analytics.totalCalls || 0) + 1;
     this.save();
+  }
+
+  // ─── License Keys & Multi-Tenant Management ──────────────────────────────────
+  getLicenses() {
+    if (!this.data.licenses) this.data.licenses = [];
+    return this.data.licenses.map(lic => {
+      const now = new Date();
+      const exp = new Date(lic.expiresAt);
+      const isExpired = now > exp;
+      const daysLeft = Math.max(0, Math.ceil((exp - now) / (1000 * 60 * 60 * 24)));
+      return {
+        ...lic,
+        isExpired,
+        daysLeft,
+        status: !lic.isActive ? 'Revoked' : (isExpired ? 'Expired' : 'Active')
+      };
+    });
+  }
+
+  getLicenseByKey(key) {
+    if (!key) return null;
+    const cleanKey = key.trim().toUpperCase();
+    const lic = (this.data.licenses || []).find(l => (l.key || '').toUpperCase() === cleanKey);
+    if (!lic) return null;
+    const now = new Date();
+    const exp = new Date(lic.expiresAt);
+    const isExpired = now > exp;
+    const daysLeft = Math.max(0, Math.ceil((exp - now) / (1000 * 60 * 60 * 24)));
+    return {
+      ...lic,
+      isExpired,
+      daysLeft,
+      status: !lic.isActive ? 'Revoked' : (isExpired ? 'Expired' : 'Active')
+    };
+  }
+
+  generateLicense({ plan = '1M', clientName = '', clientPhone = '', notes = '', businessId = null }) {
+    if (!this.data.licenses) this.data.licenses = [];
+    
+    const PLAN_DAYS = {
+      'TRIAL': 3,
+      '1M': 30,
+      '3M': 90,
+      '6M': 180,
+      '1Y': 365,
+      'LIFETIME': 3650
+    };
+
+    const days = PLAN_DAYS[plan] || 30;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000)).toISOString();
+    
+    // Generate secure random key: e.g. OMNI-1M-8F3A-C4B2-9E10
+    const crypto = require('crypto');
+    const seg1 = crypto.randomBytes(2).toString('hex').toUpperCase();
+    const seg2 = crypto.randomBytes(2).toString('hex').toUpperCase();
+    const seg3 = crypto.randomBytes(2).toString('hex').toUpperCase();
+    const key = `OMNI-${plan}-${seg1}-${seg2}-${seg3}`;
+
+    // Auto-create or link tenant store if clientName is provided
+    let linkedBizId = businessId;
+    if (!linkedBizId && clientName) {
+      const cleanSlug = clientName.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 20) || 'store_' + Date.now();
+      let uniqueId = cleanSlug;
+      let counter = 1;
+      while ((this.data.businesses || []).some(b => b.id === uniqueId)) {
+        uniqueId = `${cleanSlug}_${counter++}`;
+      }
+
+      const newBiz = {
+        id: uniqueId,
+        name: clientName.trim(),
+        category: 'other',
+        ownerName: clientName.trim(),
+        phone: clientPhone || '',
+        whatsappPhone: clientPhone ? clientPhone.replace(/\D/g, '') : '',
+        bankDetails: '',
+        deliveryPolicy: 'Islandwide delivery available.',
+        currency: 'Rs.',
+        welcomeMessage: `ආයුබෝවන්! ${clientName.trim()} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?`,
+        dataset: `Store: ${clientName.trim()}\nContact: ${clientPhone || '-'}\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery`,
+        isActive: false
+      };
+      this.data.businesses.push(newBiz);
+      linkedBizId = uniqueId;
+    }
+
+    const newLic = {
+      id: 'LIC-' + Date.now(),
+      key,
+      plan,
+      clientName: clientName || 'New Client',
+      clientPhone: clientPhone || '',
+      notes: notes || '',
+      businessId: linkedBizId,
+      createdAt: now.toISOString(),
+      expiresAt,
+      isActive: true
+    };
+
+    this.data.licenses.unshift(newLic);
+    this.save();
+    return newLic;
+  }
+
+  extendLicense(key, daysToAdd = 30) {
+    const lic = (this.data.licenses || []).find(l => (l.key || '').toUpperCase() === (key || '').trim().toUpperCase());
+    if (!lic) return null;
+    const currentExp = new Date(lic.expiresAt);
+    const baseDate = currentExp > new Date() ? currentExp : new Date();
+    lic.expiresAt = new Date(baseDate.getTime() + (daysToAdd * 24 * 60 * 60 * 1000)).toISOString();
+    lic.isActive = true;
+    this.save();
+    return lic;
+  }
+
+  toggleLicenseActive(key) {
+    const lic = (this.data.licenses || []).find(l => (l.key || '').toUpperCase() === (key || '').trim().toUpperCase());
+    if (!lic) return null;
+    lic.isActive = !lic.isActive;
+    this.save();
+    return lic;
+  }
+
+  deleteLicense(key) {
+    const prevLen = (this.data.licenses || []).length;
+    this.data.licenses = (this.data.licenses || []).filter(l => (l.key || '').toUpperCase() !== (key || '').trim().toUpperCase());
+    this.save();
+    return this.data.licenses.length < prevLen;
   }
 
   // ─── Real Production Analytics (Zero Fake Figures) ───────────────────────────

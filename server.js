@@ -131,9 +131,168 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ─── Executive Web Admin Dashboard & Omnichannel UI ─────────────────────────
-app.get(['/admin', '/dashboard'], (req, res) => {
+// ─── SaaS Multi-Tenant Routes & Omnichannel UI ─────────────────────────────
+app.get(['/admin', '/super-admin', '/dashboard'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/portal', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'portal.html'));
+});
+
+app.get('/free', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'free.html'));
+});
+
+// ─── Multi-Tenant License Authentication APIs ────────────────────────────────
+app.post('/api/auth/license-login', (req, res) => {
+  const { licenseKey } = req.body;
+  if (!licenseKey) {
+    return res.status(400).json({ ok: false, error: 'Please enter your License Key (කරුණාකර License Key ඇතුළත් කරන්න).' });
+  }
+
+  const lic = db.getLicenseByKey(licenseKey);
+  if (!lic) {
+    return res.status(401).json({ ok: false, error: 'Invalid License Key. Please check your code or contact support (වලංගු නොවන License Key එකකි).' });
+  }
+
+  if (lic.status === 'Revoked') {
+    return res.status(403).json({ ok: false, error: 'This License Key has been suspended or revoked. Please contact support (මෙම License පත අත්හිටුවා ඇත).' });
+  }
+
+  if (lic.status === 'Expired') {
+    return res.status(403).json({ ok: false, error: `This License Key expired on ${new Date(lic.expiresAt).toLocaleDateString()}. Please contact support to renew (මෙම License පත කල් ඉකුත් වී ඇත).` });
+  }
+
+  // Find linked business or assign first business
+  let biz = db.getAllBusinesses().find(b => b.id === lic.businessId);
+  if (!biz) {
+    biz = db.getActiveBusiness();
+  }
+
+  res.json({
+    ok: true,
+    license: lic,
+    business: biz
+  });
+});
+
+app.post('/api/auth/free-trial', (req, res) => {
+  const { clientName, clientPhone } = req.body;
+  if (!clientName || !clientPhone) {
+    return res.status(400).json({ ok: false, error: 'Store Name and Phone number are required (නම සහ දුරකථන අංකය අවශ්‍යයි).' });
+  }
+
+  const cleanPhone = clientPhone.replace(/\D/g, '');
+  const existing = (db.data.licenses || []).find(l => (l.clientPhone || '').replace(/\D/g, '') === cleanPhone);
+  if (existing) {
+    return res.json({
+      ok: true,
+      license: existing,
+      alreadyRegistered: true,
+      message: 'You already have an active account! Use this license key to login.'
+    });
+  }
+
+  const newLic = db.generateLicense({
+    plan: 'TRIAL',
+    clientName,
+    clientPhone,
+    notes: 'Free 3-Day Trial Self-Registered'
+  });
+
+  res.json({
+    ok: true,
+    license: newLic,
+    message: '🎉 Free 3-Day Trial License Activated!'
+  });
+});
+
+// ─── Super Admin License Management APIs ─────────────────────────────────────
+app.get('/api/admin/licenses', (req, res) => {
+  res.json({
+    ok: true,
+    licenses: db.getLicenses()
+  });
+});
+
+app.post('/api/admin/generate-key', (req, res) => {
+  try {
+    const { plan, clientName, clientPhone, notes } = req.body;
+    const lic = db.generateLicense({ plan, clientName, clientPhone, notes });
+    res.json({ ok: true, license: lic });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/extend-key', (req, res) => {
+  try {
+    const { key, days } = req.body;
+    const lic = db.extendLicense(key, parseInt(days) || 30);
+    if (!lic) return res.status(404).json({ ok: false, error: 'License key not found' });
+    res.json({ ok: true, license: lic });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/toggle-key', (req, res) => {
+  try {
+    const { key } = req.body;
+    const lic = db.toggleLicenseActive(key);
+    if (!lic) return res.status(404).json({ ok: false, error: 'License key not found' });
+    res.json({ ok: true, license: lic });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/delete-key', (req, res) => {
+  try {
+    const { key } = req.body;
+    const ok = db.deleteLicense(key);
+    res.json({ ok });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── Client Portal Scoped Store API ──────────────────────────────────────────
+app.get('/api/portal/store', (req, res) => {
+  const key = req.headers['x-license-key'] || req.query.key;
+  if (!key) return res.status(401).json({ ok: false, error: 'Missing license key header.' });
+
+  const lic = db.getLicenseByKey(key);
+  if (!lic || lic.status !== 'Active') {
+    return res.status(403).json({ ok: false, error: 'License is invalid or expired.' });
+  }
+
+  let biz = db.getAllBusinesses().find(b => b.id === lic.businessId) || db.getActiveBusiness();
+  const orders = db.getOrders(biz.id);
+  const products = db.getProducts(biz.id);
+  const flows = db.getCustomFlows(biz.id);
+  const chats = (db.data.chats || []).filter(c => !c.businessId || c.businessId === biz.id);
+
+  res.json({
+    ok: true,
+    license: lic,
+    business: biz,
+    products,
+    flows,
+    orders,
+    chats,
+    stats: {
+      totalOrders: orders.length,
+      revenueLKR: orders.reduce((s, o) => s + (parseInt((o.amount || '0').replace(/\D/g, '')) || 0), 0).toLocaleString(),
+      totalChats: chats.length,
+      productsCount: products.length
+    }
+  });
 });
 
 // Business Profile & Preset Management

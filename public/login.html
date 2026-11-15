@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniSix AI • Client Portal Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --card-border: #E2E8F0;
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --accent-emerald: #059669;
+      --accent-emerald-light: #ECFDF5;
+      --accent-emerald-border: #A7F3D0;
+      --accent-blue: #2563EB;
+      --accent-red: #DC2626;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.03);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 1.75rem;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    }
+
+    .brand-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .key-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      background: #F1F5F9;
+      border: 2px solid var(--card-border);
+      border-radius: 12px;
+      outline: none;
+      transition: all 0.2s ease;
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    .key-input:focus {
+      background: #FFFFFF;
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-emerald);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+    }
+
+    .btn-login:hover {
+      background: #047857;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+    }
+
+    .alert-box {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: none;
+      line-height: 1.4;
+    }
+
+    .alert-error {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: var(--accent-red);
+    }
+
+    .alert-success {
+      background: var(--accent-emerald-light);
+      border: 1px solid var(--accent-emerald-border);
+      color: var(--accent-emerald);
+    }
+
+    .login-footer {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--card-border);
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .login-footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .trial-banner {
+      background: #EFF6FF;
+      border: 1px dashed #BFDBFE;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .trial-banner p {
+      font-size: 0.8rem;
+      color: #1E40AF;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .btn-trial {
+      display: inline-block;
+      padding: 6px 14px;
+      background: #2563EB;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .btn-trial:hover {
+      background: #1D4ED8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="brand-header">
+      <div class="brand-logo">🤖</div>
+      <h1 class="brand-title">OMNISIX AI</h1>
+      <p class="brand-sub">Client Portal & Store Dashboard</p>
+    </div>
+
+    <div id="alert-error" class="alert-box alert-error"></div>
+    <div id="alert-success" class="alert-box alert-success"></div>
+
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Enter License Key (License අංකය)</label>
+        <input 
+          type="text" 
+          id="license-key" 
+          class="key-input" 
+          placeholder="OMNI-1M-XXXX-XXXX" 
+          required 
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+
+      <button type="submit" id="btn-submit" class="btn-login">
+        <span>🔓 Sign In to Dashboard</span>
+      </button>
+    </form>
+
+    <div class="trial-banner">
+      <p>✨ නව පාරිභෝගිකයෙක්ද? නොමිලේ අත්හදා බලන්න!</p>
+      <a href="/free" class="btn-trial">⚡ Get 3-Day Free Trial</a>
+    </div>
+
+    <div class="login-footer">
+      <p>License Key එකක් මිලදී ගැනීමට අවශ්‍යද? <br>
+        <a href="https://wa.me/94762107801?text=Hello%20OmniSix%20AI%20Team!%20I%20would%20like%20to%20purchase%20a%20License%20Key." target="_blank">
+          💬 WhatsApp මගින් අප අමතන්න (+94 76 210 7801)
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Auto-fill from localStorage if previously logged in
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem('omnisix_license_key');
+      if (savedKey) {
+        document.getElementById('license-key').value = savedKey;
+      }
+    });
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('alert-error');
+      const succBox = document.getElementById('alert-success');
+      const btn = document.getElementById('btn-submit');
+      const keyInput = document.getElementById('license-key').value.trim();
+
+      errBox.style.display = 'none';
+      succBox.style.display = 'none';
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Verifying License...</span>';
+
+      try {
+        const res = await fetch('/api/auth/license-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ licenseKey: keyInput })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Authentication failed.');
+        }
+
+        // Store license session in localStorage
+        localStorage.setItem('omnisix_license_key', data.license.key);
+        localStorage.setItem('omnisix_client_name', data.license.clientName);
+        localStorage.setItem('omnisix_business_id', data.business.id);
+        localStorage.setItem('omnisix_plan', data.license.plan);
+        localStorage.setItem('omnisix_expires_at', data.license.expiresAt);
+
+        succBox.textContent = `✅ License verified! Welcome ${data.license.clientName}. Loading portal...`;
+        succBox.style.display = 'block';
+
+        setTimeout(() => {
+          window.location.href = '/portal';
+        }, 800);
+
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔓 Sign In to Dashboard</span>';
+      }
+    }
+  </script>
+</body>
+</html>

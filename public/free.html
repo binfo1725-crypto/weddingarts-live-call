@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniSix AI • Free Edition & 3-Day Trial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --card-border: #E2E8F0;
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --accent-emerald: #059669;
+      --accent-emerald-light: #ECFDF5;
+      --accent-emerald-border: #A7F3D0;
+      --accent-blue: #2563EB;
+      --accent-purple: #7C3AED;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Navbar */
+    .navbar {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+      background: #FFFFFF;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-logo {
+      width: 38px;
+      height: 38px;
+      background: var(--accent-emerald);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2rem;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-nav-login {
+      padding: 8px 18px;
+      background: #F1F5F9;
+      color: var(--text-primary);
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-nav-login:hover {
+      background: #E2E8F0;
+    }
+
+    .btn-nav-cta {
+      padding: 8px 18px;
+      background: var(--accent-emerald);
+      color: #fff;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 60px 0 40px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--accent-emerald-light);
+      border: 1px solid var(--accent-emerald-border);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.75rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #059669, #2563EB);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 680px;
+      margin: 0 auto 36px;
+    }
+
+    /* Trial Registration Box */
+    .trial-card {
+      max-width: 520px;
+      margin: 0 auto 60px;
+      background: #FFFFFF;
+      border: 2px solid var(--accent-emerald-border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-lg);
+      text-align: left;
+    }
+
+    .trial-card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .trial-card-sub {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: #F8FAFC;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-emerald);
+      background: #fff;
+    }
+
+    .btn-get-trial {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-emerald);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);
+    }
+
+    .btn-get-trial:hover {
+      background: #047857;
+    }
+
+    .trial-result-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: #F0FDF4;
+      border: 1px solid var(--accent-emerald-border);
+      border-radius: 12px;
+      display: none;
+    }
+
+    .trial-key-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--accent-emerald);
+      background: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px dashed var(--accent-emerald);
+      text-align: center;
+      margin: 8px 0 12px;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 70px;
+    }
+
+    .feat-card {
+      background: #FFFFFF;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .feat-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .feat-title {
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+    }
+
+    .feat-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Pricing Plans */
+    .pricing-section {
+      text-align: center;
+      padding: 40px 0 80px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 20px;
+      margin-top: 36px;
+    }
+
+    .price-card {
+      background: #FFFFFF;
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+
+    .price-card.featured {
+      border: 2px solid var(--accent-emerald);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .popular-tag {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent-emerald);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .price-plan-name {
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+
+    .price-amount {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .price-amount span {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .price-features {
+      list-style: none;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .price-features li {
+      padding: 6px 0;
+      border-bottom: 1px solid #F1F5F9;
+    }
+
+    .price-features li::before {
+      content: '✓ ';
+      color: var(--accent-emerald);
+      font-weight: 800;
+    }
+
+    .btn-buy {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background: #F1F5F9;
+      color: var(--text-primary);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .price-card.featured .btn-buy {
+      background: var(--accent-emerald);
+      color: #fff;
+    }
+
+    .btn-buy:hover {
+      opacity: 0.9;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 30px 0;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+      <a href="/free" class="nav-brand">
+        <div class="nav-logo">🤖</div>
+        <span>OMNISIX AI</span>
+      </a>
+      <div class="nav-actions">
+        <a href="/login" class="btn-nav-login">Sign In</a>
+        <a href="#trial-box" class="btn-nav-cta">Start Free Trial</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero container">
+    <div class="badge-pill">⚡ Sri Lanka's #1 WhatsApp AI Agent</div>
+    <h1 class="hero-title">Put your WhatsApp Sales on Autopilot <span>24/7 with AI</span></h1>
+    <p class="hero-sub">
+      ඔබ නිදාගෙන සිටින විටත්, දුරකථනය Off කර තිබුණත් ඔබේ Customer Message වලට ස්වභාවික සිංහලෙන්, Singlish, English හෝ Tamil භාෂාවෙන් තත්පර 1ක් ඇතුළත පිළිතුරු දී ඇණවුම් ලබා ගන්නා සැබෑ Cloud AI රොබෝවරයා!
+    </p>
+
+    <!-- Trial Card -->
+    <div id="trial-box" class="trial-card">
+      <h2 class="trial-card-title">🎁 Get Free 3-Day Trial License</h2>
+      <p class="trial-card-sub">කිසිදු මුදල් ගෙවීමකින් තොරව ඔබේ WhatsApp අංකයට AI Agent සම්බන්ධ කර පරීක්ෂා කර බලන්න.</p>
+
+      <form id="free-trial-form" onsubmit="registerFreeTrial(event)">
+        <div class="form-group">
+          <label class="form-label">Store / Business Name (ව්‍යාපාරයේ නම)</label>
+          <input type="text" id="trial-name" class="form-input" placeholder="උදා: Kandy Fashion House" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Contact Number (දුරකථන අංකය)</label>
+          <input type="tel" id="trial-phone" class="form-input" placeholder="0771234567" required>
+        </div>
+        <button type="submit" id="btn-trial-submit" class="btn-get-trial">
+          ⚡ Get My 3-Day Free Trial Key
+        </button>
+      </form>
+
+      <div id="trial-result" class="trial-result-box">
+        <div style="font-weight:700;color:var(--accent-emerald);">🎉 Trial License Activated!</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;">ඔබගේ License Key එක පහතින් Copy කරගන්න:</div>
+        <div id="display-key" class="trial-key-display"></div>
+        <a id="btn-open-portal" href="/login" class="btn-get-trial" style="display:block;text-align:center;text-decoration:none;">
+          👉 Open My Dashboard Now!
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="container">
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🇱🇰</div>
+        <div class="feat-title">100% Dynamic Multilingual</div>
+        <div class="feat-desc">පාරිභෝගිකයා Singlish ("meke gana keeyada") ලිව්වත් ස්වභාවික පිරිසිදු සිංහලෙන්, English ඇසුවොත් English වලින්, Tamil වලින් ඇසුවොත් Tamil වලින් ක්ෂණිකව පිළිතුරු සපයයි.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">📄</div>
+        <div class="feat-title">Master Dataset (PDF/TXT) Upload</div>
+        <div class="feat-desc">ඔබේ සම්පූර්ණ මිල ලැයිස්තුව, Catalog, Bank Accounts ඇතුළත් ඕනෑම PDF හෝ Text File එකක් තත්පරයකින් Upload කර AI මොළය පුහුණු කළ හැක.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">💳</div>
+        <div class="feat-title">Auto Bank Slip & Order Pipeline</div>
+        <div class="feat-desc">පාරිභෝගිකයා එවන බැංකු Slip පත් හඳුනාගෙන, නම, ලිපිනය, දුරකථන අංක ලබාගෙන ඇණවුම් Pipeline එකට සෘජුවම ඇතුළත් කරයි.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">☁️</div>
+        <div class="feat-title">24/7 Cloud Autopilot</div>
+        <div class="feat-desc">ඔබේ පරිගණකය හෝ දුරකථනය ක්‍රියා විරහිත කර තිබුණත් Server එක තුළ නොනවත්වා ක්‍රියාත්මක වන බැවින් කිසිදු Customer කෙනෙකු මග නොහැරේ.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing-section container">
+    <div class="badge-pill">💎 Commercial Pro Plans</div>
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-0.02em;">Transparent & Affordable Pricing</h2>
+    <p style="color:var(--text-secondary);max-width:560px;margin:8px auto 0;">ඔබේ ව්‍යාපාරයේ ප්‍රමාණයට ගැලපෙන Plan එකක් තෝරාගෙන අදම ඔබේ විකුණුම් 3 ගුණයකින් වැඩි කරගන්න.</p>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-plan-name">1 Month Pro</div>
+        <div class="price-amount">Rs. 3,500 <span>/ 30 Days</span></div>
+        <ul class="price-features">
+          <li>Unlimited WhatsApp Auto-Replies</li>
+          <li>Full Master Dataset Upload (PDF/TXT)</li>
+          <li>Orders & Slips Management</li>
+          <li>Sinhala, Singlish, English, Tamil AI</li>
+          <li>24/7 Cloud Hosting Support</li>
+        </ul>
+        <a href="https://wa.me/94762107801?text=Hello!%20I%20want%20to%20buy%20OmniSix%20AI%201%20Month%20Plan%20(Rs.%203,500)" target="_blank" class="btn-buy">Activate 1 Month</a>
+      </div>
+
+      <div class="price-card featured">
+        <div class="popular-tag">Most Popular</div>
+        <div class="price-plan-name">3 Months Pro</div>
+        <div class="price-amount">Rs. 9,500 <span>/ 90 Days</span></div>
+        <ul class="price-features">
+          <li>All 1 Month Features Included</li>
+          <li>Save Rs. 1,000 on quarterly billing</li>
+          <li>Priority High-Speed Gemini 3.1 AI</li>
+          <li>Custom Keyword Triggers & Flows</li>
+          <li>VIP Technical Onboarding</li>
+        </ul>
+        <a href="https://wa.me/94762107801?text=Hello!%20I%20want%20to%20buy%20OmniSix%20AI%203%20Months%20Plan%20(Rs.%209,500)" target="_blank" class="btn-buy">Activate 3 Months</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-plan-name">6 Months Pro</div>
+        <div class="price-amount">Rs. 17,500 <span>/ 180 Days</span></div>
+        <ul class="price-features">
+          <li>All 3 Months Features Included</li>
+          <li>Save Rs. 3,500 (1 Month Free!)</li>
+          <li>Safe Broadcast Marketing Engine</li>
+          <li>Multi-Account WhatsApp Capability</li>
+          <li>Dedicated Account Manager</li>
+        </ul>
+        <a href="https://wa.me/94762107801?text=Hello!%20I%20want%20to%20buy%20OmniSix%20AI%206%20Months%20Plan%20(Rs.%2017,500)" target="_blank" class="btn-buy">Activate 6 Months</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-plan-name">1 Year Ultimate</div>
+        <div class="price-amount">Rs. 29,500 <span>/ 365 Days</span></div>
+        <ul class="price-features">
+          <li>Complete Enterprise Unlocked</li>
+          <li>Save Rs. 12,500 Huge Discount!</li>
+          <li>Continuous Cloud Model Upgrades</li>
+          <li>Live Voice Calling Integration</li>
+          <li>24/7 Guaranteed Uptime SLA</li>
+        </ul>
+        <a href="https://wa.me/94762107801?text=Hello!%20I%20want%20to%20buy%20OmniSix%20AI%201%20Year%20Ultimate%20Plan%20(Rs.%2029,500)" target="_blank" class="btn-buy">Activate 1 Year</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>© 2026 OmniSix AI Pro • Developed & Powered by D T Rajapaksha (Tharindu). All Rights Reserved.</p>
+      <p style="margin-top:6px;">Hotline / WhatsApp Support: <a href="https://wa.me/94762107801" style="color:var(--accent-emerald);font-weight:700;text-decoration:none;">+94 76 210 7801</a></p>
+    </div>
+  </footer>
+
+  <script>
+    async function registerFreeTrial(e) {
+      e.preventDefault();
+      const name = document.getElementById('trial-name').value.trim();
+      const phone = document.getElementById('trial-phone').value.trim();
+      const btn = document.getElementById('btn-trial-submit');
+      const resBox = document.getElementById('trial-result');
+      const dispKey = document.getElementById('display-key');
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating Trial Key...';
+
+      try {
+        const res = await fetch('/api/auth/free-trial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientName: name, clientPhone: phone })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Failed to generate trial license.');
+        }
+
+        dispKey.textContent = data.license.key;
+        localStorage.setItem('omnisix_license_key', data.license.key);
+        localStorage.setItem('omnisix_client_name', data.license.clientName);
+        localStorage.setItem('omnisix_plan', data.license.plan);
+        resBox.style.display = 'block';
+
+        btn.disabled = false;
+        btn.textContent = '✅ Trial License Ready!';
+
+      } catch (err) {
+        alert('Error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '⚡ Get My 3-Day Free Trial Key';
+      }
+    }
+  </script>
+</body>
+</html>

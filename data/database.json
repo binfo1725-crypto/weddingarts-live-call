@@ -37,7 +37,18 @@
   "orders": [],
   "chats": [],
   "broadcasts": [],
-  "whatsappAccounts": [],
+  "licenses": [],
+  "whatsappAccounts": [
+    {
+      "id": "default",
+      "label": "Primary Line (Account 1)",
+      "phoneNumber": "94724558042",
+      "connected": false,
+      "botActive": true,
+      "businessId": "weddingarts",
+      "createdAt": "2026-11-15T09:28:34.018Z"
+    }
+  ],
   "whatsapp": {
     "connected": false,
     "phoneNumber": null,
