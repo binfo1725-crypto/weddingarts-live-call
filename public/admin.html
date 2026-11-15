@@ -1282,6 +1282,17 @@
 </div>
 
 <script>
+// ─── Security & Text Helpers ────────────────────────────────────────────────
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ─── Global State ─────────────────────────────────────────────────────────────
 let currentTab = 'overview';
 let activeBiz = null;
@@ -2010,7 +2021,7 @@ async function fetchWhatsAppStatus() {
                 🚪 Disconnect
               </button>
             ` : `
-              <button class="btn-primary" onclick="openPairingForAccount('${acc.id}', '${escapeHtml(acc.label)}')" style="flex:1;padding:7px 12px;font-size:0.78rem;">
+              <button class="btn-primary" onclick="openPairingForAccount('${acc.id}')" style="flex:1;padding:7px 12px;font-size:0.78rem;">
                 📷 Scan / Pair Code
               </button>
             `}
@@ -2080,11 +2091,11 @@ async function openAddWhatsAppModal() {
   }
 }
 
-function openPairingForAccount(accId, label) {
+function openPairingForAccount(accId) {
   activePairingAccountId = accId;
   const section = document.getElementById('wa-add-account-section');
   const title = document.getElementById('wa-pairing-title');
-  if (title) title.innerHTML = `<span>📱</span> Pair: <strong>${escapeHtml(label)}</strong>`;
+  if (title) title.innerHTML = `<span>📱</span> Pair Device (Account: ${escapeHtml(accId)})`;
   if (section) section.classList.remove('hidden');
   section.scrollIntoView({ behavior: 'smooth' });
   fetchWhatsAppStatus();
