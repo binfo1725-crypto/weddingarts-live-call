@@ -61,8 +61,8 @@
 
   .avatar-ring {
     position: relative;
-    width: 145px;
-    height: 145px;
+    width: 150px;
+    height: 150px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,14 +83,14 @@
   }
 
   .avatar {
-    width: 86px;
-    height: 86px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.4rem;
+    font-size: 2.5rem;
     box-shadow: 0 0 35px rgba(124,58,237,0.4);
     z-index: 2;
     transition: all 0.3s ease;
@@ -98,6 +98,10 @@
   .avatar.speaking {
     box-shadow: 0 0 50px rgba(6,182,212,0.8), 0 0 25px rgba(124,58,237,0.6);
     transform: scale(1.06);
+  }
+  .avatar.listening {
+    box-shadow: 0 0 45px rgba(34,197,94,0.8);
+    background: linear-gradient(135deg, #10b981, #06b6d4);
   }
 
   .customer-name {
@@ -195,7 +199,7 @@
 
   .btn-row {
     display: flex;
-    gap: 1.25rem;
+    gap: 1.5rem;
     align-items: center;
     justify-content: center;
     width: 100%;
@@ -211,33 +215,25 @@
     transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
   }
-  .btn-mic {
-    width: 80px;
-    height: 80px;
-    font-size: 2rem;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    box-shadow: 0 4px 25px rgba(124,58,237,0.5);
+  .btn-mute {
+    width: 65px;
+    height: 65px;
+    font-size: 1.6rem;
+    background: var(--card);
+    border: 2px solid rgba(255,255,255,0.2);
     color: white;
   }
-  .btn-mic.listening {
-    transform: scale(1.1);
-    box-shadow: 0 0 35px var(--accent2);
-    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  .btn-mute.muted {
+    background: #451a1a;
+    border-color: var(--red);
+    color: #fca5a5;
   }
   .btn-end {
-    width: 58px;
-    height: 58px;
-    font-size: 1.5rem;
+    width: 65px;
+    height: 65px;
+    font-size: 1.6rem;
     background: var(--red);
-    box-shadow: 0 4px 15px rgba(239,68,68,0.4);
-    color: white;
-  }
-  .btn-type {
-    width: 58px;
-    height: 58px;
-    font-size: 1.3rem;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 20px rgba(239,68,68,0.5);
     color: white;
   }
 
@@ -275,39 +271,6 @@
   }
   #order-banner.show { display: block; }
 
-  #text-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-  }
-  #text-modal.show { display: flex; }
-  .modal-card {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 16px;
-    padding: 1.25rem;
-    width: 100%;
-    max-width: 360px;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .text-input {
-    width: 100%;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 8px;
-    padding: 0.75rem;
-    color: white;
-    font-size: 1rem;
-    outline: none;
-  }
-
   .hidden { display: none !important; }
   .timer { font-size: 0.82rem; color: var(--muted); }
 </style>
@@ -320,9 +283,9 @@
   <!-- START SCREEN -->
   <div id="start-screen">
     <div class="avatar" style="width:105px;height:105px;font-size:3rem;margin-bottom:0.5rem;">🎙️</div>
-    <h2 style="font-size:1.45rem;">Live AI Audio Call</h2>
+    <h2 style="font-size:1.45rem;">Hands-Free Live Voice Call</h2>
     <p style="font-size:0.9rem;color:var(--muted);line-height:1.6;" id="start-sub">
-      කෘතිම බුද්ධිය (AI) සමඟ සජීවීව කතා කිරීමට<br>පහත බොත්තම ඔබන්න.
+      සාමාන්‍ය Phone Call එකක් මෙන් කිසිවක් Touch නොකර<br>කෙලින්ම කතාබස් කිරීමට Call Start කරන්න.
     </p>
     <button class="btn-start" id="btn-start-call" onclick="startCall()">
       📞 Call Start කරන්න
@@ -344,7 +307,7 @@
 
     <div class="status-box">
       <div class="status-dot green" id="status-dot"></div>
-      <div class="status-text" id="status-text">සම්බන්ධ විය — කතා කරන්න</div>
+      <div class="status-text" id="status-text">🎙️ Hands-Free Call Active — කතා කරන්න</div>
     </div>
 
     <div class="transcript-box" id="transcript">
@@ -363,30 +326,15 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-type" onclick="openTextModal()" title="Type message">⌨️</button>
-      <button class="btn btn-mic" id="btn-mic" onpointerdown="startListening()" onpointerup="stopListening()" ontouchstart="startListening()" ontouchend="stopListening()" title="Hold to talk">
-        🎙️
-      </button>
+      <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()" title="Mute Mic">🎤</button>
       <button class="btn btn-end" onclick="endCall()" title="End Call">📵</button>
     </div>
-    <div style="font-size:0.75rem;color:var(--muted);text-align:center;">
-      ⚡ <strong>Barge-In Active:</strong> AI කතා කරන මැද්දෙන් වුවද 🎙️ ඔබා කතා කළ හැක!
+    <div style="font-size:0.78rem;color:var(--accent2);text-align:center;font-weight:500;">
+      ✨ <strong>100% Hands-Free:</strong> සාමාන්‍ය Call එකක් මෙන් කෙලින්ම කතා කරන්න!
     </div>
 
   </div>
 
-</div>
-
-<!-- Fallback Type Modal -->
-<div id="text-modal">
-  <div class="modal-card">
-    <h3 style="font-size:1.1rem;">පණිවිඩය Type කරන්න</h3>
-    <input type="text" id="manual-text-input" class="text-input" placeholder="උදා: UV Frame එක කීයද?" onkeydown="if(event.key==='Enter') sendManualText()">
-    <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-      <button onclick="closeTextModal()" style="padding:0.5rem 1rem;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
-      <button onclick="sendManualText()" style="padding:0.5rem 1.25rem;border-radius:6px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight:600;">Send</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -400,12 +348,12 @@ document.getElementById('customer-label').textContent = CUSTOMER_NAME;
 
 let ws = null;
 let recognition = null;
-let continuousRecognition = null;
-let isListening = false;
 let callStartTime = null;
 let timerInterval = null;
 let currentAudio = null;
 let isAiSpeaking = false;
+let isMuted = false;
+let shouldKeepListening = false;
 
 // ─── Start Call ───────────────────────────────────────────────────────────────
 function startCall() {
@@ -415,7 +363,8 @@ function startCall() {
   const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}`;
   connectWs(wsUrl);
 
-  setupSpeechRecognition();
+  shouldKeepListening = true;
+  setupContinuousSpeechRecognition();
 
   callStartTime = Date.now();
   timerInterval = setInterval(updateTimer, 1000);
@@ -426,7 +375,7 @@ function connectWs(url) {
   ws = new WebSocket(url);
 
   ws.onopen = () => {
-    setStatus('green', 'සම්බන්ධ විය — Hold 🎙️ කර කතා කරන්න');
+    setStatus('green', '🎙️ Hands-Free Call Active — කතා කරන්න');
   };
 
   ws.onmessage = (evt) => {
@@ -442,13 +391,13 @@ function connectWs(url) {
         if (data.audioBase64) {
           playAudioBase64(data.audioBase64, () => {
             isAiSpeaking = false;
-            setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+            setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
             setWaveformActive(false);
             setAvatarSpeaking(false);
           });
         } else {
           isAiSpeaking = false;
-          setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+          setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
           setWaveformActive(false);
           setAvatarSpeaking(false);
         }
@@ -475,9 +424,8 @@ function connectWs(url) {
   };
 }
 
-// ─── Audio Player with Instant Barge-In Cut ──────────────────────────────────
+// ─── Audio Playback with Instant Barge-In ─────────────────────────────────────
 function playAudioBase64(base64Data, onEnd) {
-  // Stop existing audio immediately
   stopCurrentAudio();
 
   isAiSpeaking = true;
@@ -516,76 +464,69 @@ function stopCurrentAudio() {
   isAiSpeaking = false;
 }
 
-// ─── Speech Recognition & Full-Duplex Barge-In ────────────────────────────────
-function setupSpeechRecognition() {
+// ─── 100% Always-On Hands-Free Speech Recognition ────────────────────────────
+function setupContinuousSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return;
 
   recognition = new SpeechRecognition();
-  recognition.continuous = false;
+  recognition.continuous = true; // Stay alive continuously!
   recognition.interimResults = false;
   recognition.lang = 'si-LK';
 
   recognition.onresult = (event) => {
-    const spokenText = event.results[0][0].transcript;
-    if (spokenText && spokenText.trim()) {
+    if (isMuted) return;
+
+    const lastResultIndex = event.results.length - 1;
+    const spokenText = event.results[lastResultIndex][0].transcript.trim();
+
+    if (spokenText) {
+      // ⚡ INSTANT BARGE-IN: If AI is speaking and user says anything, cut AI audio immediately!
+      if (isAiSpeaking || currentAudio) {
+        console.log('[Hands-Free Barge-In] User interrupted AI with:', spokenText);
+        stopCurrentAudio();
+        setAvatarSpeaking(false);
+      }
+
       appendTranscript(spokenText, 'user');
       sendUserMessage(spokenText);
     }
   };
 
   recognition.onerror = (event) => {
+    console.warn('Recognition error:', event.error);
     if (event.error === 'language-not-supported' && recognition.lang !== 'en-US') {
       recognition.lang = 'en-US';
     }
-    setMicListeningState(false);
   };
 
   recognition.onend = () => {
-    setMicListeningState(false);
-  };
-}
-
-function startListening() {
-  // ⚡ 1. INSTANT FULL-DUPLEX BARGE-IN:
-  // If AI is talking, instantly mute and abort audio playback right now!
-  if (isAiSpeaking || currentAudio) {
-    console.log('[Barge-In] Interrupting AI speech immediately!');
-    stopCurrentAudio();
-    setAvatarSpeaking(false);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'barge_in' }));
+    // Auto-restart recognition so user NEVER has to touch mic button!
+    if (shouldKeepListening && !isMuted) {
+      try {
+        recognition.start();
+      } catch (e) {}
     }
-  }
+  };
 
-  setMicListeningState(true);
-
-  if (recognition) {
-    try {
-      recognition.start();
-    } catch (e) {}
-  }
+  try {
+    recognition.start();
+  } catch (e) {}
 }
 
-function stopListening() {
-  setMicListeningState(false);
-  if (recognition) {
-    try {
-      recognition.stop();
-    } catch (e) {}
-  }
-}
-
-function setMicListeningState(active) {
-  isListening = active;
-  const btn = document.getElementById('btn-mic');
-  if (active) {
-    btn.classList.add('listening');
-    setStatus('green', '🎙️ අහගෙන ඉන්නේ... කතා කරන්න');
-    setWaveformActive(true);
+function toggleMute() {
+  isMuted = !isMuted;
+  const btn = document.getElementById('btn-mute');
+  if (isMuted) {
+    btn.classList.add('muted');
+    btn.textContent = '🔇';
+    setStatus('red', 'Microphone Muted (අක්‍රියයි)');
+    if (recognition) try { recognition.stop(); } catch(e){}
   } else {
-    btn.classList.remove('listening');
-    setWaveformActive(false);
+    btn.classList.remove('muted');
+    btn.textContent = '🎤';
+    setStatus('green', '🎙️ Hands-Free Call Active — කතා කරන්න');
+    if (recognition) try { recognition.start(); } catch(e){}
   }
 }
 
@@ -605,13 +546,13 @@ function sendUserMessage(text) {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        setStatus('green', 'AI කතා කරයි...');
+        setStatus('green', 'AI කතා කරයි... (මැද්දෙන් කතා කළ හැක)');
         setWaveformActive(true);
         setAvatarSpeaking(true);
         appendTranscript(data.reply, 'ai');
         if (data.audioBase64) {
           playAudioBase64(data.audioBase64, () => {
-            setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+            setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
             setWaveformActive(false);
             setAvatarSpeaking(false);
           });
@@ -622,29 +563,6 @@ function sendUserMessage(text) {
       setStatus('red', 'දෝෂයක් සිදුවිය');
     });
   }
-}
-
-// ─── Manual Text Input Fallback ───────────────────────────────────────────────
-function openTextModal() {
-  document.getElementById('text-modal').classList.add('show');
-  setTimeout(() => document.getElementById('manual-text-input').focus(), 100);
-}
-function closeTextModal() {
-  document.getElementById('text-modal').classList.remove('show');
-}
-function sendManualText() {
-  const input = document.getElementById('manual-text-input');
-  const val = input.value.trim();
-  if (!val) return;
-  input.value = '';
-  closeTextModal();
-
-  // Instant barge-in on typed text as well
-  stopCurrentAudio();
-  setAvatarSpeaking(false);
-
-  appendTranscript(val, 'user');
-  sendUserMessage(val);
 }
 
 // ─── UI Helpers ───────────────────────────────────────────────────────────────
@@ -676,6 +594,7 @@ function updateTimer() {
   document.getElementById('call-timer').textContent = `${m}:${s}`;
 }
 function endCall() {
+  shouldKeepListening = false;
   stopCurrentAudio();
   if (recognition) try { recognition.abort(); } catch(e){}
   if (ws) ws.close();
@@ -683,7 +602,6 @@ function endCall() {
   setStatus('red', '📵 Call එක අවසන් විය');
   setWaveformActive(false);
   setAvatarSpeaking(false);
-  document.getElementById('btn-mic').disabled = true;
 }
 </script>
 </body>
