@@ -1448,22 +1448,37 @@ async function getGeminiReply(userMessage, sess, userLang) {
       initialModelAck = `තේරුණා. මම ${storeName} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.`;
     }
   } else {
-    // WhatsApp & Text Chat Dynamic Matching
-    if (detectedLang === 'English') {
-      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in English. Reply strictly in clear, professional, warm English. NEVER reply in Sinhala. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+    // WhatsApp & Text Chat Dynamic Matching (Quad-Language: Sinhala, Singlish, English, Tamil)
+    const langMode = settings.languageReplyMode || 'smart_match';
+
+    if (langMode === 'sinhala_script_only') {
+      turnInstruction = `\n[WHATSAPP MESSAGE: Reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි). NEVER reply in English and NEVER reply in Latin Singlish. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      initialModelAck = `තේරුණා. මම ${storeName} වෙනුවෙන් නිල Dataset එක මත පදනම්ව ගෞරවනීය සිංහල අකුරින් පමණක් පිළිතුරු සපයන්නම්.`;
+    } else if (langMode === 'english_only') {
+      turnInstruction = `\n[WHATSAPP MESSAGE: Reply strictly in clear, professional English. NEVER reply in Sinhala or Tamil. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      initialModelAck = `Understood. I will reply strictly in English for ${storeName}.`;
+    } else if (detectedLang === 'English') {
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in English. Reply strictly in clear, professional, warm English. NEVER reply in Sinhala or Tamil. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
       initialModelAck = `Understood. I represent ${storeName} and will reply to the customer in clear, friendly English with accurate details from the master dataset.`;
     } else if (detectedLang === 'Tamil') {
-      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Tamil. Reply strictly in polite, warm Tamil script (தமிழ் எழுத்துகளில்). NEVER reply in English or Tanglish. Use clean WhatsApp formatting with exact prices from dataset.]`;
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Tamil script (தமிழ்). Reply strictly in polite, warm Tamil script (தமிழ் எழுத்துகளில்). NEVER reply in English, Sinhala, or Tanglish. Use clean WhatsApp formatting with exact prices from dataset.]`;
       initialModelAck = `புரிந்தது. உத்தியோகபூர்வ Dataset விபரங்களின்படி சரியான தகவல்களை தமிழில் வழங்குகிறேன்.`;
     } else if (detectedLang === 'Tanglish') {
       turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Tanglish (Tamil in Latin letters). Reply strictly in conversational Tanglish using Latin letters. NEVER reply in Tamil script and NEVER reply in English. Use clean WhatsApp formatting with exact prices from dataset.]`;
       initialModelAck = `Purinjithu. Official dataset padi sariyana details Tanglish la solren.`;
+    } else if (detectedLang === 'Singlish') {
+      // 🗣️ Quad-Language Smart Detection: Colloquial Singlish Matching
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Singlish (Sinhala written in Latin letters, e.g. "mewaye price eka kiyada"). Reply strictly in natural, friendly, polite Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa. Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!"). Do NOT use Sinhala script characters and do NOT reply in formal English. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      initialModelAck = `Understood. Mama ${storeName} wenuwen customer ta natural Singlish walin ma clear details and prices ekka reply karannam.`;
+    } else if (detectedLang === 'Sinhala') {
+      // 🗣️ Quad-Language Smart Detection: Sinhala Script Matching
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Sinhala script (සිංහල අකුරින්). You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි). NEVER reply in English and NEVER reply in Latin Singlish. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      initialModelAck = `තේරුණා. මම ${storeName} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පදනම්ව, පාරිභෝගිකයාට ස්වභාවික ගෞරවනීය සිංහල අකුරින් පමණක් පිළිතුරු සපයන්නම්.`;
     } else if (['Italian', 'French', 'German', 'Spanish', 'Arabic', 'Hindi', 'Russian', 'Chinese', 'Japanese'].includes(detectedLang)) {
       turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in ${detectedLang}. Reply strictly and fluently in ${detectedLang} matching the customer. Use clean WhatsApp formatting with exact prices from dataset.]`;
       initialModelAck = `Understood. I represent ${storeName} and will reply fluently in ${detectedLang} matching the customer's inquiry.`;
     } else {
-      // Sinhala or Singlish -> ABSOLUTE SCRIPT MANDATE: Sinhala script (සිංහල අකුරින් පමණි)!
-      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Sinhala/Singlish. You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි). NEVER reply in English and NEVER reply in Latin Singlish. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Sinhala/Singlish. Reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි). Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
       initialModelAck = `තේරුණා. මම ${storeName} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පදනම්ව, පාරිභෝගිකයාට ස්වභාවික ගෞරවනීය සිංහල අකුරින් පමණක් පිළිතුරු සපයන්නම්.`;
     }
   }
@@ -1699,39 +1714,50 @@ function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLan
     personaInstruction = 'efficient, fast, direct and crystal-clear business representative';
   }
 
-  const scriptRequirement = detectedLang === 'English'
-    ? 'English'
-    : (['Sinhala', 'Singlish'].includes(detectedLang)
-      ? 'Sinhala Script (සිංහල අකුරින් පමණි)'
-      : (detectedLang === 'Tamil' ? 'Tamil Script (தமிழ்)' : (detectedLang === 'Tanglish' ? 'Tanglish (Tamil in Latin letters)' : `${detectedLang} (Exact matching foreign language)`)));
+  const langMode = settings.languageReplyMode || 'smart_match';
+  let scriptRequirement = 'Sinhala Script (සිංහල අකුරින් පමණි)';
+  if (langMode === 'sinhala_script_only') {
+    scriptRequirement = 'Sinhala Script (සිංහල අකුරින් පමණි)';
+  } else if (langMode === 'english_only') {
+    scriptRequirement = 'English';
+  } else if (detectedLang === 'English') {
+    scriptRequirement = 'English';
+  } else if (detectedLang === 'Singlish') {
+    scriptRequirement = 'Singlish (Colloquial Sinhala in Latin letters)';
+  } else if (detectedLang === 'Tamil') {
+    scriptRequirement = 'Tamil Script (தமிழ்)';
+  } else if (detectedLang === 'Tanglish') {
+    scriptRequirement = 'Tanglish (Tamil in Latin letters)';
+  } else if (['Italian', 'French', 'German', 'Spanish', 'Arabic', 'Hindi', 'Russian', 'Chinese', 'Japanese'].includes(detectedLang)) {
+    scriptRequirement = `${detectedLang} (Exact matching foreign language)`;
+  }
 
   return `You are "${settings.aiName || 'Nethmi'}", a ${personaInstruction} representing "${storeName}".
 Customer Name: "${customerName}".
 
-=== 🌐 MULTILINGUAL & SCRIPT MANDATE (EXACT APK DYNAMIC LANGUAGE MATCHING) ===
+=== 🌐 🗣️ QUAD-LANGUAGE SMART ADAPTATION MANDATE (සිංහල, Singlish, English, தமிழ்) ===
 Customer Input Contextual Language: "${detectedLang}"
 Required Output Script: "${scriptRequirement}"
 
 CRITICAL DYNAMIC LANGUAGE MATCHING RULES:
 1. 🔄 DYNAMIC LANGUAGE ADAPTATION:
    - If the customer writes or switches language (English, Sinhala, Singlish, Tamil, Tanglish, Italian, French, German, Spanish, etc.), you MUST IMMEDIATELY ADAPT and reply in that customer's MATCHING language!
-2. 🇱🇰 SINHALA & SINGLISH (when customer writes in Sinhala letters OR Singlish Latin letters):
-   * ABSOLUTE SCRIPT MANDATE: You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි)!
-   * EVEN IF the customer writes in Singlish using Latin letters (e.g. "meke gana keeyada?", "deliver karanna puluwanda?", "size thiyenawada?", "bank details ewanna", "order ekak danna ona", "wisthara ewanna"):
-     👉 NEVER reply in Singlish (Latin letters)!
-     👉 NEVER reply in English!
-     👉 ALWAYS reply strictly in natural, respectful Sinhala script (සිංහල අකුරු).
-   * Address customer respectfully and speak in warm, natural colloquial Sri Lankan Sinhala (අපේ, ඔබට/ඔයාට, ලබාගන්න පුළුවන්, ස්තූතියි).
-3. 🇬🇧 ENGLISH (when detected language is English and customer writes in English):
+2. 🇱🇰 SINGLISH (when customer writes in Singlish using Latin letters, e.g. "mewaye price eka kiyada?", "deliver karanna puluwanda?", "size thiyenawada?", "bank details ewanna"):
+   * When mode is smart_match, reply in smooth, natural, polite, friendly Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa. Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!").
+   * Do NOT use Sinhala script characters and do NOT reply in pure formal English.
+3. 🇱🇰 SINHALA SCRIPT (when customer writes in Sinhala letters, e.g. "මිල කීයද?", "විස්තර එවන්න"):
+   * You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි)!
+   * Address customer respectfully in warm, natural colloquial Sri Lankan Sinhala (අපේ, ඔබට/ඔයාට, ලබාගන්න පුළුවන්, ස්තූතියි).
+4. 🇬🇧 ENGLISH (when customer writes in English, e.g. "What are the available sizes?"):
    * Reply strictly in clear, professional, warm English (e.g. "Hello! The price is Rs. 4,800 with free delivery...").
    * NEVER reply in Sinhala or Singlish when customer asks in English!
-4. 🇮🇳 TAMIL SCRIPT (when detected language is Tamil):
-   * If customer writes in Tamil letters (தமிழ் எழுத்துகளில்), reply strictly in warm, polite Tamil script. Never output English or Tanglish!
-5. 🔤 TANGLISH (when detected language is Tanglish):
-   * If customer writes in Tanglish (Tamil in Latin letters), reply strictly in conversational Tanglish using Latin letters. Never reply in Tamil script and never reply in English!
-6. 🌍 OTHER FOREIGN LANGUAGES (Italian, French, German, Spanish, Arabic, Hindi, etc.):
+5. 🇮🇳 TAMIL SCRIPT (when customer writes in Tamil letters, தமிழ் எழுத்துகளில், e.g. "இதன் விலை என்ன?"):
+   * Reply strictly in warm, polite Tamil script (தமிழ்). Never output English or Tanglish!
+6. 🔤 TANGLISH (when customer writes in Tanglish, Tamil in Latin letters):
+   * Reply strictly in conversational Tanglish using Latin letters.
+7. 🌍 OTHER FOREIGN LANGUAGES (Italian, French, German, Spanish, Arabic, Hindi, etc.):
    * Reply strictly, fluently, and politely in that customer's EXACT MATCHING FOREIGN LANGUAGE!
-7. 🔄 CONVERSATIONAL CONTINUITY FOR SHORT / AMBIGUOUS INPUTS:
+8. 🔄 CONVERSATIONAL CONTINUITY FOR SHORT / AMBIGUOUS INPUTS:
    * If customer sends short answers ("ok", "yes", "1", "size M", "red", phone number, or delivery address), seamlessly preserve the ongoing conversation's language.
 
 --- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---

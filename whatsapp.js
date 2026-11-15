@@ -16,6 +16,7 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const db = require('./db.js');
+const { LanguageDetectionEngine } = require('./ai_engines.js');
 
 const AUTH_BASE = path.join(__dirname, 'data');
 const DEFAULT_AUTH_DIR = path.join(AUTH_BASE, 'baileys_auth');
@@ -158,6 +159,13 @@ class WhatsAppAccountSession {
             let text = msg.message?.conversation ||
                          msg.message?.extendedTextMessage?.text ||
                          msg.message?.imageMessage?.caption ||
+                         msg.message?.buttonsResponseMessage?.selectedButtonId ||
+                         msg.message?.buttonsResponseMessage?.selectedDisplayText ||
+                         msg.message?.templateButtonReplyMessage?.selectedId ||
+                         msg.message?.templateButtonReplyMessage?.selectedDisplayText ||
+                         msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+                         msg.message?.listResponseMessage?.title ||
+                         msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson ||
                          '';
 
             // Download and transcribe audio if voice note received
@@ -216,28 +224,60 @@ class WhatsAppAccountSession {
             }
 
             let aiReply = '';
+            let isQuickActionHandled = false;
+            const cleanText = text.trim();
+            const lowerText = cleanText.toLowerCase();
 
-            if (this.manager.aiReplyHandler) {
-              const tempSess = {
-                storeName: activeBiz.name,
-                businessId: activeBiz.id,
-                business: activeBiz,
-                customerName: senderName,
-                customerPhone: senderPhone,
-                dataset: activeBiz.dataset,
-                isWhatsApp: true,
-                isVoiceCall: false,
-                history: (chat?.messages || []).slice(-6).map(m => ({
-                  role: m.sender === 'customer' ? 'user' : 'model',
-                  parts: [{ text: m.text }]
-                }))
-              };
-              aiReply = await this.manager.aiReplyHandler(text.trim(), tempSess);
-              if (this.manager.orderCheckHandler) {
-                this.manager.orderCheckHandler(aiReply, tempSess, senderPhone);
+            // 🔘 Fast-Track Interactive Quick Actions (Buttons & Number Replies)
+            if (cleanText === '1' || lowerText === 'action_catalog' || lowerText === 'catalog' || lowerText === 'menu' || lowerText === 'භාණ්ඩ' || lowerText === 'මිල ගණන්') {
+              const storeProds = db.getProducts(activeBiz.id) || [];
+              if (storeProds.length > 0) {
+                let catMsg = `📦 *${activeBiz.name} — Products & Pricing Catalog:*\n\n`;
+                storeProds.slice(0, 8).forEach((p, idx) => {
+                  catMsg += `${idx + 1}. *${p.name}* — Rs. ${(p.price || 0).toLocaleString()}\n`;
+                  if (p.description) catMsg += `   _${p.description}_\n`;
+                });
+                catMsg += `\n🚚 *Delivery:* ${activeBiz.deliveryPolicy || 'දිවයින පුරා බෙදාහැරීම දින 2-3ක් ඇතුළත'}\n`;
+                catMsg += `\n💬 *ඕනෑම භාණ්ඩයක Photo එකක් බැලීමට* භාණ්ඩයේ නම එවන්න (උදා: "Photo")\n🛒 *ඇණවුම් කිරීමට* "2" හෝ "Order" ලෙස එවන්න!`;
+                aiReply = catMsg;
+                isQuickActionHandled = true;
               }
-            } else {
-              aiReply = `ස්තූතියි! ${activeBiz.name} වෙතින් සාදරයෙන් පිළිගන්නවා. ඔබට අවශ්‍ය ඕනෑම විස්තරයක් හෝ ඇණවුමක් ලබා දෙන්න.`;
+            } else if (cleanText === '2' || lowerText === 'action_order' || lowerText === 'order' || lowerText === 'order now' || lowerText === 'ඇණවුම්' || lowerText === 'buy') {
+              aiReply = `🛒 *${activeBiz.name} — Fast Order Placement:*\n\nඔබගේ ඇණවුම අදම තහවුරු කිරීමට කරුණාකර පහත විස්තර 4 එවන්න:\n\n1️⃣ *ඔබගේ නම (Full Name):*\n2️⃣ *අවශ්‍ය භාණ්ඩය සහ ප්‍රමාණය (Item & Qty):*\n3️⃣ *ලැබිය යුතු ලිපිනය (Delivery Address):*\n4️⃣ *දුරකථන අංක 1 හෝ 2ක් (Phone Numbers):*\n\n🏦 *බැංකු ගිණුම් විස්තර:*\n${activeBiz.bankDetails || 'ගිණුම් විස්තර සඳහා විමසන්න'}\n\n_ස්ලිප් පතක් හෝ Cash on Delivery (COD) මගින් ලබාගත හැක. විස්තර ලැබුණු සැණින් අපගේ Dispatch කණ්ඩායම පැකේජය සූදානම් කරනු ඇත!_ 🚚✨`;
+              isQuickActionHandled = true;
+            } else if (cleanText === '3' || lowerText === 'action_agent' || lowerText === 'agent' || lowerText === 'human' || lowerText === 'talk to agent' || lowerText === 'මිනිසෙකු') {
+              aiReply = `👤 *Human Agent Connection:*\n\nඅපගේ පාරිභෝගික සේවා නිලධාරියෙකු (Human Support Agent) සුළු මොහොතකින් ඔබ හා සෘජුව සම්බන්ධ වනු ඇත. කරුණාකර රැඳී සිටින්න. 🙏`;
+              db.setChatMute(senderPhone, true, 30);
+              if (settings.isOwnerAlertEnabled && settings.ownerAlertPhone) {
+                const alertText = `🚨 *Human Agent Requested!*\n\nCustomer: *${senderName}* (+${senderPhone})\nStore: *${activeBiz.name}*\nStatus: AI Muted for 30m. Please take over this chat now.`;
+                this.manager.sendMessageToPhone(settings.ownerAlertPhone, alertText).catch(() => {});
+              }
+              isQuickActionHandled = true;
+            }
+
+            if (!isQuickActionHandled) {
+              if (this.manager.aiReplyHandler) {
+                const tempSess = {
+                  storeName: activeBiz.name,
+                  businessId: activeBiz.id,
+                  business: activeBiz,
+                  customerName: senderName,
+                  customerPhone: senderPhone,
+                  dataset: activeBiz.dataset,
+                  isWhatsApp: true,
+                  isVoiceCall: false,
+                  history: (chat?.messages || []).slice(-6).map(m => ({
+                    role: m.sender === 'customer' ? 'user' : 'model',
+                    parts: [{ text: m.text }]
+                  }))
+                };
+                aiReply = await this.manager.aiReplyHandler(text.trim(), tempSess);
+                if (this.manager.orderCheckHandler) {
+                  this.manager.orderCheckHandler(aiReply, tempSess, senderPhone);
+                }
+              } else {
+                aiReply = `ස්තූතියි! ${activeBiz.name} වෙතින් සාදරයෙන් පිළිගන්නවා. ඔබට අවශ්‍ය ඕනෑම විස්තරයක් හෝ ඇණවුමක් ලබා දෙන්න.`;
+              }
             }
 
             // Check if any store product photo should be sent (via tag or photo inquiry match)
@@ -283,6 +323,25 @@ class WhatsAppAccountSession {
             }
 
             if (aiReply) {
+              const detectedL = LanguageDetectionEngine.detectLanguage(text, chat?.messages || []);
+
+              // 🔘 Interactive Quick Action Buttons & Menus (Feature 8)
+              if (settings.isInteractiveButtonsEnabled !== false && !isQuickActionHandled) {
+                let quickMenu = '';
+                if (detectedL === 'English') {
+                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Reply Number):*\n1️⃣ *View Full Catalog & Prices*\n2️⃣ *Confirm Order & Delivery*\n3️⃣ *Connect with Human Agent*';
+                } else if (detectedL === 'Tamil' || detectedL === 'Tanglish') {
+                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *விரைவு தேர்வுகள் (எண்ணை அனுப்பவும்):*\n1️⃣ *தயாரிப்பு பட்டியல் & விலை*\n2️⃣ *ஆர்டரை உறுதிப்படுத்தவும்*\n3️⃣ *மனித சேவையாளருடன் பேசவும்*';
+                } else if (detectedL === 'Singlish') {
+                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Number eka reply karanna):*\n1️⃣ *Catalog & Price List balanna*\n2️⃣ *Order eka Confirm karanna*\n3️⃣ *Agent kenek ekka katha karanna*';
+                } else {
+                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *ක්ෂණික ක්‍රියාකාරකම් (අංකය එවන්න):*\n1️⃣ *භාණ්ඩ නාමාවලිය සහ මිල ගණන්*\n2️⃣ *ඇණවුම තහවුරු කිරීම (Order Now)*\n3️⃣ *පාරිභෝගික සේවා නිලධාරියෙකු ඇමතීම*';
+                }
+                if (!aiReply.includes('1️⃣') && !aiReply.includes('Quick Actions') && !aiReply.includes('ක්‍රියාකාරකම්')) {
+                  aiReply += quickMenu;
+                }
+              }
+
               const voiceMode = settings.voiceReplyMode || 'auto';
               const shouldReplyVoice = (voiceMode === 'always') ||
                                        (voiceMode === 'both') ||
@@ -303,7 +362,7 @@ class WhatsAppAccountSession {
 
               if (voiceAudioBase64) {
                 await this.sock.sendPresenceUpdate('recording', remoteJid);
-                await delay(1500);
+                await delay(1200);
                 await this.sock.sendPresenceUpdate('paused', remoteJid);
 
                 const voiceBuf = Buffer.from(voiceAudioBase64, 'base64');
@@ -316,7 +375,7 @@ class WhatsAppAccountSession {
 
                 if (voiceMode === 'both' || !isVoiceNote) {
                   await delay(800);
-                  await this.sock.sendMessage(remoteJid, { text: aiReply });
+                  await this.sendInteractiveMessage(remoteJid, aiReply, detectedL);
                 }
 
                 db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id);
@@ -325,8 +384,8 @@ class WhatsAppAccountSession {
                 await delay(1200);
                 await this.sock.sendPresenceUpdate('paused', remoteJid);
 
-                await this.sock.sendMessage(remoteJid, { text: aiReply });
-                console.log(`[whatsapp-acc:${this.id}] 🤖 Replied text to ${senderPhone}: "${aiReply}"`);
+                await this.sendInteractiveMessage(remoteJid, aiReply, detectedL);
+                console.log(`[whatsapp-acc:${this.id}] 🤖 Replied [${detectedL}] to ${senderPhone}: "${aiReply.slice(0, 50)}..."`);
 
                 db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id);
               }
@@ -364,6 +423,35 @@ class WhatsAppAccountSession {
     } catch (e) {
       console.error(`[whatsapp-acc:${this.id}] Failed to request pairing code:`, e.message);
       throw e;
+    }
+  }
+
+  async sendInteractiveMessage(remoteJid, text, detectedLang = 'Sinhala') {
+    if (!this.sock || !this.connected) return { ok: false, error: 'Not connected' };
+    const jid = remoteJid.includes('@') ? remoteJid : `${remoteJid.replace(/\D/g, '')}@s.whatsapp.net`;
+
+    try {
+      const btn1 = detectedLang === 'English' ? '📦 View Catalog' : (detectedLang === 'Singlish' ? '📦 Catalog' : (detectedLang === 'Tamil' ? '📦 பட்டியல்' : '📦 භාණ්ඩ ලැයිස්තුව'));
+      const btn2 = detectedLang === 'English' ? '🛒 Order Now' : (detectedLang === 'Singlish' ? '🛒 Order Now' : (detectedLang === 'Tamil' ? '🛒 ஆர்டர்' : '🛒 ඇණවුම් කරන්න'));
+      const btn3 = detectedLang === 'English' ? '👤 Human Agent' : (detectedLang === 'Singlish' ? '👤 Agent' : (detectedLang === 'Tamil' ? '👤 வாடிக்கையாளர் சேவை' : '👤 සේවා නිලධාරී'));
+
+      const buttons = [
+        { buttonId: 'ACTION_CATALOG', buttonText: { displayText: btn1 }, type: 1 },
+        { buttonId: 'ACTION_ORDER', buttonText: { displayText: btn2 }, type: 1 },
+        { buttonId: 'ACTION_AGENT', buttonText: { displayText: btn3 }, type: 1 }
+      ];
+
+      await this.sock.sendMessage(jid, {
+        text,
+        footer: 'OmniSix AI Cloud 24/7',
+        buttons,
+        headerType: 1
+      });
+      return { ok: true };
+    } catch (e) {
+      // Clean fallback directly to text message
+      await this.sock.sendMessage(jid, { text });
+      return { ok: true };
     }
   }
 

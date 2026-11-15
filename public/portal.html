@@ -1228,6 +1228,30 @@
           <textarea id="setting-closed-msg" class="form-textarea" style="min-height:90px;"></textarea>
         </div>
 
+        <!-- Feature 7 & 8: Quad-Language & Interactive WhatsApp Buttons -->
+        <div style="background:#f8fafc;border:1px solid var(--card-border);border-radius:14px;padding:18px;margin-top:18px;">
+          <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span>🗣️</span> 4-Language Smart Auto-Detection & Interactive Menus
+          </h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🗣️ Customer Language Response Mode</label>
+              <select id="setting-lang-mode" class="form-select">
+                <option value="smart_match" selected>Smart Quad-Match (සිංහල, Singlish, English, தமிழ் ස්වයංක්‍රීයව)</option>
+                <option value="sinhala_script_only">Always Sinhala Script (සෑමවිටම සිංහල අකුරින් පමණි)</option>
+                <option value="english_only">Always English (සෑමවිටම ඉංග්‍රීසියෙන්)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:center;">
+              <label class="form-label">🔘 WhatsApp Quick Action Buttons & Menus</label>
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+                <input type="checkbox" id="setting-interactive-buttons" checked style="accent-color:var(--accent-emerald);width:17px;height:17px;">
+                <span style="font-size:0.82rem;font-weight:700;color:#047857;">[View Catalog], [Order Now], [Talk to Agent] Buttons Active</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- Feature 4: Owner Instant WhatsApp Alert -->
         <div style="background:#f8fafc;border:1px solid var(--card-border);border-radius:14px;padding:18px;margin-top:18px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -2729,6 +2753,12 @@ async function loadSettingsForm() {
       document.getElementById('setting-mute-duration').value = s.humanTakeoverDurationMinutes || 30;
       document.getElementById('setting-closed-msg').value = s.closedMessage || '';
 
+      // Feature 7 & 8: Quad-Language & Interactive Buttons
+      const langModeEl = document.getElementById('setting-lang-mode');
+      if (langModeEl) langModeEl.value = s.languageReplyMode || 'smart_match';
+      const intBtnEl = document.getElementById('setting-interactive-buttons');
+      if (intBtnEl) intBtnEl.checked = s.isInteractiveButtonsEnabled !== false;
+
       // Feature 4: Owner Alert
       const alertPhoneEl = document.getElementById('setting-owner-alert-phone');
       if (alertPhoneEl) alertPhoneEl.value = s.ownerAlertPhone || '';
@@ -2759,6 +2789,8 @@ async function saveSettings(e) {
     voiceReplyMode: document.getElementById('setting-voice-reply-mode')?.value || 'auto',
     humanTakeoverDurationMinutes: parseInt(document.getElementById('setting-mute-duration').value) || 30,
     closedMessage: document.getElementById('setting-closed-msg').value,
+    languageReplyMode: document.getElementById('setting-lang-mode')?.value || 'smart_match',
+    isInteractiveButtonsEnabled: document.getElementById('setting-interactive-buttons')?.checked !== false,
     ownerAlertPhone: document.getElementById('setting-owner-alert-phone')?.value || '',
     isOwnerAlertEnabled: document.getElementById('setting-owner-alert-enabled')?.checked || false,
     isFollowUpEnabled: document.getElementById('setting-followup-enabled')?.checked || false,

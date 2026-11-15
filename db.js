@@ -85,7 +85,11 @@ const DEFAULT_SETTINGS = {
   followUpStage2Message: 'හෙලෝ *{customer}*, ඔබ විමසූ භාණ්ඩයේ තොග සීමිතව පවතී. අද දිනය තුළ Order කළහොත් විශේෂ වට්ටමක් ලබා දිය හැක. 😊',
   // Owner Instant Alerts
   ownerAlertPhone: '',
-  isOwnerAlertEnabled: true
+  isOwnerAlertEnabled: true,
+  // Quad-Language Smart Detection (සිංහල, Singlish, English, தமிழ்)
+  languageReplyMode: 'smart_match', // 'smart_match', 'sinhala_script_only', 'english_only', 'tamil_only'
+  // Interactive WhatsApp Buttons & Quick Action Menus
+  isInteractiveButtonsEnabled: true
 };
 
 // ─── Database Class ───────────────────────────────────────────────────────────
