@@ -32,9 +32,7 @@ const ENCODED_KEYS = [
   'QVEuQWI4Uk42SVg4Q3FvMWZpV08zY0hsODYxZDBWVDRkYmFleWhlUFVGTmZtY3VLbnAwNlE=',
   'QVEuQWI4Uk42Slc4Sk1BXzBSc05CTVZpb21zNjFCSjZBQlpueDJKMGpGQUlTcUpaZVJ5WHc=',
   'QVEuQWI4Uk42TGlUQ05KU196ZHgyZlB2MktMZ3h3dFZ1MjNKdzJDOTdDMjFCaXl5UjM5QVE=',
-  'QVEuQWI4Uk42S3lsOXJ6VDZVbDloZFduQ3RaSm5HNkU2eXdtNDd1NTJrZGlZTEs5TnJ5TFE=',
   'QVEuQWI4Uk42SVE0RFYxMlZ2cVR4WkV1clJ3ZExqZk9qU0FkYUJjV2d3UnNXLXBzWFVHbHc=',
-  'QVEuQWI4Uk42SkdIWGpReEJVTXR6RGF6VzAxYlNHSnYwc0drbnp6RVgtRGVPa2w1aGxOZw==',
   'QVEuQWI4Uk42TFVmVEEwLU9YV0dNMmhYdzMtb0tfdWtXd2NDRzlxM2Vsd0ZSWG4tMzM1Y3c=',
   'QVEuQWI4Uk42TGtocTNhN2ZjeXo5SEtSa2Nyam5yOWFXT3A5RjhXZHpQZHBlcWI5YzVHZmc=',
   'QVEuQWI4Uk42SWhsaWhsU2hVTnZWOUpKTWt3azNrd0d4VmZsblotdmk2dXZqQVlBQWhFYmc=',
@@ -45,11 +43,24 @@ if (DEFAULT_GEMINI_API_KEY && !POOLED_GEMINI_API_KEYS.includes(DEFAULT_GEMINI_AP
   POOLED_GEMINI_API_KEYS.unshift(DEFAULT_GEMINI_API_KEY);
 }
 
+const keyCooldowns = new Map(); // key -> cooldown until epoch ms
+function markKeyCooldown(key, durationMs = 15 * 60 * 1000) {
+  keyCooldowns.set(key, Date.now() + durationMs);
+}
+
 let keyRoundRobin = 0;
 function getOrderedKeys(sessionKey) {
-  const base = sessionKey && !POOLED_GEMINI_API_KEYS.includes(sessionKey)
-    ? [sessionKey, ...POOLED_GEMINI_API_KEYS]
-    : [...POOLED_GEMINI_API_KEYS];
+  const now = Date.now();
+  const available = POOLED_GEMINI_API_KEYS.filter(k => {
+    const cd = keyCooldowns.get(k);
+    return !cd || cd <= now;
+  });
+
+  const activePool = available.length > 0 ? available : POOLED_GEMINI_API_KEYS;
+
+  const base = sessionKey && !activePool.includes(sessionKey)
+    ? [sessionKey, ...activePool]
+    : [...activePool];
 
   const start = keyRoundRobin % base.length;
   keyRoundRobin = (keyRoundRobin + 1) % base.length;
@@ -306,7 +317,7 @@ async function getGeminiReply(userMessage, sess) {
             contents: contents,
             generationConfig: {
               temperature: 0.6,
-              maxOutputTokens: 1000
+              maxOutputTokens: 250
             }
           })
         });
@@ -396,8 +407,13 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
   const keysToTry = getOrderedKeys(sessionKey);
 
   // 1. Primary Engine: Official Google Gemini Voice AI (Leda / Aoede)
+  // Limit to at most 3 rapid attempts to keep voice latency under 2 seconds
+  let attempts = 0;
   for (const model of GEMINI_TTS_MODELS) {
     for (const key of keysToTry) {
+      if (attempts >= 3) break;
+      attempts++;
+
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
       const payload = {
         contents: [{ parts: [{ text: speechText }] }],
@@ -419,6 +435,9 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
         });
         const data = await res.json();
         if (data.error) {
+          if (data.error.code === 429 || data.error.code === 401) {
+            markKeyCooldown(key, 30 * 60 * 1000);
+          }
           continue; // Try next key in pool!
         }
         const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
@@ -434,7 +453,7 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
 
   // 2. Secondary Safety Net Fallback (Only if all Gemini keys are temporarily busy)
   try {
-    console.warn('[TTS Fallback] All Gemini keys exhausted. Using Google TTS fallback...');
+    console.warn('[TTS Fallback] Gemini keys busy. Using Google TTS fallback...');
     const result = await fetchGoogleTTS(speechText);
     return { audioBase64: result.base64, mimeType: 'audio/mpeg', isGemini: false };
   } catch (err) {
@@ -488,7 +507,7 @@ ${datasetText}
 
 CRITICAL INSTRUCTIONS FOR LIVE VOICE CALL:
 1. STRICT DATASET USAGE: Rely 100% on the Master Dataset above. State the EXACT prices (e.g. Western/Kandyan Single Edit Rs. 1,500; 10-Photo Shoot Rs. 5,000; Army Uniform Shoot Rs. 8,000; UV Frames 12x18 Rs. 4,800, 16x24 Rs. 7,800; Free Delivery on 16x24 and above; BOC Bank 92949122 D T Rajapaksha).
-2. COMPLETE DETAILS: When customer asks about frames or edits, give the FULL details and options clearly. Never cut off ideas midway.
+2. CONVERSATIONAL BREVITY: Keep answers to 1 to 3 natural spoken sentences (around 25-45 words). In live phone calls, customers want quick, punchy answers, not long essays.
 3. CONVERSATIONAL TONE: Speak warmly and respectfully like a friendly Sri Lankan sales executive (e.g., "ඔව් සහෝදරයා", "අපේ Wedding Arts එකේ...").
 4. BARGE-IN AWARE: The customer may interrupt you at any time. Keep your answers clear, concise, and structured.
 5. If order is confirmed, add this tag at the end:
