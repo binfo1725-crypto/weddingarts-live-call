@@ -1172,23 +1172,20 @@
       </form>
     </section>
 
-    <!-- 9. WHATSAPP MULTI-DEVICE & MULTI-ACCOUNT HUB -->
+    <!-- 9. WHATSAPP MULTI-DEVICE & STORE HUB -->
     <section id="tab-whatsapp" class="glass-card hidden">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
         <div>
           <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
-            <span>📱</span> WhatsApp Cloud Multi-Account Hub
+            <span>📱</span> WhatsApp Cloud Store Hub
           </h2>
           <p style="font-size:0.84rem;color:var(--text-secondary);">
-            WhatsApp ගිණුම් කිහිපයක් (Multi-Accounts) එකවර සම්බන්ධ කර කළමනාකරණය කරන්න. Phone Off වුවද Cloud AI 24/7 ක්‍රියාත්මක වේ.
+            ඔබේ ව්‍යාපාරික WhatsApp අංකය සම්බන්ධ කරගන්න. දුරකථනය ක්‍රියාවිරහිත වුවද OmniSix Cloud AI 24/7 ක්‍රියාත්මක වේ.
           </p>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button class="btn-primary" onclick="openAddWhatsAppModal()" style="display:flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 18px;">
-            <span>➕</span> Connect New WhatsApp Account
-          </button>
           <button class="btn-secondary" onclick="fetchWhatsAppStatus()" style="font-size:0.84rem;padding:9px 14px;">
-            🔄 Refresh
+            🔄 Refresh Status
           </button>
         </div>
       </div>
@@ -2121,7 +2118,7 @@ async function saveSettings(e) {
 }
 
 // ─── Multi-Account WhatsApp Cloud Hub ───────────────────────────────────────
-let activePairingAccountId = 'default';
+let activePairingAccountId = '';
 
 function startWaPolling() {
   if (waPollTimer) clearInterval(waPollTimer);
@@ -2147,13 +2144,17 @@ async function fetchWhatsAppStatus() {
     const grid = document.getElementById('wa-accounts-grid');
     if (!grid) return;
 
+    if (!activePairingAccountId && data.accounts.length > 0) {
+      activePairingAccountId = data.accounts[0].id;
+    }
+
     if (data.accounts.length === 0) {
       grid.innerHTML = `
         <div style="grid-column:1/-1;text-align:center;padding:40px;background:#ffffff;border-radius:14px;border:1px dashed var(--card-border);box-shadow:var(--shadow-sm);">
           <div style="font-size:2.5rem;margin-bottom:8px;">📱</div>
-          <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">No WhatsApp Accounts Connected</div>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 16px;">Click the button above to connect your first WhatsApp line.</p>
-          <button class="btn-primary" onclick="openAddWhatsAppModal()">➕ Connect First Account</button>
+          <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">Store WhatsApp Line Not Initialized</div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:6px 0 16px;">Click the button below to initialize your dedicated WhatsApp line.</p>
+          <button class="btn-primary" onclick="fetchWhatsAppStatus()">🔄 Initialize Store Line</button>
         </div>`;
       lastWaAccountsHash = '';
       return;
@@ -2176,9 +2177,9 @@ async function fetchWhatsAppStatus() {
               <div>
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:1.3rem;">📱</span>
-                  <h4 style="font-size:1.02rem;font-weight:700;color:var(--text-primary);margin:0;">${escapeHtml(acc.label || 'WhatsApp Account')}</h4>
+                  <h4 style="font-size:1.02rem;font-weight:700;color:var(--text-primary);margin:0;">${escapeHtml(acc.label || 'Store WhatsApp Line')}</h4>
                 </div>
-                <div style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono';margin-top:3px;">ID: ${escapeHtml(acc.id)}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono';margin-top:3px;">Dedicated Store Line: ${escapeHtml(acc.id)}</div>
               </div>
               <div style="padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${statusBg};color:${statusColor};border:1px solid ${statusBorder};">
                 ${statusLabel}
@@ -2209,11 +2210,6 @@ async function fetchWhatsAppStatus() {
                   📷 Scan / Pair Code
                 </button>
               `}
-              ${acc.id !== 'default' ? `
-                <button class="btn-secondary" onclick="deleteAccount('${escapeHtml(acc.id)}')" style="padding:7px 10px;font-size:0.78rem;color:var(--accent-rose);" title="Remove this account">
-                  🗑️
-                </button>
-              ` : ''}
             </div>
           </div>
         `;
@@ -2221,7 +2217,7 @@ async function fetchWhatsAppStatus() {
     }
 
     // If active pairing account is open, update its QR and code
-    const activeAcc = data.accounts.find(a => a.id === activePairingAccountId);
+    const activeAcc = data.accounts.find(a => a.id === activePairingAccountId) || data.accounts[0];
     if (activeAcc) {
       updatePairingModalDisplay(activeAcc);
     }
@@ -2301,7 +2297,8 @@ async function requestPairingCode() {
   if (label) label.textContent = 'GENERATING...';
 
   try {
-    const res = await fetch(`/api/whatsapp/accounts/${activePairingAccountId}/pairing-code`, {
+    const targetId = activePairingAccountId || 'store';
+    const res = await fetch(`/api/whatsapp/accounts/${encodeURIComponent(targetId)}/pairing-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phoneNumber: phone })

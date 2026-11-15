@@ -30,11 +30,12 @@ if (!fs.existsSync(MULTI_AUTH_DIR)) {
 
 // ─── Individual WhatsApp Account Session ─────────────────────────────────────
 class WhatsAppAccountSession {
-  constructor(id, label, authDir, manager) {
+  constructor(id, label, authDir, manager, businessId = null) {
     this.id = id;
     this.label = label || `Account (${id})`;
     this.authDir = authDir;
     this.manager = manager;
+    this.businessId = businessId;
 
     this.sock = null;
     this.state = null;
@@ -193,9 +194,13 @@ class WhatsAppAccountSession {
 
             console.log(`[whatsapp-acc:${this.id}] 📩 Incoming from ${senderPhone} (${senderName}) [${isVoiceNote ? 'Voice Note' : 'Text'}]: "${text}"`);
 
-            // Store message in unified database with receiving account tag
+            // Resolve store / business scoped to this specific WhatsApp account
+            const activeBiz = (this.businessId && (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId))) || db.getActiveBusiness();
+            const settings = (this.businessId && db.getTenantSettings(this.businessId)) || db.getSettings();
+
+            // Store message in unified database with receiving account tag & businessId
             const storedText = isVoiceNote ? `🎤 ${text.trim()}` : text.trim();
-            db.addChatMessage(senderPhone, 'customer', storedText, senderName, senderPhone);
+            db.addChatMessage(senderPhone, 'customer', storedText, senderName, senderPhone, activeBiz.id);
 
             // Check if AI Bot is disabled for this specific account
             if (!this.botActive) {
@@ -210,14 +215,13 @@ class WhatsAppAccountSession {
               continue;
             }
 
-            // Generate AI reply using active business dataset
-            const activeBiz = db.getActiveBusiness();
-            const settings = db.getSettings();
             let aiReply = '';
 
             if (this.manager.aiReplyHandler) {
               const tempSess = {
                 storeName: activeBiz.name,
+                businessId: activeBiz.id,
+                business: activeBiz,
                 customerName: senderName,
                 customerPhone: senderPhone,
                 dataset: activeBiz.dataset,
@@ -273,7 +277,7 @@ class WhatsAppAccountSession {
                   await this.sock.sendMessage(remoteJid, { text: aiReply });
                 }
 
-                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone);
+                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id);
               } else {
                 await this.sock.sendPresenceUpdate('composing', remoteJid);
                 await delay(1200);
@@ -282,7 +286,7 @@ class WhatsAppAccountSession {
                 await this.sock.sendMessage(remoteJid, { text: aiReply });
                 console.log(`[whatsapp-acc:${this.id}] 🤖 Replied text to ${senderPhone}: "${aiReply}"`);
 
-                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone);
+                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id);
               }
             }
           } catch (msgErr) {
@@ -396,6 +400,7 @@ class WhatsAppAccountSession {
     db.saveWhatsAppAccount({
       id: this.id,
       label: this.label,
+      businessId: this.businessId,
       phoneNumber: this.phoneNumber,
       connected: this.connected,
       botActive: this.botActive,
@@ -423,6 +428,7 @@ class WhatsAppAccountSession {
     return {
       id: this.id,
       label: this.label,
+      businessId: this.businessId,
       connected: this.connected,
       phoneNumber: this.phoneNumber,
       botActive: this.botActive,
@@ -455,9 +461,10 @@ class MultiAccountWhatsAppManager {
   async start() {
     console.log('[whatsapp-manager] Starting Multi-Account WhatsApp Engine...');
 
-    // 1. Primary Account (default) — Uses DEFAULT_AUTH_DIR so existing 94724558042 session remains active!
+    // 1. Primary Account (default) — Super Admin line
     if (!this.sessions.has('default')) {
-      const primarySession = new WhatsAppAccountSession('default', 'Primary Account (+94 72 455 8042)', DEFAULT_AUTH_DIR, this);
+      const primaryBiz = db.getActiveBusiness();
+      const primarySession = new WhatsAppAccountSession('default', 'Primary Account (+94 72 455 8042)', DEFAULT_AUTH_DIR, this, primaryBiz.id);
       this.sessions.set('default', primarySession);
       await primarySession.start();
     }
@@ -467,7 +474,8 @@ class MultiAccountWhatsAppManager {
     for (const acc of savedAccounts) {
       if (acc.id !== 'default' && !this.sessions.has(acc.id)) {
         const accDir = path.join(MULTI_AUTH_DIR, acc.id);
-        const session = new WhatsAppAccountSession(acc.id, acc.label, accDir, this);
+        const session = new WhatsAppAccountSession(acc.id, acc.label, accDir, this, acc.businessId);
+        session.phoneNumber = acc.phoneNumber || null;
         session.botActive = acc.botActive !== false;
         this.sessions.set(acc.id, session);
         session.start();
@@ -475,12 +483,13 @@ class MultiAccountWhatsAppManager {
     }
   }
 
-  async addAccount(label) {
-    const id = 'acc_' + Date.now();
+  async addAccount(label, businessId = null, customId = null) {
+    const id = customId || ('acc_' + Date.now());
     const accDir = path.join(MULTI_AUTH_DIR, id);
     if (!fs.existsSync(accDir)) fs.mkdirSync(accDir, { recursive: true });
 
-    const session = new WhatsAppAccountSession(id, label || `WhatsApp Account ${this.sessions.size + 1}`, accDir, this);
+    const bizId = businessId || db.getActiveBusiness().id;
+    const session = new WhatsAppAccountSession(id, label || `WhatsApp Account`, accDir, this, bizId);
     this.sessions.set(id, session);
 
     db.saveWhatsAppAccount({
@@ -489,7 +498,7 @@ class MultiAccountWhatsAppManager {
       phoneNumber: null,
       connected: false,
       botActive: true,
-      businessId: db.getActiveBusiness().id,
+      businessId: bizId,
       createdAt: new Date().toISOString()
     });
 
@@ -497,10 +506,43 @@ class MultiAccountWhatsAppManager {
     return session;
   }
 
-  getAccounts() {
+  // Ensure SaaS Tenant has their own isolated WhatsApp session
+  async getOrCreateTenantAccount(businessId, businessName) {
+    if (!businessId) return this.getSession('default');
+    const tenantAccId = 'wa_' + businessId;
+    let session = this.sessions.get(tenantAccId);
+    if (!session) {
+      const accDir = path.join(MULTI_AUTH_DIR, tenantAccId);
+      if (!fs.existsSync(accDir)) fs.mkdirSync(accDir, { recursive: true });
+      const label = `${businessName || 'Store'} WhatsApp`;
+      session = new WhatsAppAccountSession(tenantAccId, label, accDir, this, businessId);
+      this.sessions.set(tenantAccId, session);
+
+      db.saveWhatsAppAccount({
+        id: tenantAccId,
+        label: label,
+        phoneNumber: null,
+        connected: false,
+        botActive: true,
+        businessId: businessId,
+        createdAt: new Date().toISOString()
+      });
+
+      await session.start();
+    }
+    return session;
+  }
+
+  getAccounts(businessId = null) {
     const list = [];
     for (const [, session] of this.sessions.entries()) {
-      list.push(session.getStatus());
+      if (businessId) {
+        if (session.businessId === businessId) {
+          list.push(session.getStatus());
+        }
+      } else {
+        list.push(session.getStatus());
+      }
     }
     return list;
   }

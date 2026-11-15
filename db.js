@@ -258,7 +258,10 @@ class Database {
 
   // ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────
   getProducts(businessId) {
-    const bId = businessId || this.getActiveBusiness().id;
+    if (businessId) {
+      return (this.data.products || []).filter(p => p.businessId === businessId);
+    }
+    const bId = this.getActiveBusiness().id;
     return (this.data.products || []).filter(p => !p.businessId || p.businessId === bId);
   }
 
@@ -303,7 +306,10 @@ class Database {
 
   // ─── Custom Keyword Flows (From APK) ──────────────────────────────────────────
   getCustomFlows(businessId) {
-    const bId = businessId || this.getActiveBusiness().id;
+    if (businessId) {
+      return (this.data.customFlows || []).filter(f => f.businessId === businessId);
+    }
+    const bId = this.getActiveBusiness().id;
     return (this.data.customFlows || []).filter(f => !f.businessId || f.businessId === bId);
   }
 
@@ -365,12 +371,37 @@ class Database {
     return this.data.settings;
   }
 
+  // Tenant-Scoped Store Settings (Multi-Tenant SaaS)
+  getTenantSettings(businessId) {
+    if (!businessId) return this.getSettings();
+    const biz = this.getBusiness(businessId);
+    if (!biz) return this.getSettings();
+    if (!biz.settings) {
+      biz.settings = {
+        ...DEFAULT_SETTINGS,
+        aiName: `${biz.name} AI`,
+        voiceReplyMode: 'auto'
+      };
+      this.save();
+    }
+    return biz.settings;
+  }
+
+  updateTenantSettings(businessId, updates) {
+    if (!businessId) return this.updateSettings(updates);
+    const biz = this.getBusiness(businessId);
+    if (!biz) return this.updateSettings(updates);
+    biz.settings = { ...(biz.settings || DEFAULT_SETTINGS), ...updates };
+    this.save();
+    return biz.settings;
+  }
+
   // ─── Real Orders Pipeline Methods ────────────────────────────────────────────
   getOrders(businessId) {
     const list = businessId
-      ? (this.data.orders || []).filter(o => !o.businessId || o.businessId === businessId)
+      ? (this.data.orders || []).filter(o => o.businessId === businessId)
       : (this.data.orders || []);
-    return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }
 
   addOrder(order) {
@@ -412,20 +443,26 @@ class Database {
   }
 
   // ─── Chats & Omnichannel Inbox (Real Production) ──────────────────────────────
-  getChats(businessId) {
-    return (this.data.chats || []).sort((a, b) => new Date(b.lastTime || 0) - new Date(a.lastTime || 0));
+  getChats(businessId = null) {
+    let list = this.data.chats || [];
+    if (businessId) {
+      list = list.filter(c => c.businessId === businessId);
+    }
+    return list.slice().sort((a, b) => new Date(b.lastTime || 0) - new Date(a.lastTime || 0));
   }
 
   getChat(chatId) {
     return (this.data.chats || []).find(c => c.id === chatId);
   }
 
-  addChatMessage(chatId, sender, text, customerName = 'Customer', customerPhone = '') {
+  addChatMessage(chatId, sender, text, customerName = 'Customer', customerPhone = '', businessId = null) {
     if (!this.data.chats) this.data.chats = [];
     let chat = this.data.chats.find(c => c.id === chatId);
+    const assignedBizId = businessId || (chat && chat.businessId) || this.getActiveBusiness().id;
     if (!chat) {
       chat = {
         id: chatId,
+        businessId: assignedBizId,
         customerName: customerName,
         customerPhone: customerPhone || chatId,
         aiMuted: false,
@@ -438,6 +475,8 @@ class Database {
         messages: []
       };
       this.data.chats.unshift(chat);
+    } else if (businessId && !chat.businessId) {
+      chat.businessId = businessId;
     }
 
     const msgObj = {
@@ -528,7 +567,7 @@ class Database {
   }
 
   // ─── Multi-Account WhatsApp Sessions ────────────────────────────────────────
-  getWhatsAppAccounts() {
+  getWhatsAppAccounts(businessId = null) {
     if (!this.data.whatsappAccounts || this.data.whatsappAccounts.length === 0) {
       // Seed default account from existing paired WhatsApp state
       this.data.whatsappAccounts = [
@@ -543,6 +582,9 @@ class Database {
         }
       ];
       this.save();
+    }
+    if (businessId) {
+      return this.data.whatsappAccounts.filter(a => a.businessId === businessId);
     }
     return this.data.whatsappAccounts;
   }
@@ -777,9 +819,11 @@ class Database {
       return sum + val;
     }, 0);
 
-    const chats = (this.data.chats || []).filter(c => !businessId || !c.businessId || c.businessId === biz.id);
+    const chats = this.getChats(biz.id);
     const unreadChats = chats.filter(c => (c.unread || 0) > 0).length;
     const escalatedChats = chats.filter(c => c.isEscalated).length;
+    const waAccounts = this.getWhatsAppAccounts(biz.id);
+    const waConnected = waAccounts.length > 0 ? waAccounts.some(a => a.connected) : (businessId ? false : !!(this.data.whatsapp && this.data.whatsapp.connected));
 
     return {
       activeBusiness: biz.name,
@@ -789,10 +833,10 @@ class Database {
       totalChats: chats.length,
       unreadChats: unreadChats,
       escalatedChats: escalatedChats,
-      whatsappConnected: !!(this.data.whatsapp && this.data.whatsapp.connected),
+      whatsappConnected: waConnected,
       liveCallsCount: this.data.analytics?.totalCalls || 0,
       totalLeads: chats.length,
-      productsCount: (this.data.products || []).filter(p => !p.businessId || p.businessId === biz.id).length
+      productsCount: this.getProducts(biz.id).length
     };
   }
 }

@@ -402,15 +402,42 @@ app.post('/api/admin/db/import', requireAdminAuth, (req, res) => {
   }
 });
 
-// ─── Client Portal Scoped Store API ──────────────────────────────────────────
+// ─── Client Portal Scoped Store API & SaaS Multi-Tenant Isolation ─────────────
+function isTenantReq(req) {
+  return !!(req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key));
+}
+
 function resolveReqBusinessId(req) {
-  if (req.query && req.query.businessId) return req.query.businessId;
-  if (req.body && req.body.businessId) return req.body.businessId;
   const key = req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key);
   if (key) {
     const lic = db.getLicenseByKey(key);
-    if (lic && lic.businessId) return lic.businessId;
+    if (lic) {
+      if (lic.businessId) return lic.businessId;
+      const bizName = lic.clientName || 'Store';
+      const cleanSlug = bizName.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 20) || 'store_' + Date.now();
+      const newBiz = {
+        id: cleanSlug,
+        name: bizName,
+        category: 'other',
+        ownerName: bizName,
+        phone: lic.clientPhone || '',
+        whatsappPhone: (lic.clientPhone || '').replace(/\D/g, ''),
+        bankDetails: '',
+        deliveryPolicy: 'Islandwide delivery available.',
+        currency: 'Rs.',
+        welcomeMessage: `ආයුබෝවන්! ${bizName} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?`,
+        dataset: `Store: ${bizName}\nContact: ${lic.clientPhone || '-'}\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery`,
+        isActive: false
+      };
+      if (!db.data.businesses) db.data.businesses = [];
+      db.data.businesses.push(newBiz);
+      lic.businessId = cleanSlug;
+      db.save();
+      return cleanSlug;
+    }
   }
+  if (req.query && req.query.businessId) return req.query.businessId;
+  if (req.body && req.body.businessId) return req.body.businessId;
   return db.getActiveBusiness().id;
 }
 
@@ -599,31 +626,46 @@ app.post('/api/flows/delete', (req, res) => {
   res.json({ ok: success });
 });
 
-// ─── Store & AI Persona Settings (From APK) ───────────────────────────────────
+// ─── Store & AI Persona Settings (From APK & Scoped Multi-Tenant) ─────────────
 app.get('/api/settings', (req, res) => {
+  if (isTenantReq(req)) {
+    const bId = resolveReqBusinessId(req);
+    return res.json({ ok: true, settings: db.getTenantSettings(bId) });
+  }
   res.json({ ok: true, settings: db.getSettings() });
 });
 
 app.post('/api/settings', (req, res) => {
+  if (isTenantReq(req)) {
+    const bId = resolveReqBusinessId(req);
+    const settings = db.updateTenantSettings(bId, req.body);
+    return res.json({ ok: true, settings });
+  }
   const settings = db.updateSettings(req.body);
   res.json({ ok: true, settings });
 });
 
-// Live Chat Inbox & Human Takeover
+// Live Chat Inbox & Human Takeover (Strict Multi-Tenant Scoped)
 app.get('/api/chats', (req, res) => {
+  const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
-    chats: db.getChats()
+    chats: db.getChats(isTenantReq(req) ? bId : null)
   });
 });
 
 app.post('/api/chats/reply', async (req, res) => {
   const { chatId, text } = req.body;
   if (!chatId || !text) return res.status(400).json({ error: 'chatId and text required' });
-  const result = db.addChatMessage(chatId, 'agent', text);
-  if (waEngine && waEngine.connected) {
+
+  const isTenant = isTenantReq(req);
+  const bId = resolveReqBusinessId(req);
+  const targetAccId = isTenant ? ('wa_' + bId) : 'default';
+
+  const result = db.addChatMessage(chatId, 'agent', text, 'Customer', chatId, bId);
+  if (waEngine) {
     try {
-      await waEngine.sendTextMessage(chatId, text);
+      await waEngine.sendTextMessage(chatId, text, targetAccId);
     } catch (e) {
       console.warn('[chats/reply] WhatsApp send failed:', e.message);
     }
@@ -713,13 +755,50 @@ app.post('/api/broadcasts', async (req, res) => {
 
 // ─── Multi-Account WhatsApp (Baileys Multi-Device) Endpoints ───────────────
 app.get('/api/whatsapp/status', (req, res) => {
+  if (isTenantReq(req)) {
+    const bId = resolveReqBusinessId(req);
+    const tenantAccounts = waEngine.getAccounts(bId);
+    const primary = tenantAccounts[0] || {
+      id: 'wa_' + bId,
+      label: 'Store WhatsApp',
+      connected: false,
+      phoneNumber: null,
+      statusText: 'No account linked yet',
+      qrDataUrl: null,
+      pairingCode: null,
+      hasQr: false
+    };
+    return res.json({
+      ok: true,
+      isTenant: true,
+      ...primary,
+      totalAccounts: tenantAccounts.length,
+      accounts: tenantAccounts
+    });
+  }
   res.json({
     ok: true,
     ...waEngine.getStatus()
   });
 });
 
-app.get('/api/whatsapp/accounts', (req, res) => {
+app.get('/api/whatsapp/accounts', async (req, res) => {
+  if (isTenantReq(req)) {
+    const bId = resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
+    const bizName = biz ? biz.name : 'Store';
+
+    // Auto-provision tenant WhatsApp account if not already created
+    await waEngine.getOrCreateTenantAccount(bId, bizName);
+    const tenantAccounts = waEngine.getAccounts(bId);
+
+    return res.json({
+      ok: true,
+      isTenant: true,
+      accounts: tenantAccounts
+    });
+  }
+
   res.json({
     ok: true,
     accounts: waEngine.getAccounts()
@@ -729,6 +808,15 @@ app.get('/api/whatsapp/accounts', (req, res) => {
 app.post('/api/whatsapp/accounts/add', async (req, res) => {
   try {
     const { label } = req.body;
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
+      const session = await waEngine.getOrCreateTenantAccount(bId, biz ? biz.name : label);
+      return res.json({
+        ok: true,
+        account: session.getStatus()
+      });
+    }
     const session = await waEngine.addAccount(label);
     res.json({
       ok: true,
@@ -742,8 +830,15 @@ app.post('/api/whatsapp/accounts/add', async (req, res) => {
 app.post('/api/whatsapp/accounts/:id/pairing-code', async (req, res) => {
   try {
     const { phoneNumber } = req.body;
-    const code = await waEngine.requestPhonePairingCode(phoneNumber, req.params.id);
-    res.json({ ok: true, pairingCode: code, accountId: req.params.id });
+    let targetId = req.params.id;
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
+      await waEngine.getOrCreateTenantAccount(bId, biz ? biz.name : 'Store');
+      targetId = 'wa_' + bId;
+    }
+    const code = await waEngine.requestPhonePairingCode(phoneNumber, targetId);
+    res.json({ ok: true, pairingCode: code, accountId: targetId });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
   }
@@ -752,7 +847,12 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', async (req, res) => {
 app.post('/api/whatsapp/accounts/:id/toggle-bot', async (req, res) => {
   try {
     const { botActive } = req.body;
-    const result = await waEngine.toggleBot(req.params.id, botActive);
+    let targetId = req.params.id;
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      targetId = 'wa_' + bId;
+    }
+    const result = await waEngine.toggleBot(targetId, botActive);
     res.json(result);
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -761,7 +861,12 @@ app.post('/api/whatsapp/accounts/:id/toggle-bot', async (req, res) => {
 
 app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
   try {
-    const result = await waEngine.logout(req.params.id);
+    let targetId = req.params.id;
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      targetId = 'wa_' + bId;
+    }
+    const result = await waEngine.logout(targetId);
     res.json(result);
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -770,6 +875,9 @@ app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
 
 app.post('/api/whatsapp/accounts/:id/delete', async (req, res) => {
   try {
+    if (isTenantReq(req)) {
+      return res.status(403).json({ ok: false, error: 'Cannot delete primary store account. Use Disconnect instead.' });
+    }
     const result = await waEngine.deleteAccount(req.params.id);
     res.json(result);
   } catch (err) {
@@ -779,17 +887,28 @@ app.post('/api/whatsapp/accounts/:id/delete', async (req, res) => {
 
 app.post('/api/whatsapp/pairing-code', async (req, res) => {
   try {
-    const { phoneNumber, accountId } = req.body;
-    const code = await waEngine.requestPhonePairingCode(phoneNumber, accountId || 'default');
-    res.json({ ok: true, pairingCode: code });
+    const { phoneNumber } = req.body;
+    let accountId = req.body.accountId || 'default';
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      accountId = 'wa_' + bId;
+      const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
+      await waEngine.getOrCreateTenantAccount(bId, biz ? biz.name : 'Store');
+    }
+    const code = await waEngine.requestPhonePairingCode(phoneNumber, accountId);
+    res.json({ ok: true, pairingCode: code, accountId });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
   }
 });
 
 app.post('/api/whatsapp/logout', async (req, res) => {
-  const { accountId } = req.body;
-  await waEngine.logout(accountId || 'default');
+  let accountId = req.body.accountId || 'default';
+  if (isTenantReq(req)) {
+    const bId = resolveReqBusinessId(req);
+    accountId = 'wa_' + bId;
+  }
+  await waEngine.logout(accountId);
   res.json({ ok: true });
 });
 
@@ -1057,7 +1176,7 @@ wss.on('connection', (browserWs, req) => {
 
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess, userLang) {
-  const activeBiz = db.getActiveBusiness();
+  const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
 
   // Detect customer's actual contextual language with history memory
@@ -1333,8 +1452,8 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
 }
 
 function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLang = 'Sinhala') {
-  const activeBiz = db.getActiveBusiness();
-  const settings = db.getSettings();
+  const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
+  const settings = (sess && sess.businessId && db.getTenantSettings(sess.businessId)) || db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
   const customerName = sess.customerName || 'Customer';
   const dataset = (datasetText && datasetText.length > 50) ? datasetText : (activeBiz.dataset || BUILTIN_DATASET);
@@ -1429,7 +1548,7 @@ function checkForOrderTag(text, sess, sessionId) {
   console.log(`[order] Confirmed — session: ${sessionId}`, fields);
 
   // Automatically record order in Multi-Business Database
-  const activeBiz = db.getActiveBusiness();
+  const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
   const newOrder = db.addOrder({
     businessId: activeBiz.id,
     customerName: fields.name || sess.customerName || 'Customer',
