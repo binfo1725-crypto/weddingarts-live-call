@@ -296,6 +296,7 @@ app.post('/api/whatsapp/incoming', async (req, res) => {
   const tempSess = {
     storeName: activeBiz.name,
     customerName: name,
+    customerPhone: id,
     dataset: activeBiz.dataset || BUILTIN_DATASET,
     voice: VOICE_NAME,
     apiKey: DEFAULT_GEMINI_API_KEY,
