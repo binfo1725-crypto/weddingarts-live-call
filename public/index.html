@@ -35,8 +35,8 @@
     content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.2) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 80%, rgba(6,182,212,0.15) 0%, transparent 60%);
+    background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.25) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(6,182,212,0.18) 0%, transparent 60%);
     pointer-events: none;
   }
 
@@ -46,13 +46,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1.2rem;
     position: relative;
     z-index: 1;
   }
 
   .store-name {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--accent2);
@@ -138,30 +138,31 @@
     border-radius: 14px;
     padding: 1rem;
     width: 100%;
-    min-height: 110px;
-    max-height: 170px;
+    min-height: 120px;
+    max-height: 200px;
     overflow-y: auto;
     font-size: 0.88rem;
     line-height: 1.6;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.6rem;
   }
   .speech-line {
-    padding: 0.4rem 0.75rem;
-    border-radius: 8px;
-    max-width: 90%;
+    padding: 0.5rem 0.85rem;
+    border-radius: 10px;
+    max-width: 92%;
+    word-break: break-word;
   }
   .speech-line.ai {
-    background: rgba(124,58,237,0.15);
+    background: rgba(124,58,237,0.18);
     border-left: 3px solid var(--accent);
-    color: #e2e8f0;
+    color: #f1f5f9;
     align-self: flex-start;
   }
   .speech-line.user {
-    background: rgba(6,182,212,0.15);
+    background: rgba(6,182,212,0.18);
     border-right: 3px solid var(--accent2);
-    color: #a5f3fc;
+    color: #cffafe;
     align-self: flex-end;
   }
 
@@ -267,7 +268,6 @@
   }
   .btn-start:active { transform: scale(0.96); }
 
-  /* ── Order Alert Banner ── */
   #order-banner {
     display: none;
     background: linear-gradient(135deg, #064e3b, #065f46);
@@ -281,7 +281,6 @@
   }
   #order-banner.show { display: block; }
 
-  /* ── Text Input Fallback Modal ── */
   #text-modal {
     display: none;
     position: fixed;
@@ -349,31 +348,26 @@
     <div class="customer-name" id="customer-label">Customer</div>
     <div class="timer" id="call-timer">00:00</div>
 
-    <!-- Status Box -->
     <div class="status-box">
       <div class="status-dot green" id="status-dot"></div>
       <div class="status-text" id="status-text">සම්බන්ධ විය — කතා කරන්න</div>
     </div>
 
-    <!-- Live Transcript Box -->
     <div class="transcript-box" id="transcript">
-      <div class="speech-line ai">👋 ආයුබෝවන්! Wedding Arts වෙතින්... මම කොහොමද උදව් කරන්න පුළුවන්?</div>
+      <div class="speech-line ai">👋 ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?</div>
     </div>
 
-    <!-- Waveform Visualizer -->
     <div class="waveform" id="waveform">
       <div class="bar"></div><div class="bar"></div><div class="bar"></div>
       <div class="bar"></div><div class="bar"></div><div class="bar"></div>
       <div class="bar"></div><div class="bar"></div><div class="bar"></div>
     </div>
 
-    <!-- Order Alert Banner -->
     <div id="order-banner">
       <strong>✅ Order එක Confirm විය!</strong><br>
       <span id="order-detail">විස්තර WhatsApp වෙත යොමු කරන ලදී.</span>
     </div>
 
-    <!-- Buttons -->
     <div class="btn-row">
       <button class="btn btn-type" onclick="openTextModal()" title="Type message">⌨️</button>
       <button class="btn btn-mic" id="btn-mic" onpointerdown="startListening()" onpointerup="stopListening()" ontouchstart="startListening()" ontouchend="stopListening()" title="Hold to talk">
@@ -402,7 +396,6 @@
 </div>
 
 <script>
-// ─── Query Params ─────────────────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
 const SESSION_ID = params.get('s') || 'direct-test-' + Date.now();
 const CUSTOMER_NAME = decodeURIComponent(params.get('n') || 'Customer');
@@ -411,64 +404,25 @@ const STORE_NAME = decodeURIComponent(params.get('store') || 'WEDDING ARTS');
 document.getElementById('store-name-label').textContent = STORE_NAME.toUpperCase() + ' — LIVE AI CALL';
 document.getElementById('customer-label').textContent = CUSTOMER_NAME;
 
-// ─── State ────────────────────────────────────────────────────────────────────
 let ws = null;
 let recognition = null;
-let synth = window.speechSynthesis;
 let isListening = false;
 let callStartTime = null;
 let timerInterval = null;
-let currentUtterance = null;
-let audioUnlocked = false;
-
-// Preload & find best voice
-let sinhalaVoice = null;
-function loadVoices() {
-  if (!synth) return;
-  const voices = synth.getVoices();
-  // Find Sinhala voice or high-quality female/male English/local voice
-  sinhalaVoice = voices.find(v => v.lang.startsWith('si')) ||
-                 voices.find(v => v.lang.startsWith('hi')) ||
-                 voices.find(v => v.name.includes('Google') || v.name.includes('Natural')) ||
-                 voices[0];
-}
-if (synth) {
-  loadVoices();
-  synth.onvoiceschanged = loadVoices;
-}
+let currentAudio = null;
 
 // ─── Start Call ───────────────────────────────────────────────────────────────
 function startCall() {
-  // Unlock audio playback for mobile browsers
-  unlockAudio();
-
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('call-screen').classList.remove('hidden');
 
-  // Connect WebSocket
   const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}`;
   connectWs(wsUrl);
 
-  // Setup Speech Recognition
   setupSpeechRecognition();
 
-  // Start Call Timer
   callStartTime = Date.now();
   timerInterval = setInterval(updateTimer, 1000);
-
-  // Initial Voice Greeting
-  setTimeout(() => {
-    speakText("ආයුබෝවන්! Wedding Arts වෙතින්... මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?");
-  }, 600);
-}
-
-function unlockAudio() {
-  if (synth && !audioUnlocked) {
-    const dummy = new SpeechSynthesisUtterance('');
-    dummy.volume = 0;
-    synth.speak(dummy);
-    audioUnlocked = true;
-  }
 }
 
 // ─── WebSocket ────────────────────────────────────────────────────────────────
@@ -488,11 +442,20 @@ function connectWs(url) {
         setWaveformActive(true);
         setAvatarSpeaking(true);
         appendTranscript(data.text, 'ai');
-        speakText(data.speechText || data.text, () => {
+
+        if (data.audioBase64) {
+          // Play High-Definition Natural Audio (Aoede/Cleo)
+          playAudioBase64(data.audioBase64, () => {
+            setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+            setWaveformActive(false);
+            setAvatarSpeaking(false);
+          });
+        } else {
+          // Fallback if audio generation fails
           setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
           setWaveformActive(false);
           setAvatarSpeaking(false);
-        });
+        }
       } else if (data.type === 'ai_thinking') {
         setStatus('orange', '⏳ AI සිතමින් පවතී...');
         setWaveformActive(true);
@@ -516,18 +479,39 @@ function connectWs(url) {
   };
 }
 
+// ─── Audio Player (Aoede Natural Female Voice Stream) ─────────────────────────
+function playAudioBase64(base64Data, onEnd) {
+  if (currentAudio) {
+    try { currentAudio.pause(); } catch(e){}
+    currentAudio = null;
+  }
+
+  const audioSrc = 'data:audio/wav;base64,' + base64Data;
+  const audio = new Audio(audioSrc);
+  currentAudio = audio;
+
+  audio.onended = () => {
+    if (onEnd) onEnd();
+  };
+  audio.onerror = (e) => {
+    console.warn('Audio play error:', e);
+    if (onEnd) onEnd();
+  };
+
+  audio.play().catch(e => {
+    console.warn('Auto-play error:', e);
+    if (onEnd) onEnd();
+  });
+}
+
 // ─── Speech Recognition (Speech-to-Text) ──────────────────────────────────────
 function setupSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    console.warn('SpeechRecognition not supported in this browser.');
-    return;
-  }
+  if (!SpeechRecognition) return;
 
   recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = false;
-  // Sinhala recognition or fallback
   recognition.lang = 'si-LK';
 
   recognition.onresult = (event) => {
@@ -539,8 +523,6 @@ function setupSpeechRecognition() {
   };
 
   recognition.onerror = (event) => {
-    console.warn('SpeechRecognition error:', event.error);
-    // If Sinhala not available, fallback to en-US
     if (event.error === 'language-not-supported' && recognition.lang !== 'en-US') {
       recognition.lang = 'en-US';
     }
@@ -553,18 +535,18 @@ function setupSpeechRecognition() {
 }
 
 function startListening() {
-  if (synth && synth.speaking) {
-    synth.cancel(); // Barge-in: Mute AI immediately if user talks
+  // Barge-in: Mute AI speech immediately if user begins talking
+  if (currentAudio) {
+    try { currentAudio.pause(); } catch(e){}
+    currentAudio = null;
   }
-  unlockAudio();
+
   setMicListeningState(true);
 
   if (recognition) {
     try {
       recognition.start();
-    } catch (e) {
-      console.warn('Recognition start error:', e);
-    }
+    } catch (e) {}
   }
 }
 
@@ -590,35 +572,6 @@ function setMicListeningState(active) {
   }
 }
 
-// ─── Speech Synthesis (Text-to-Speech) ────────────────────────────────────────
-function speakText(text, onEnd) {
-  if (!synth) {
-    if (onEnd) onEnd();
-    return;
-  }
-
-  synth.cancel(); // Stop any ongoing speech
-
-  const clean = text.replace(/[*#_~`\[\]\(\)]/g, '').trim();
-  const utterance = new SpeechSynthesisUtterance(clean);
-  currentUtterance = utterance;
-
-  if (sinhalaVoice) utterance.voice = sinhalaVoice;
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-
-  utterance.onend = () => {
-    if (onEnd) onEnd();
-  };
-
-  utterance.onerror = (e) => {
-    console.warn('TTS error:', e);
-    if (onEnd) onEnd();
-  };
-
-  synth.speak(utterance);
-}
-
 // ─── Messaging ────────────────────────────────────────────────────────────────
 function sendUserMessage(text) {
   setStatus('orange', '⏳ AI සිතමින් පවතී...');
@@ -627,7 +580,6 @@ function sendUserMessage(text) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'user_speech', text: text }));
   } else {
-    // HTTP Fallback
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -640,14 +592,16 @@ function sendUserMessage(text) {
         setWaveformActive(true);
         setAvatarSpeaking(true);
         appendTranscript(data.reply, 'ai');
-        speakText(data.speechText || data.reply, () => {
-          setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
-          setWaveformActive(false);
-          setAvatarSpeaking(false);
-        });
+        if (data.audioBase64) {
+          playAudioBase64(data.audioBase64, () => {
+            setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+            setWaveformActive(false);
+            setAvatarSpeaking(false);
+          });
+        }
       }
     })
-    .catch(err => {
+    .catch(() => {
       setStatus('red', 'දෝෂයක් සිදුවිය');
     });
   }
@@ -700,7 +654,7 @@ function updateTimer() {
   document.getElementById('call-timer').textContent = `${m}:${s}`;
 }
 function endCall() {
-  if (synth) synth.cancel();
+  if (currentAudio) try { currentAudio.pause(); } catch(e){}
   if (recognition) try { recognition.abort(); } catch(e){}
   if (ws) ws.close();
   clearInterval(timerInterval);

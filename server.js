@@ -1,6 +1,6 @@
 // OmniSix Live AI Call Server
 // Real-time Voice Call Server for WEDDING ARTS
-// Browser Mic (SpeechRecognition) <-> Node.js <-> Gemini 3.5 Flash <-> Browser TTS (Audio Speech Synthesis)
+// Browser Mic <-> Node.js <-> Gemini 3.5 Flash (Complete Details) <-> Gemini Voice AI (Aoede/Cleo Audio Stream)
 
 require('dotenv').config();
 const express = require('express');
@@ -15,17 +15,17 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}`;
 
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_TEXT_MODEL = 'gemini-3.5-flash';
+const GEMINI_TTS_MODEL = 'gemini-3.8-flash-lite-tts';
+const VOICE_NAME = 'Aoede'; // Natural warm Sri Lankan female voice profile (Cleo)
 
 // ─── Session Store ───────────────────────────────────────────────────────────
-// sessionId -> { browserWs, customerPhone, customerName, storeName, apiKey, history, dataset, createdAt }
 const sessions = new Map();
 
-// Clean expired sessions every 10 min
 setInterval(() => {
   const now = Date.now();
   for (const [id, s] of sessions.entries()) {
-    if (now - s.createdAt > 60 * 60 * 1000) { // 1 hour TTL
+    if (now - s.createdAt > 60 * 60 * 1000) {
       try { s.browserWs && s.browserWs.close(); } catch {}
       sessions.delete(id);
       console.log(`[session] Expired & removed: ${id}`);
@@ -38,12 +38,10 @@ const app = express();
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', sessions: sessions.size, time: new Date().toISOString() });
 });
 
-// Android app pre-creates session
 app.post('/api/session', (req, res) => {
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
@@ -68,12 +66,11 @@ app.post('/api/session', (req, res) => {
   res.json({ ok: true, sessionId: id, callUrl: `${serverHost}/call?s=${id}` });
 });
 
-// Serve call page
 app.get('/call', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Direct HTTP Chat API fallback
+// Direct HTTP Chat API with Gemini Audio Generation
 app.post('/api/chat', async (req, res) => {
   const { sessionId, message } = req.body;
   const sess = sessions.get(sessionId) || {
@@ -87,8 +84,15 @@ app.post('/api/chat', async (req, res) => {
   try {
     const aiReply = await getGeminiReply(message, sess);
     checkForOrderTag(aiReply, sess, sessionId);
-    const cleanSpeech = cleanTextForSpeech(aiReply);
-    res.json({ ok: true, reply: aiReply, speechText: cleanSpeech });
+
+    // Generate Natural Human Voice via Gemini TTS Engine (App Audio Engine)
+    const audioBase64 = await synthesizeGeminiAudio(aiReply, sess.apiKey);
+
+    res.json({
+      ok: true,
+      reply: aiReply,
+      audioBase64: audioBase64 // Base64 WAV audio stream
+    });
   } catch (err) {
     console.error('[chat-api] Error:', err.message);
     res.status(500).json({ error: err.message });
@@ -105,7 +109,6 @@ wss.on('connection', (browserWs, req) => {
 
   let sess = sessions.get(sessionId);
   if (!sess) {
-    // Auto-create ad-hoc session so direct link testing works
     sess = {
       browserWs: null,
       customerName: 'Customer',
@@ -122,29 +125,26 @@ wss.on('connection', (browserWs, req) => {
   sess.browserWs = browserWs;
   console.log(`[ws] Browser connected — session: ${sessionId}`);
 
-  // Send initial ready & welcome greeting
   safeSend(browserWs, JSON.stringify({
     type: 'ready',
     message: 'AI Connected! Call සූදානම්.'
   }));
 
-  // Trigger natural voice welcome from AI
+  // Initial welcome greeting with natural audio
   (async () => {
     try {
-      const welcomePrompt = `The customer named "${sess.customerName}" just connected to the live call. Give a brief, warm 1-sentence greeting in natural spoken Sinhala welcoming them to ${sess.storeName} and asking how you can help. Keep it under 15 words.`;
-      const welcomeText = await getGeminiReply(welcomePrompt, sess, true);
-      const cleanSpeech = cleanTextForSpeech(welcomeText);
+      const welcomeText = `ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?`;
+      const audioBase64 = await synthesizeGeminiAudio(welcomeText, sess.apiKey);
       safeSend(browserWs, JSON.stringify({
         type: 'ai_speech',
         text: welcomeText,
-        speechText: cleanSpeech
+        audioBase64: audioBase64
       }));
     } catch (e) {
       console.warn('[welcome] greeting failed:', e.message);
     }
   })();
 
-  // Handle message from browser
   browserWs.on('message', async (data) => {
     try {
       const msg = JSON.parse(data.toString());
@@ -152,32 +152,28 @@ wss.on('connection', (browserWs, req) => {
       if (msg.type === 'user_speech' && msg.text) {
         console.log(`[ws] User said (${sessionId}): "${msg.text}"`);
 
-        // Send thinking state
         safeSend(browserWs, JSON.stringify({ type: 'ai_thinking' }));
 
-        // Call Gemini
+        // 1. Get FULL complete response from Gemini Text Model
         const aiReply = await getGeminiReply(msg.text, sess);
         console.log(`[ws] AI reply (${sessionId}): "${aiReply}"`);
 
-        // Check for order tag
         checkForOrderTag(aiReply, sess, sessionId);
 
-        // Prepare clean text for browser voice synthesis (remove asterisks, brackets, formatting)
-        const cleanSpeech = cleanTextForSpeech(aiReply);
+        // 2. Synthesize with natural female voice (Aoede)
+        const audioBase64 = await synthesizeGeminiAudio(aiReply, sess.apiKey);
 
         safeSend(browserWs, JSON.stringify({
           type: 'ai_speech',
           text: aiReply,
-          speechText: cleanSpeech
+          audioBase64: audioBase64
         }));
-      } else if (msg.type === 'end_call') {
-        console.log(`[ws] User ended call — session: ${sessionId}`);
       }
     } catch (err) {
       console.error(`[ws] Message processing error:`, err.message);
       safeSend(browserWs, JSON.stringify({
         type: 'error',
-        message: 'ප්‍රතිචාරය ලබාගැනීමේදී දෝෂයක් සිදුවිය. කරුණාකර නැවත උත්සාහ කරන්න.'
+        message: 'දෝෂයක් සිදුවිය. කරුණාකර නැවත උත්සාහ කරන්න.'
       }));
     }
   });
@@ -185,33 +181,22 @@ wss.on('connection', (browserWs, req) => {
   browserWs.on('close', () => {
     console.log(`[ws] Browser disconnected — session: ${sessionId}`);
   });
-
-  browserWs.on('error', (err) => {
-    console.error(`[ws] Browser WS error:`, err.message);
-  });
 });
 
-// ─── Gemini AI Engine ────────────────────────────────────────────────────────
-async function getGeminiReply(userMessage, sess, isInternal = false) {
+// ─── Gemini AI Engine (Full Uncut Details) ────────────────────────────────────
+async function getGeminiReply(userMessage, sess) {
   const apiKey = sess.apiKey || DEFAULT_GEMINI_API_KEY;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`;
 
   const systemInstruction = buildSystemPrompt(sess);
 
-  // Maintain conversation history (last 8 turns for context)
-  if (!isInternal) {
-    sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
-  }
+  sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
 
   const contents = [
     { role: 'user', parts: [{ text: `[SYSTEM CONTEXT & KNOWLEDGE]\n${systemInstruction}\n[END SYSTEM CONTEXT]` }] },
-    { role: 'model', parts: [{ text: `හරි, මම ${sess.storeName} වෙනුවෙන් ඉතාම සුහදශීලීව, ස්වභාවික සිංහලෙන් කෙටි පැහැදිලි උත්තර ලබා දෙන්නම්.` }] },
+    { role: 'model', parts: [{ text: `හරි, මම ${sess.storeName} වෙනුවෙන් සියලු විස්තර සහ මිල ගණන් ඉතාම පැහැදිලිව, මැදින් නොකැඩෙන පරිදි සම්පූර්ණ වාක්‍ය වලින් ස්වභාවික සිංහලෙන් කියන්නම්.` }] },
     ...sess.history.slice(-8)
   ];
-
-  if (isInternal) {
-    contents.push({ role: 'user', parts: [{ text: userMessage }] });
-  }
 
   const response = await fetch(url, {
     method: 'POST',
@@ -219,36 +204,60 @@ async function getGeminiReply(userMessage, sess, isInternal = false) {
     body: JSON.stringify({
       contents: contents,
       generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 250
+        temperature: 0.65,
+        maxOutputTokens: 1000 // FULL details without cutting in the middle
       }
     })
   });
 
   const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error.message || 'Gemini API Error');
-  }
+  if (data.error) throw new Error(data.error.message || 'Gemini API Error');
 
-  const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'කණගාටුයි, මට පැහැදිලි වුණේ නෑ. නැවත කියන්න පුළුවන්ද?';
-
-  if (!isInternal) {
-    sess.history.push({ role: 'model', parts: [{ text: replyText }] });
-  }
+  const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'කණගාටුයි, මට පැහැදිලි වුණේ නෑ. කරුණාකර නැවත කියන්න.';
+  sess.history.push({ role: 'model', parts: [{ text: replyText }] });
 
   return replyText;
 }
 
-function cleanTextForSpeech(text) {
-  return text
-    .replace(/\[\[ORDER:.*?\]\]/g, '') // Remove order tags
-    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove markdown bold
-    .replace(/\*([^*]+)\*/g, '$1') // Remove italics
-    .replace(/#+\s*/g, '') // Remove headings
-    .replace(/[\(\)\[\]_~`>]/g, '') // Remove punctuation brackets
-    .replace(/Rs\.?\s*(\d+)/gi, 'රුපියල් $1') // Speak 'Rs.' as 'රුපියල්'
-    .replace(/\n+/g, ' ')
+// ─── Gemini Voice Audio Synthesis (Natural Sri Lankan Female Voice) ──────────
+async function synthesizeGeminiAudio(text, apiKey) {
+  const key = apiKey || DEFAULT_GEMINI_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`;
+
+  // Clean text for speech pronunciation
+  const speechText = text
+    .replace(/\[\[ORDER:.*?\]\]/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/#+\s*/g, '')
+    .replace(/[\(\)\[\]_~`>]/g, '')
+    .replace(/Rs\.?\s*(\d+)/gi, 'රුපියල් $1')
     .trim();
+
+  const payload = {
+    contents: [{ parts: [{ text: speechText }] }],
+    generationConfig: {
+      responseModalities: ['AUDIO'],
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: { voiceName: VOICE_NAME }
+        }
+      }
+    }
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+  } catch (err) {
+    console.error('[Gemini TTS] Error:', err.message);
+    return null;
+  }
 }
 
 function buildSystemPrompt(sess) {
@@ -259,24 +268,29 @@ Store: WEDDING ARTS
 Owner: D T Rajapaksha (Tharindu)
 BOC Bank: 92949122
 Contact: 076 210 7801
-Services & Prices:
-- Single Photo Edit: Rs. 1,500
-- 10-Photo Shoot Retouch: Rs. 12,000
-- UV Frame Sets: Rs. 4,500 - Rs. 18,500
-- 3-Panel Wall Sets: Rs. 14,000 - Rs. 34,000
-- Island-wide Courier Delivery: Rs. 450
+
+SERVICES & COMPLETE PRICE DIRECTORY:
+- Single Photo Retouch / Edit: Rs. 1,500
+- 10-Photo Complete Wedding / Function Shoot Retouch: Rs. 12,000
+- UV Frame Sets:
+  * 8x12 UV Frame: Rs. 4,500
+  * 12x18 UV Frame: Rs. 7,500
+  * 16x24 UV Frame: Rs. 12,500
+  * 20x30 UV Frame: Rs. 18,500
+- 3-Panel Wall Frame Sets: Rs. 14,000 සිට Rs. 34,000 දක්වා (විශාල Wall Decor)
+- Island-wide Safe Courier Delivery: Rs. 450
+- Bank Account: BOC (Bank of Ceylon) - 92949122 (D T Rajapaksha)
 `;
 
-  return `You are a live voice AI assistant on a live phone call for "${sess.storeName}".
-Customer Name: "${sess.customerName}".
-Your primary language is Sinhala (සිංහල). If the customer speaks English or Singlish, answer naturally in that language.
+  return `You are speaking directly with a customer named "${sess.customerName}" on a live voice phone call for "${sess.storeName}".
+LANGUAGE: Conversational natural Sinhala (සිංහල). If the customer speaks English or Singlish, reply naturally in that language.
 
-KEY RULES FOR LIVE VOICE CALL:
-1. Speak warmly and naturally, like a friendly Sri Lankan customer service agent.
-2. Keep answers SHORT and punchy (1 to 2 sentences maximum) because this is being spoken out loud to the customer.
-3. If they ask about prices, state the exact price clearly from the price list.
-4. If they agree to order, confirm the total price and ask for their address.
-5. Once an order is agreed, add this silent tag at the end of your response:
+CRITICAL INSTRUCTIONS FOR VOICE CALL:
+1. GIVE COMPLETE INFORMATION: Always answer customer questions with COMPLETE details. Never cut off thoughts midway. Complete every sentence clearly and properly.
+2. PRICE QUESTIONS: Clearly state exact prices, frame dimensions, and delivery charges. Do not leave prices vague.
+3. CONVERSATIONAL TONE: Speak warmly, professionally, and respectfully like a friendly Sri Lankan sales manager (e.g., "ඔව් සහෝදරයා/සහෝදරිය", "අපේ UV Frame එක ගැන විස්තර මෙහෙමයි...").
+4. CLOSING SALES: If the customer is satisfied, explain how to send photos via WhatsApp and confirm the order.
+5. If order is confirmed, add this tag at the end:
    [[ORDER: name=${sess.customerName}|item=ITEM_NAME|amount=TOTAL_RS]]
 ${datasetSection}`;
 }
@@ -336,7 +350,6 @@ function safeSend(ws, data) {
   } catch {}
 }
 
-// ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
   console.log(`\n🎙️  OmniSix Live Call Server running on port ${PORT}`);
   console.log(`📡  Call URL: ${CALL_SERVER_URL}/call?s=SESSION_ID`);
