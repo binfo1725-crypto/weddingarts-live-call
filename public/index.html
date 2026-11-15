@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0d0d1a">
-<title>Live AI Call — OmniSix</title>
+<title>Live AI Voice Call — WEDDING ARTS</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -19,7 +19,7 @@
     --orange: #f59e0b;
   }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100dvh;
@@ -27,45 +27,43 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
-    overflow: hidden;
+    padding: 1.25rem;
+    overflow-x: hidden;
   }
 
-  /* ── Background gradient ── */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.18) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 80%, rgba(6,182,212,0.12) 0%, transparent 60%);
+    background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.2) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(6,182,212,0.15) 0%, transparent 60%);
     pointer-events: none;
   }
 
   .container {
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.25rem;
     position: relative;
     z-index: 1;
   }
 
-  /* ── Store Header ── */
   .store-name {
     font-size: 0.75rem;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--accent2);
-    font-weight: 600;
+    font-weight: 700;
   }
 
-  /* ── Avatar / Mic Ring ── */
+  /* ── Avatar & Pulse Ring ── */
   .avatar-ring {
     position: relative;
-    width: 160px;
-    height: 160px;
+    width: 150px;
+    height: 150px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -74,101 +72,106 @@
     position: absolute;
     border-radius: 50%;
     border: 2px solid;
-    animation: pulse-ring 2s ease-out infinite;
     opacity: 0;
   }
+  .rings-active .ring { animation: pulse-ring 2s ease-out infinite; }
   .ring:nth-child(1) { width: 100%; height: 100%; border-color: rgba(124,58,237,0.5); animation-delay: 0s; }
-  .ring:nth-child(2) { width: 80%; height: 80%; border-color: rgba(124,58,237,0.4); animation-delay: 0.5s; }
-  .ring:nth-child(3) { width: 60%; height: 60%; border-color: rgba(124,58,237,0.3); animation-delay: 1s; }
+  .ring:nth-child(2) { width: 80%; height: 80%; border-color: rgba(6,182,212,0.4); animation-delay: 0.6s; }
+  .ring:nth-child(3) { width: 60%; height: 60%; border-color: rgba(124,58,237,0.3); animation-delay: 1.2s; }
   @keyframes pulse-ring {
-    0% { opacity: 0.8; transform: scale(0.95); }
-    100% { opacity: 0; transform: scale(1.1); }
+    0% { opacity: 0.9; transform: scale(0.9); }
+    100% { opacity: 0; transform: scale(1.2); }
   }
-  .rings-hidden .ring { animation: none; opacity: 0; }
-  .rings-active .ring { animation-play-state: running; }
 
   .avatar {
-    width: 90px;
-    height: 90px;
+    width: 86px;
+    height: 86px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
-    box-shadow: 0 0 40px rgba(124,58,237,0.4);
-    z-index: 1;
-    transition: box-shadow 0.3s;
+    font-size: 2.4rem;
+    box-shadow: 0 0 35px rgba(124,58,237,0.4);
+    z-index: 2;
+    transition: all 0.3s ease;
   }
   .avatar.speaking {
-    box-shadow: 0 0 60px rgba(6,182,212,0.6), 0 0 20px rgba(124,58,237,0.5);
-    animation: avatar-pulse 0.6s ease-in-out infinite alternate;
-  }
-  @keyframes avatar-pulse {
-    from { transform: scale(0.97); }
-    to { transform: scale(1.03); }
+    box-shadow: 0 0 50px rgba(6,182,212,0.8), 0 0 25px rgba(124,58,237,0.6);
+    transform: scale(1.06);
   }
 
-  /* ── Customer name ── */
   .customer-name {
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: var(--text);
-    text-align: center;
   }
 
-  /* ── Status ── */
+  /* ── Status Indicator ── */
   .status-box {
     background: var(--card);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 0.75rem 1.25rem;
-    text-align: center;
-    min-height: 48px;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
   }
   .status-dot {
-    width: 8px; height: 8px;
+    width: 9px; height: 9px;
     border-radius: 50%;
     background: var(--muted);
     flex-shrink: 0;
-    transition: background 0.3s;
   }
-  .status-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .status-dot.orange { background: var(--orange); box-shadow: 0 0 8px var(--orange); animation: blink 1s infinite; }
+  .status-dot.green { background: var(--green); box-shadow: 0 0 10px var(--green); }
+  .status-dot.orange { background: var(--orange); box-shadow: 0 0 10px var(--orange); animation: blink 1s infinite; }
   .status-dot.red { background: var(--red); }
   @keyframes blink { 50% { opacity: 0.3; } }
-  .status-text { font-size: 0.9rem; color: var(--muted); }
+  .status-text { font-size: 0.9rem; font-weight: 500; }
 
-  /* ── Transcript ── */
+  /* ── Live Transcript Box ── */
   .transcript-box {
     background: var(--card);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    padding: 1rem;
     width: 100%;
-    min-height: 72px;
-    max-height: 120px;
+    min-height: 110px;
+    max-height: 170px;
     overflow-y: auto;
-    font-size: 0.85rem;
-    color: var(--muted);
+    font-size: 0.88rem;
     line-height: 1.6;
-    scrollbar-width: thin;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
-  .transcript-box .ai-line { color: var(--text); }
-  .transcript-box .user-line { color: var(--accent2); }
+  .speech-line {
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    max-width: 90%;
+  }
+  .speech-line.ai {
+    background: rgba(124,58,237,0.15);
+    border-left: 3px solid var(--accent);
+    color: #e2e8f0;
+    align-self: flex-start;
+  }
+  .speech-line.user {
+    background: rgba(6,182,212,0.15);
+    border-right: 3px solid var(--accent2);
+    color: #a5f3fc;
+    align-self: flex-end;
+  }
 
-  /* ── Waveform ── */
+  /* ── Waveform Visualizer ── */
   .waveform {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    height: 32px;
+    gap: 4px;
+    height: 30px;
     width: 100%;
   }
   .bar {
@@ -176,138 +179,167 @@
     border-radius: 2px;
     background: linear-gradient(to top, var(--accent), var(--accent2));
     height: 4px;
-    transition: height 0.1s;
+    transition: height 0.15s ease;
   }
-  .waveform.active .bar { animation: wave 0.8s ease-in-out infinite alternate; }
+  .waveform.active .bar { animation: wave 0.7s ease-in-out infinite alternate; }
   .bar:nth-child(1) { animation-delay: 0.0s; }
-  .bar:nth-child(2) { animation-delay: 0.1s; }
-  .bar:nth-child(3) { animation-delay: 0.2s; }
-  .bar:nth-child(4) { animation-delay: 0.3s; }
-  .bar:nth-child(5) { animation-delay: 0.4s; }
-  .bar:nth-child(6) { animation-delay: 0.3s; }
-  .bar:nth-child(7) { animation-delay: 0.2s; }
-  .bar:nth-child(8) { animation-delay: 0.1s; }
+  .bar:nth-child(2) { animation-delay: 0.15s; }
+  .bar:nth-child(3) { animation-delay: 0.3s; }
+  .bar:nth-child(4) { animation-delay: 0.45s; }
+  .bar:nth-child(5) { animation-delay: 0.6s; }
+  .bar:nth-child(6) { animation-delay: 0.45s; }
+  .bar:nth-child(7) { animation-delay: 0.3s; }
+  .bar:nth-child(8) { animation-delay: 0.15s; }
   .bar:nth-child(9) { animation-delay: 0.0s; }
   @keyframes wave {
     from { height: 4px; }
-    to { height: 28px; }
+    to { height: 26px; }
   }
 
-  /* ── Buttons ── */
+  /* ── Action Buttons ── */
   .btn-row {
     display: flex;
-    gap: 1rem;
-    width: 100%;
+    gap: 1.25rem;
+    align-items: center;
     justify-content: center;
+    width: 100%;
+    margin-top: 0.5rem;
   }
   .btn {
     border: none;
     border-radius: 50%;
-    width: 68px;
-    height: 68px;
-    font-size: 1.6rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s, box-shadow 0.15s;
+    transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
-  .btn:active { transform: scale(0.92); }
-  .btn-call {
+  .btn-mic {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    box-shadow: 0 4px 24px rgba(124,58,237,0.5);
-    width: 80px; height: 80px;
-    font-size: 1.8rem;
+    box-shadow: 0 4px 25px rgba(124,58,237,0.5);
+    color: white;
   }
-  .btn-call.muted { background: var(--card); border: 2px solid var(--red); }
+  .btn-mic.listening {
+    transform: scale(1.1);
+    box-shadow: 0 0 35px var(--accent2);
+    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  }
   .btn-end {
+    width: 58px;
+    height: 58px;
+    font-size: 1.5rem;
     background: var(--red);
-    box-shadow: 0 4px 16px rgba(239,68,68,0.4);
+    box-shadow: 0 4px 15px rgba(239,68,68,0.4);
+    color: white;
   }
-  .btn-mute {
+  .btn-type {
+    width: 58px;
+    height: 58px;
+    font-size: 1.3rem;
     background: var(--card);
-    border: 2px solid rgba(255,255,255,0.1);
-    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: white;
   }
-  .btn-mute.muted { border-color: var(--red); }
 
   /* ── Start Screen ── */
   #start-screen {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
     text-align: center;
   }
-  .start-title { font-size: 1.5rem; font-weight: 700; }
-  .start-sub { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
   .btn-start {
-    margin-top: 0.5rem;
-    padding: 1rem 2.5rem;
+    padding: 1.1rem 2.8rem;
     border-radius: 999px;
     border: none;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: #fff;
-    font-size: 1.05rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 24px rgba(124,58,237,0.4);
-    transition: transform 0.15s, box-shadow 0.15s;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    box-shadow: 0 4px 25px rgba(124,58,237,0.5);
+    transition: transform 0.15s;
   }
   .btn-start:active { transform: scale(0.96); }
 
-  /* ── Order Banner ── */
+  /* ── Order Alert Banner ── */
   #order-banner {
     display: none;
     background: linear-gradient(135deg, #064e3b, #065f46);
     border: 1px solid var(--green);
     border-radius: 12px;
-    padding: 1rem;
+    padding: 0.9rem;
     text-align: center;
     width: 100%;
-    gap: 0.5rem;
-    flex-direction: column;
+    color: #d1fae5;
+    font-size: 0.88rem;
   }
-  #order-banner.show { display: flex; }
-  .order-title { color: var(--green); font-size: 1.1rem; font-weight: 700; }
-  .order-detail { font-size: 0.85rem; color: #d1fae5; line-height: 1.6; }
+  #order-banner.show { display: block; }
 
-  /* ── Hidden ── */
+  /* ── Text Input Fallback Modal ── */
+  #text-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  #text-modal.show { display: flex; }
+  .modal-card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 1.25rem;
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .text-input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+  }
+
   .hidden { display: none !important; }
-
-  /* ── Timer ── */
-  .timer { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .timer { font-size: 0.82rem; color: var(--muted); }
 </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- Store Header -->
-  <div class="store-name" id="store-name-label">OMNISIX AI ASSISTANT</div>
+  <div class="store-name" id="store-name-label">WEDDING ARTS — LIVE VOICE ASSISTANT</div>
 
   <!-- START SCREEN -->
   <div id="start-screen">
-    <div class="avatar" style="width:100px;height:100px;font-size:2.8rem;margin-bottom:0.5rem;">🎙️</div>
-    <div class="start-title">Live AI Call</div>
-    <div class="start-sub" id="start-sub">
-      Tap below to connect to your AI assistant.<br>
-      _(App download කිරීම අනවශ්‍යයි — Browser එකෙන් Open වේ!)_
-    </div>
+    <div class="avatar" style="width:105px;height:105px;font-size:3rem;margin-bottom:0.5rem;">🎙️</div>
+    <h2 style="font-size:1.45rem;">Live AI Audio Call</h2>
+    <p style="font-size:0.9rem;color:var(--muted);line-height:1.6;" id="start-sub">
+      කෘතිම බුද්ධිය (AI) සමඟ සජීවීව කතා කිරීමට<br>පහත බොත්තම ඔබන්න.
+    </p>
     <button class="btn-start" id="btn-start-call" onclick="startCall()">
-      🎙️ &nbsp;Call Start කරන්න
+      📞 Call Start කරන්න
     </button>
-    <div class="status-text" id="pre-status" style="margin-top:0.25rem;font-size:0.8rem;color:var(--muted)"></div>
   </div>
 
-  <!-- CALL SCREEN (hidden until connected) -->
-  <div id="call-screen" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:1.2rem;">
+  <!-- CALL SCREEN -->
+  <div id="call-screen" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem;">
 
-    <!-- Avatar Ring -->
-    <div class="avatar-ring rings-hidden" id="avatar-ring">
+    <div class="avatar-ring rings-active" id="avatar-ring">
       <div class="ring"></div>
       <div class="ring"></div>
       <div class="ring"></div>
@@ -317,88 +349,99 @@
     <div class="customer-name" id="customer-label">Customer</div>
     <div class="timer" id="call-timer">00:00</div>
 
-    <!-- Status -->
+    <!-- Status Box -->
     <div class="status-box">
-      <div class="status-dot orange" id="status-dot"></div>
-      <div class="status-text" id="status-text">Connecting...</div>
+      <div class="status-dot green" id="status-dot"></div>
+      <div class="status-text" id="status-text">සම්බන්ධ විය — කතා කරන්න</div>
     </div>
 
-    <!-- Transcript -->
+    <!-- Live Transcript Box -->
     <div class="transcript-box" id="transcript">
-      <span style="color:var(--muted);font-size:0.8rem">AI response will appear here…</span>
+      <div class="speech-line ai">👋 ආයුබෝවන්! Wedding Arts වෙතින්... මම කොහොමද උදව් කරන්න පුළුවන්?</div>
     </div>
 
-    <!-- Waveform -->
+    <!-- Waveform Visualizer -->
     <div class="waveform" id="waveform">
       <div class="bar"></div><div class="bar"></div><div class="bar"></div>
       <div class="bar"></div><div class="bar"></div><div class="bar"></div>
       <div class="bar"></div><div class="bar"></div><div class="bar"></div>
     </div>
 
-    <!-- Order Banner -->
+    <!-- Order Alert Banner -->
     <div id="order-banner">
-      <div class="order-title">✅ Order Confirmed!</div>
-      <div class="order-detail" id="order-detail">Your order has been placed. WhatsApp confirmation is on the way!</div>
+      <strong>✅ Order එක Confirm විය!</strong><br>
+      <span id="order-detail">විස්තර WhatsApp වෙත යොමු කරන ලදී.</span>
     </div>
 
     <!-- Buttons -->
     <div class="btn-row">
-      <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()" title="Mute">🎤</button>
-      <button class="btn btn-call" id="btn-push" onpointerdown="startSpeaking()" onpointerup="stopSpeaking()" ontouchstart="startSpeaking()" ontouchend="stopSpeaking()" title="Hold to speak">🎙️</button>
+      <button class="btn btn-type" onclick="openTextModal()" title="Type message">⌨️</button>
+      <button class="btn btn-mic" id="btn-mic" onpointerdown="startListening()" onpointerup="stopListening()" ontouchstart="startListening()" ontouchend="stopListening()" title="Hold to talk">
+        🎙️
+      </button>
       <button class="btn btn-end" onclick="endCall()" title="End Call">📵</button>
     </div>
-    <div class="status-text" style="font-size:0.75rem;color:var(--muted)">Hold 🎙️ to speak · Release to let AI respond</div>
+    <div style="font-size:0.75rem;color:var(--muted);text-align:center;">
+      🎙️ <strong>Hold to Speak</strong> (කතා කර අත අරින්න)
+    </div>
+
   </div>
 
 </div>
 
+<!-- Fallback Type Modal -->
+<div id="text-modal">
+  <div class="modal-card">
+    <h3 style="font-size:1.1rem;">පණිවිඩය Type කරන්න</h3>
+    <input type="text" id="manual-text-input" class="text-input" placeholder="උදා: UV Frame එක කීයද?" onkeydown="if(event.key==='Enter') sendManualText()">
+    <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+      <button onclick="closeTextModal()" style="padding:0.5rem 1rem;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+      <button onclick="sendManualText()" style="padding:0.5rem 1.25rem;border-radius:6px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight:600;">Send</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ─── URL Params ───────────────────────────────────────────────────────────────
+// ─── Query Params ─────────────────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
-const SESSION_ID = params.get('s') || '';
+const SESSION_ID = params.get('s') || 'direct-test-' + Date.now();
 const CUSTOMER_NAME = decodeURIComponent(params.get('n') || 'Customer');
 const STORE_NAME = decodeURIComponent(params.get('store') || 'WEDDING ARTS');
 
+document.getElementById('store-name-label').textContent = STORE_NAME.toUpperCase() + ' — LIVE AI CALL';
+document.getElementById('customer-label').textContent = CUSTOMER_NAME;
+
 // ─── State ────────────────────────────────────────────────────────────────────
 let ws = null;
-let audioCtx = null;
-let micStream = null;
-let micProcessor = null;
-let isMuted = false;
-let isSpeaking = false;
+let recognition = null;
+let synth = window.speechSynthesis;
+let isListening = false;
 let callStartTime = null;
 let timerInterval = null;
-let audioQueue = []; // PCM 24kHz chunks to play
-let isPlayingAudio = false;
-let nextPlayTime = 0;
+let currentUtterance = null;
+let audioUnlocked = false;
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
-document.getElementById('store-name-label').textContent = STORE_NAME.toUpperCase() + ' — AI ASSISTANT';
-document.getElementById('customer-label').textContent = CUSTOMER_NAME;
-document.getElementById('start-sub').innerHTML =
-  `AI Assistant ට කතා කිරීමට "Call Start" tap කරන්න.<br><span style="font-size:0.8em;color:var(--accent2)">Store: ${STORE_NAME}</span>`;
-
-if (!SESSION_ID) {
-  document.getElementById('pre-status').textContent = '⚠️ Invalid call link. Please use the link sent to your WhatsApp.';
+// Preload & find best voice
+let sinhalaVoice = null;
+function loadVoices() {
+  if (!synth) return;
+  const voices = synth.getVoices();
+  // Find Sinhala voice or high-quality female/male English/local voice
+  sinhalaVoice = voices.find(v => v.lang.startsWith('si')) ||
+                 voices.find(v => v.lang.startsWith('hi')) ||
+                 voices.find(v => v.name.includes('Google') || v.name.includes('Natural')) ||
+                 voices[0];
+}
+if (synth) {
+  loadVoices();
+  synth.onvoiceschanged = loadVoices;
 }
 
 // ─── Start Call ───────────────────────────────────────────────────────────────
-async function startCall() {
-  if (!SESSION_ID) return;
+function startCall() {
+  // Unlock audio playback for mobile browsers
+  unlockAudio();
 
-  document.getElementById('btn-start-call').disabled = true;
-  document.getElementById('pre-status').textContent = 'Requesting microphone...';
-
-  try {
-    // Request mic
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 }, video: false });
-  } catch (e) {
-    document.getElementById('pre-status').textContent = '❌ Microphone access denied. Please allow mic and try again.';
-    document.getElementById('btn-start-call').disabled = false;
-    return;
-  }
-
-  // Switch screens
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('call-screen').classList.remove('hidden');
 
@@ -406,194 +449,226 @@ async function startCall() {
   const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}`;
   connectWs(wsUrl);
 
-  // Setup audio context for mic capture
-  setupMicCapture();
+  // Setup Speech Recognition
+  setupSpeechRecognition();
 
-  // Start timer
+  // Start Call Timer
   callStartTime = Date.now();
   timerInterval = setInterval(updateTimer, 1000);
+
+  // Initial Voice Greeting
+  setTimeout(() => {
+    speakText("ආයුබෝවන්! Wedding Arts වෙතින්... මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?");
+  }, 600);
+}
+
+function unlockAudio() {
+  if (synth && !audioUnlocked) {
+    const dummy = new SpeechSynthesisUtterance('');
+    dummy.volume = 0;
+    synth.speak(dummy);
+    audioUnlocked = true;
+  }
 }
 
 // ─── WebSocket ────────────────────────────────────────────────────────────────
 function connectWs(url) {
-  setStatus('orange', 'Connecting to AI...');
   ws = new WebSocket(url);
-  ws.binaryType = 'arraybuffer';
 
   ws.onopen = () => {
-    setStatus('orange', 'Setting up AI...');
-    console.log('[ws] Connected');
+    setStatus('green', 'සම්බන්ධ විය — Hold 🎙️ කර කතා කරන්න');
   };
 
   ws.onmessage = (evt) => {
-    if (evt.data instanceof ArrayBuffer) {
-      // Binary = PCM 24kHz audio from AI
-      playPcmChunk(evt.data);
-      showAISpeaking(true);
-    } else {
-      try {
-        const msg = JSON.parse(evt.data);
-        handleServerMessage(msg);
-      } catch {}
+    try {
+      const data = JSON.parse(evt.data);
+
+      if (data.type === 'ai_speech') {
+        setStatus('green', 'AI කතා කරයි...');
+        setWaveformActive(true);
+        setAvatarSpeaking(true);
+        appendTranscript(data.text, 'ai');
+        speakText(data.speechText || data.text, () => {
+          setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+          setWaveformActive(false);
+          setAvatarSpeaking(false);
+        });
+      } else if (data.type === 'ai_thinking') {
+        setStatus('orange', '⏳ AI සිතමින් පවතී...');
+        setWaveformActive(true);
+      } else if (data.type === 'order_confirmed') {
+        document.getElementById('order-banner').classList.add('show');
+        document.getElementById('order-detail').textContent =
+          `📦 ${data.order.item || '-'} · Rs. ${data.order.amount || '-'}`;
+      } else if (data.type === 'error') {
+        setStatus('red', data.message);
+        appendTranscript('⚠️ ' + data.message, 'ai');
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
   ws.onclose = () => {
-    setStatus('red', 'Disconnected');
-    console.log('[ws] Closed');
-    stopAll();
-  };
-
-  ws.onerror = (e) => {
-    setStatus('red', 'Connection error');
-    console.error('[ws] Error', e);
+    setStatus('red', 'Call එක විසන්ධි විය');
+    setWaveformActive(false);
+    setAvatarSpeaking(false);
   };
 }
 
-function handleServerMessage(msg) {
-  switch (msg.type) {
-    case 'ready':
-      setStatus('green', '🟢 AI Connected — Hold 🎙️ to speak');
-      setRings(true);
-      break;
-    case 'transcript':
-      appendTranscript(msg.text, 'ai');
-      break;
-    case 'turn_complete':
-      showAISpeaking(false);
-      setStatus('green', '🟢 Your turn — Hold 🎙️ to speak');
-      break;
-    case 'order_confirmed':
-      showOrderBanner(msg.order);
-      break;
-    case 'ended':
-      setStatus('red', msg.message || 'Call ended');
-      appendTranscript(msg.message || 'Call ended.', 'ai');
-      stopAll();
-      break;
-    case 'error':
-      setStatus('red', msg.message || 'Error');
-      appendTranscript('⚠️ ' + (msg.message || 'Error occurred'), 'ai');
-      break;
+// ─── Speech Recognition (Speech-to-Text) ──────────────────────────────────────
+function setupSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    console.warn('SpeechRecognition not supported in this browser.');
+    return;
   }
-}
 
-// ─── Mic Capture → WebSocket ──────────────────────────────────────────────────
-function setupMicCapture() {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-  const micSource = audioCtx.createMediaStreamSource(micStream);
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  // Sinhala recognition or fallback
+  recognition.lang = 'si-LK';
 
-  // ScriptProcessor (wide compat) — 4096 samples @ 16kHz
-  micProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
-  micProcessor.onaudioprocess = (e) => {
-    if (isMuted || !isSpeaking) return;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-    const float32 = e.inputBuffer.getChannelData(0);
-    // Convert Float32 → PCM Int16
-    const pcm16 = float32ToInt16(float32);
-    ws.send(pcm16.buffer);
+  recognition.onresult = (event) => {
+    const spokenText = event.results[0][0].transcript;
+    if (spokenText && spokenText.trim()) {
+      appendTranscript(spokenText, 'user');
+      sendUserMessage(spokenText);
+    }
   };
 
-  micSource.connect(micProcessor);
-  micProcessor.connect(audioCtx.destination);
+  recognition.onerror = (event) => {
+    console.warn('SpeechRecognition error:', event.error);
+    // If Sinhala not available, fallback to en-US
+    if (event.error === 'language-not-supported' && recognition.lang !== 'en-US') {
+      recognition.lang = 'en-US';
+    }
+    setMicListeningState(false);
+  };
+
+  recognition.onend = () => {
+    setMicListeningState(false);
+  };
 }
 
-function float32ToInt16(f32) {
-  const i16 = new Int16Array(f32.length);
-  for (let i = 0; i < f32.length; i++) {
-    const s = Math.max(-1, Math.min(1, f32[i]));
-    i16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+function startListening() {
+  if (synth && synth.speaking) {
+    synth.cancel(); // Barge-in: Mute AI immediately if user talks
   }
-  return i16;
+  unlockAudio();
+  setMicListeningState(true);
+
+  if (recognition) {
+    try {
+      recognition.start();
+    } catch (e) {
+      console.warn('Recognition start error:', e);
+    }
+  }
 }
 
-// ─── Audio Playback (PCM 24kHz from AI) ──────────────────────────────────────
-function playPcmChunk(arrayBuffer) {
-  if (!audioCtx) return;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+function stopListening() {
+  setMicListeningState(false);
+  if (recognition) {
+    try {
+      recognition.stop();
+    } catch (e) {}
+  }
+}
 
-  // PCM Int16 24kHz → Float32
-  const i16 = new Int16Array(arrayBuffer);
-  const f32 = new Float32Array(i16.length);
-  for (let i = 0; i < i16.length; i++) {
-    f32[i] = i16[i] / 32768.0;
+function setMicListeningState(active) {
+  isListening = active;
+  const btn = document.getElementById('btn-mic');
+  if (active) {
+    btn.classList.add('listening');
+    setStatus('green', '🎙️ අහගෙන ඉන්නේ... කතා කරන්න');
+    setWaveformActive(true);
+  } else {
+    btn.classList.remove('listening');
+    setWaveformActive(false);
+  }
+}
+
+// ─── Speech Synthesis (Text-to-Speech) ────────────────────────────────────────
+function speakText(text, onEnd) {
+  if (!synth) {
+    if (onEnd) onEnd();
+    return;
   }
 
-  // Create AudioBuffer at 24kHz and play
-  const buf = audioCtx.createBuffer(1, f32.length, 24000);
-  buf.copyToChannel(f32, 0);
+  synth.cancel(); // Stop any ongoing speech
 
-  const src = audioCtx.createBufferSource();
-  src.buffer = buf;
-  src.connect(audioCtx.destination);
+  const clean = text.replace(/[*#_~`\[\]\(\)]/g, '').trim();
+  const utterance = new SpeechSynthesisUtterance(clean);
+  currentUtterance = utterance;
 
-  const now = audioCtx.currentTime;
-  if (nextPlayTime < now) nextPlayTime = now;
-  src.start(nextPlayTime);
-  nextPlayTime += buf.duration;
+  if (sinhalaVoice) utterance.voice = sinhalaVoice;
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+
+  utterance.onend = () => {
+    if (onEnd) onEnd();
+  };
+
+  utterance.onerror = (e) => {
+    console.warn('TTS error:', e);
+    if (onEnd) onEnd();
+  };
+
+  synth.speak(utterance);
 }
 
-// ─── Push-to-Talk ─────────────────────────────────────────────────────────────
-function startSpeaking() {
-  if (isMuted) return;
-  isSpeaking = true;
+// ─── Messaging ────────────────────────────────────────────────────────────────
+function sendUserMessage(text) {
+  setStatus('orange', '⏳ AI සිතමින් පවතී...');
   setWaveformActive(true);
-  document.getElementById('btn-push').style.transform = 'scale(1.1)';
-  document.getElementById('btn-push').style.boxShadow = '0 0 32px rgba(124,58,237,0.8)';
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  setStatus('green', '🎙️ Speaking... (Release when done)');
-}
 
-function stopSpeaking() {
-  isSpeaking = false;
-  setWaveformActive(false);
-  document.getElementById('btn-push').style.transform = '';
-  document.getElementById('btn-push').style.boxShadow = '';
-  setStatus('green', '⏳ AI is thinking...');
-}
-
-// ─── Mute ─────────────────────────────────────────────────────────────────────
-function toggleMute() {
-  isMuted = !isMuted;
-  const btn = document.getElementById('btn-mute');
-  btn.textContent = isMuted ? '🔇' : '🎤';
-  btn.classList.toggle('muted', isMuted);
-  if (micStream) {
-    micStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-  }
-}
-
-// ─── End Call ─────────────────────────────────────────────────────────────────
-function endCall() {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'end_call' }));
-    ws.close();
+    ws.send(JSON.stringify({ type: 'user_speech', text: text }));
+  } else {
+    // HTTP Fallback
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: SESSION_ID, message: text })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        setStatus('green', 'AI කතා කරයි...');
+        setWaveformActive(true);
+        setAvatarSpeaking(true);
+        appendTranscript(data.reply, 'ai');
+        speakText(data.speechText || data.reply, () => {
+          setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
+          setWaveformActive(false);
+          setAvatarSpeaking(false);
+        });
+      }
+    })
+    .catch(err => {
+      setStatus('red', 'දෝෂයක් සිදුවිය');
+    });
   }
-  stopAll();
-  setStatus('red', '📵 Call Ended');
-  setRings(false);
-  document.getElementById('btn-push').disabled = true;
-  document.getElementById('btn-end').disabled = true;
-  document.getElementById('btn-mute').disabled = true;
 }
 
-function stopAll() {
-  clearInterval(timerInterval);
-  if (micStream) {
-    micStream.getTracks().forEach(t => t.stop());
-    micStream = null;
-  }
-  if (micProcessor) {
-    try { micProcessor.disconnect(); } catch {}
-    micProcessor = null;
-  }
-  if (audioCtx) {
-    try { audioCtx.close(); } catch {}
-    audioCtx = null;
-  }
-  setWaveformActive(false);
-  showAISpeaking(false);
+// ─── Manual Text Input Fallback ───────────────────────────────────────────────
+function openTextModal() {
+  document.getElementById('text-modal').classList.add('show');
+  setTimeout(() => document.getElementById('manual-text-input').focus(), 100);
+}
+function closeTextModal() {
+  document.getElementById('text-modal').classList.remove('show');
+}
+function sendManualText() {
+  const input = document.getElementById('manual-text-input');
+  const val = input.value.trim();
+  if (!val) return;
+  input.value = '';
+  closeTextModal();
+  appendTranscript(val, 'user');
+  sendUserMessage(val);
 }
 
 // ─── UI Helpers ───────────────────────────────────────────────────────────────
@@ -601,32 +676,22 @@ function setStatus(color, text) {
   document.getElementById('status-dot').className = `status-dot ${color}`;
   document.getElementById('status-text').textContent = text;
 }
-
-function setRings(active) {
-  const ring = document.getElementById('avatar-ring');
-  ring.className = `avatar-ring ${active ? 'rings-active' : 'rings-hidden'}`;
-}
-
-function showAISpeaking(speaking) {
-  document.getElementById('avatar-icon').className = `avatar ${speaking ? 'speaking' : ''}`;
-  document.getElementById('avatar-icon').textContent = speaking ? '🔊' : '🎙️';
-}
-
 function setWaveformActive(active) {
   document.getElementById('waveform').className = `waveform${active ? ' active' : ''}`;
 }
-
+function setAvatarSpeaking(speaking) {
+  const av = document.getElementById('avatar-icon');
+  av.className = `avatar ${speaking ? 'speaking' : ''}`;
+  av.textContent = speaking ? '🔊' : '🎙️';
+}
 function appendTranscript(text, role) {
   const box = document.getElementById('transcript');
-  // Clear placeholder
-  if (box.querySelector('span')) box.innerHTML = '';
   const line = document.createElement('div');
-  line.className = role === 'ai' ? 'ai-line' : 'user-line';
+  line.className = `speech-line ${role}`;
   line.textContent = (role === 'ai' ? '🤖 ' : '👤 ') + text;
   box.appendChild(line);
   box.scrollTop = box.scrollHeight;
 }
-
 function updateTimer() {
   if (!callStartTime) return;
   const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
@@ -634,16 +699,15 @@ function updateTimer() {
   const s = String(elapsed % 60).padStart(2, '0');
   document.getElementById('call-timer').textContent = `${m}:${s}`;
 }
-
-function showOrderBanner(order) {
-  const banner = document.getElementById('order-banner');
-  banner.classList.add('show');
-  const detail = document.getElementById('order-detail');
-  detail.textContent =
-    `📦 ${order.item || '-'} · Rs. ${order.amount || '-'}\n` +
-    `👤 ${order.name || CUSTOMER_NAME}\n` +
-    `✅ WhatsApp confirmation sent!`;
-  setStatus('green', '✅ Order Confirmed! WhatsApp message sent.');
+function endCall() {
+  if (synth) synth.cancel();
+  if (recognition) try { recognition.abort(); } catch(e){}
+  if (ws) ws.close();
+  clearInterval(timerInterval);
+  setStatus('red', '📵 Call එක අවසන් විය');
+  setWaveformActive(false);
+  setAvatarSpeaking(false);
+  document.getElementById('btn-mic').disabled = true;
 }
 </script>
 </body>

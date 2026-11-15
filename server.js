@@ -1,12 +1,11 @@
 // OmniSix Live AI Call Server
-// WebSocket bridge: Browser mic audio <-> Gemini Live API
-// (c) 2026 OmniSix / WEDDING ARTS
+// Real-time Voice Call Server for WEDDING ARTS
+// Browser Mic (SpeechRecognition) <-> Node.js <-> Gemini 3.5 Flash <-> Browser TTS (Audio Speech Synthesis)
 
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
-const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -16,11 +15,10 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}`;
 
-const GEMINI_LIVE_WSS = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
-const GEMINI_MODEL = 'models/gemini-2.0-flash-live-001';
+const GEMINI_MODEL = 'gemini-3.5-flash';
 
 // ─── Session Store ───────────────────────────────────────────────────────────
-// sessionId -> { geminiWs, browserWs, customerPhone, customerName, storeName, apiKey, orderBuffer, dataset, createdAt }
+// sessionId -> { browserWs, customerPhone, customerName, storeName, apiKey, history, dataset, createdAt }
 const sessions = new Map();
 
 // Clean expired sessions every 10 min
@@ -28,7 +26,6 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, s] of sessions.entries()) {
     if (now - s.createdAt > 60 * 60 * 1000) { // 1 hour TTL
-      try { s.geminiWs && s.geminiWs.close(); } catch {}
       try { s.browserWs && s.browserWs.close(); } catch {}
       sessions.delete(id);
       console.log(`[session] Expired & removed: ${id}`);
@@ -51,21 +48,19 @@ app.post('/api/session', (req, res) => {
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
-  // Use Render external URL if available, else configured URL
   const serverHost = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
     ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
     : CALL_SERVER_URL;
 
   const id = sessionId;
   sessions.set(id, {
-    geminiWs: null,
     browserWs: null,
     customerName: customerName || 'Customer',
     customerPhone: customerPhone || '',
     storeName: storeName || 'WEDDING ARTS',
     apiKey: geminiApiKey || DEFAULT_GEMINI_API_KEY,
     dataset: dataset || '',
-    orderBuffer: '',
+    history: [],
     createdAt: Date.now(),
   });
 
@@ -73,207 +68,217 @@ app.post('/api/session', (req, res) => {
   res.json({ ok: true, sessionId: id, callUrl: `${serverHost}/call?s=${id}` });
 });
 
-// Serve call page — also allows GET /call?s=SESSION_ID
+// Serve call page
 app.get('/call', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ─── HTTP Server ─────────────────────────────────────────────────────────────
-const server = http.createServer(app);
+// Direct HTTP Chat API fallback
+app.post('/api/chat', async (req, res) => {
+  const { sessionId, message } = req.body;
+  const sess = sessions.get(sessionId) || {
+    customerName: 'Customer',
+    storeName: 'WEDDING ARTS',
+    apiKey: DEFAULT_GEMINI_API_KEY,
+    history: [],
+    dataset: ''
+  };
 
-// ─── WebSocket Server ─────────────────────────────────────────────────────────
+  try {
+    const aiReply = await getGeminiReply(message, sess);
+    checkForOrderTag(aiReply, sess, sessionId);
+    const cleanSpeech = cleanTextForSpeech(aiReply);
+    res.json({ ok: true, reply: aiReply, speechText: cleanSpeech });
+  } catch (err) {
+    console.error('[chat-api] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── HTTP & WebSocket Server ─────────────────────────────────────────────────
+const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', (browserWs, req) => {
   const url = new URL(req.url, `http://localhost`);
   const sessionId = url.searchParams.get('s');
 
-  if (!sessionId || !sessions.has(sessionId)) {
-    console.warn(`[ws] Unknown session: ${sessionId}`);
-    browserWs.send(JSON.stringify({ type: 'error', message: 'Invalid or expired session.' }));
-    browserWs.close();
-    return;
+  let sess = sessions.get(sessionId);
+  if (!sess) {
+    // Auto-create ad-hoc session so direct link testing works
+    sess = {
+      browserWs: null,
+      customerName: 'Customer',
+      customerPhone: '',
+      storeName: 'WEDDING ARTS',
+      apiKey: DEFAULT_GEMINI_API_KEY,
+      dataset: '',
+      history: [],
+      createdAt: Date.now()
+    };
+    if (sessionId) sessions.set(sessionId, sess);
   }
 
-  const sess = sessions.get(sessionId);
-
-  // If browser already connected (reconnect), close old
-  if (sess.browserWs && sess.browserWs.readyState === WebSocket.OPEN) {
-    sess.browserWs.close();
-  }
   sess.browserWs = browserWs;
-
   console.log(`[ws] Browser connected — session: ${sessionId}`);
 
-  // ── Open Gemini Live API WebSocket ─────────────────────────────────────────
-  const geminiUrl = `${GEMINI_LIVE_WSS}?key=${sess.apiKey}`;
-  const geminiWs = new WebSocket(geminiUrl);
-  sess.geminiWs = geminiWs;
+  // Send initial ready & welcome greeting
+  safeSend(browserWs, JSON.stringify({
+    type: 'ready',
+    message: 'AI Connected! Call සූදානම්.'
+  }));
 
-  // Build system prompt
-  const systemPrompt = buildSystemPrompt(sess);
+  // Trigger natural voice welcome from AI
+  (async () => {
+    try {
+      const welcomePrompt = `The customer named "${sess.customerName}" just connected to the live call. Give a brief, warm 1-sentence greeting in natural spoken Sinhala welcoming them to ${sess.storeName} and asking how you can help. Keep it under 15 words.`;
+      const welcomeText = await getGeminiReply(welcomePrompt, sess, true);
+      const cleanSpeech = cleanTextForSpeech(welcomeText);
+      safeSend(browserWs, JSON.stringify({
+        type: 'ai_speech',
+        text: welcomeText,
+        speechText: cleanSpeech
+      }));
+    } catch (e) {
+      console.warn('[welcome] greeting failed:', e.message);
+    }
+  })();
 
-  geminiWs.on('open', () => {
-    console.log(`[gemini] Connected — session: ${sessionId}`);
-
-    // Send BidiGenerateContent setup message
-    const setupMsg = {
-      setup: {
-        model: GEMINI_MODEL,
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Aoede' }
-            }
-          }
-        },
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        }
-      }
-    };
-    geminiWs.send(JSON.stringify(setupMsg));
-    console.log(`[gemini] Setup sent — session: ${sessionId}`);
-
-    // Notify browser that call is ready
-    safeSend(browserWs, JSON.stringify({ type: 'ready', message: 'AI connected. Start speaking!' }));
-  });
-
-  geminiWs.on('message', (data) => {
+  // Handle message from browser
+  browserWs.on('message', async (data) => {
     try {
       const msg = JSON.parse(data.toString());
 
-      // ── Audio output from Gemini → send binary to browser ──────────────
-      const parts = msg?.serverContent?.modelTurn?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part?.inlineData?.mimeType?.startsWith('audio/pcm') && part.inlineData.data) {
-            // Send raw binary PCM 24kHz to browser
-            const pcmBuf = Buffer.from(part.inlineData.data, 'base64');
-            if (browserWs.readyState === WebSocket.OPEN) {
-              browserWs.send(pcmBuf);
-            }
-          }
-          if (part?.text) {
-            // Forward transcript text to browser
-            safeSend(browserWs, JSON.stringify({ type: 'transcript', text: part.text }));
-            // Check for order confirmation tag
-            checkForOrderTag(part.text, sess, sessionId);
-          }
-        }
+      if (msg.type === 'user_speech' && msg.text) {
+        console.log(`[ws] User said (${sessionId}): "${msg.text}"`);
+
+        // Send thinking state
+        safeSend(browserWs, JSON.stringify({ type: 'ai_thinking' }));
+
+        // Call Gemini
+        const aiReply = await getGeminiReply(msg.text, sess);
+        console.log(`[ws] AI reply (${sessionId}): "${aiReply}"`);
+
+        // Check for order tag
+        checkForOrderTag(aiReply, sess, sessionId);
+
+        // Prepare clean text for browser voice synthesis (remove asterisks, brackets, formatting)
+        const cleanSpeech = cleanTextForSpeech(aiReply);
+
+        safeSend(browserWs, JSON.stringify({
+          type: 'ai_speech',
+          text: aiReply,
+          speechText: cleanSpeech
+        }));
+      } else if (msg.type === 'end_call') {
+        console.log(`[ws] User ended call — session: ${sessionId}`);
       }
-
-      // Turn complete
-      if (msg?.serverContent?.turnComplete) {
-        safeSend(browserWs, JSON.stringify({ type: 'turn_complete' }));
-      }
-
-      // Setup complete ack
-      if (msg?.setupComplete) {
-        console.log(`[gemini] Setup complete — session: ${sessionId}`);
-      }
-
-      // Tool call (function call) from Gemini
-      if (msg?.toolCall) {
-        handleGeminiToolCall(msg.toolCall, sess, sessionId, geminiWs);
-      }
-
-    } catch (e) {
-      console.error(`[gemini] Parse error — session: ${sessionId}:`, e.message);
-    }
-  });
-
-  geminiWs.on('close', (code, reason) => {
-    const reasonStr = reason ? reason.toString() : '';
-    console.log(`[gemini] Disconnected — session: ${sessionId} | code: ${code} | reason: ${reasonStr}`);
-    
-    let errorMsg = 'Call ended.';
-    if (code === 1007 || reasonStr.toLowerCase().includes('api key') || reasonStr.toLowerCase().includes('quota')) {
-      errorMsg = '⚠️ Gemini API Key invalid or expired. Check server settings.';
-    }
-    safeSend(browserWs, JSON.stringify({ type: 'ended', message: errorMsg, reason: reasonStr }));
-  });
-
-  geminiWs.on('error', (err) => {
-    console.error(`[gemini] Error — session: ${sessionId}:`, err.message);
-    safeSend(browserWs, JSON.stringify({ type: 'error', message: 'AI connection error. Please try again.' }));
-  });
-
-  // ── Browser → Gemini audio forwarding ─────────────────────────────────────
-  browserWs.on('message', (data, isBinary) => {
-    if (!isBinary) {
-      // Text control messages from browser
-      try {
-        const ctrl = JSON.parse(data.toString());
-        if (ctrl.type === 'end_call') {
-          console.log(`[ws] Browser ended call — session: ${sessionId}`);
-          geminiWs.close();
-        }
-      } catch {}
-      return;
-    }
-
-    // Binary = PCM 16kHz audio from browser mic
-    if (geminiWs.readyState === WebSocket.OPEN) {
-      const b64 = data.toString('base64');
-      const audioMsg = {
-        realtimeInput: {
-          mediaChunks: [{
-            mimeType: 'audio/pcm;rate=16000',
-            data: b64
-          }]
-        }
-      };
-      geminiWs.send(JSON.stringify(audioMsg));
+    } catch (err) {
+      console.error(`[ws] Message processing error:`, err.message);
+      safeSend(browserWs, JSON.stringify({
+        type: 'error',
+        message: 'ප්‍රතිචාරය ලබාගැනීමේදී දෝෂයක් සිදුවිය. කරුණාකර නැවත උත්සාහ කරන්න.'
+      }));
     }
   });
 
   browserWs.on('close', () => {
     console.log(`[ws] Browser disconnected — session: ${sessionId}`);
-    if (geminiWs.readyState === WebSocket.OPEN) {
-      geminiWs.close();
-    }
   });
 
   browserWs.on('error', (err) => {
-    console.error(`[ws] Browser WS error — session: ${sessionId}:`, err.message);
+    console.error(`[ws] Browser WS error:`, err.message);
   });
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Gemini AI Engine ────────────────────────────────────────────────────────
+async function getGeminiReply(userMessage, sess, isInternal = false) {
+  const apiKey = sess.apiKey || DEFAULT_GEMINI_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
-function safeSend(ws, data) {
-  try {
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
-  } catch {}
+  const systemInstruction = buildSystemPrompt(sess);
+
+  // Maintain conversation history (last 8 turns for context)
+  if (!isInternal) {
+    sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
+  }
+
+  const contents = [
+    { role: 'user', parts: [{ text: `[SYSTEM CONTEXT & KNOWLEDGE]\n${systemInstruction}\n[END SYSTEM CONTEXT]` }] },
+    { role: 'model', parts: [{ text: `හරි, මම ${sess.storeName} වෙනුවෙන් ඉතාම සුහදශීලීව, ස්වභාවික සිංහලෙන් කෙටි පැහැදිලි උත්තර ලබා දෙන්නම්.` }] },
+    ...sess.history.slice(-8)
+  ];
+
+  if (isInternal) {
+    contents.push({ role: 'user', parts: [{ text: userMessage }] });
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 250
+      }
+    })
+  });
+
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error.message || 'Gemini API Error');
+  }
+
+  const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'කණගාටුයි, මට පැහැදිලි වුණේ නෑ. නැවත කියන්න පුළුවන්ද?';
+
+  if (!isInternal) {
+    sess.history.push({ role: 'model', parts: [{ text: replyText }] });
+  }
+
+  return replyText;
+}
+
+function cleanTextForSpeech(text) {
+  return text
+    .replace(/\[\[ORDER:.*?\]\]/g, '') // Remove order tags
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove markdown bold
+    .replace(/\*([^*]+)\*/g, '$1') // Remove italics
+    .replace(/#+\s*/g, '') // Remove headings
+    .replace(/[\(\)\[\]_~`>]/g, '') // Remove punctuation brackets
+    .replace(/Rs\.?\s*(\d+)/gi, 'රුපියල් $1') // Speak 'Rs.' as 'රුපියල්'
+    .replace(/\n+/g, ' ')
+    .trim();
 }
 
 function buildSystemPrompt(sess) {
   const datasetSection = sess.dataset
     ? `\n\n--- Store Information & Price List ---\n${sess.dataset}\n--- End of Store Information ---`
-    : '';
+    : `
+Store: WEDDING ARTS
+Owner: D T Rajapaksha (Tharindu)
+BOC Bank: 92949122
+Contact: 076 210 7801
+Services & Prices:
+- Single Photo Edit: Rs. 1,500
+- 10-Photo Shoot Retouch: Rs. 12,000
+- UV Frame Sets: Rs. 4,500 - Rs. 18,500
+- 3-Panel Wall Sets: Rs. 14,000 - Rs. 34,000
+- Island-wide Courier Delivery: Rs. 450
+`;
 
-  return `You are a friendly, helpful AI voice assistant for "${sess.storeName}".
-You are speaking with a customer named "${sess.customerName}" via a live voice call.
-Your job is to answer their questions about products, services, and prices, help them place an order, and confirm order details.
+  return `You are a live voice AI assistant on a live phone call for "${sess.storeName}".
+Customer Name: "${sess.customerName}".
+Your primary language is Sinhala (සිංහල). If the customer speaks English or Singlish, answer naturally in that language.
 
-LANGUAGE: Speak naturally in Sinhala (සිංහල) or English depending on what the customer uses. Mix both if needed.
-TONE: Warm, professional, helpful. Keep answers concise and clear for voice.
-${datasetSection}
-
-ORDERING: When a customer confirms they want to place an order:
-1. Confirm the order items and total price clearly
-2. Ask for their name and delivery address if not known
-3. Once all details are confirmed, output EXACTLY this tag on its own line:
-   [[ORDER: name=${sess.customerName}|phone=${sess.customerPhone}|item=ITEM_NAME|amount=TOTAL_RS|note=ANY_NOTE]]
-4. Then tell the customer their order is confirmed and they'll receive a WhatsApp confirmation.
-
-IMPORTANT:
-- Never make up prices — only use prices from the Store Information above
-- If asked something you don't know, say you'll have the team follow up
-- Keep each spoken response under 3 sentences for natural conversation flow
-- Do not read out the [[ORDER:...]] tag aloud — it's a background signal only`;
+KEY RULES FOR LIVE VOICE CALL:
+1. Speak warmly and naturally, like a friendly Sri Lankan customer service agent.
+2. Keep answers SHORT and punchy (1 to 2 sentences maximum) because this is being spoken out loud to the customer.
+3. If they ask about prices, state the exact price clearly from the price list.
+4. If they agree to order, confirm the total price and ask for their address.
+5. Once an order is agreed, add this silent tag at the end of your response:
+   [[ORDER: name=${sess.customerName}|item=ITEM_NAME|amount=TOTAL_RS]]
+${datasetSection}`;
 }
 
 function checkForOrderTag(text, sess, sessionId) {
@@ -290,11 +295,8 @@ function checkForOrderTag(text, sess, sessionId) {
   });
 
   console.log(`[order] Confirmed — session: ${sessionId}`, fields);
-
-  // Notify browser
   safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields }));
 
-  // Send WhatsApp confirmation if token available
   const token = WHATSAPP_TOKEN || sess.whatsappToken;
   const phoneId = WHATSAPP_PHONE_NUMBER_ID || sess.whatsappPhoneId;
   const customerPhone = sess.customerPhone;
@@ -304,18 +306,12 @@ function checkForOrderTag(text, sess, sessionId) {
   }
 }
 
-function handleGeminiToolCall(toolCall, sess, sessionId, geminiWs) {
-  // Reserved for future Gemini function-calling tools
-  console.log(`[gemini] Tool call received — session: ${sessionId}`, toolCall);
-}
-
 async function sendWhatsAppOrderConfirmation(token, phoneId, toPhone, order, storeName) {
-  const { fetch } = await import('node-fetch');
   const phone = toPhone.replace(/\D/g, '');
-  const msg = `✅ *Order Confirmed!*\n\n🏪 *${storeName}*\n\n📦 *Item:* ${order.item || '-'}\n💰 *Total:* Rs. ${order.amount || '-'}\n👤 *Name:* ${order.name || '-'}\n📍 *Note:* ${order.note || '-'}\n\n_Thank you for your order! Our team will contact you shortly._`;
+  const msg = `✅ *Order Confirmed!*\n\n🏪 *${storeName}*\n\n📦 *Item:* ${order.item || '-'}\n💰 *Total:* Rs. ${order.amount || '-'}\n👤 *Name:* ${order.name || '-'}\n\n_Thank you! Your live call order has been recorded._`;
 
   try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+    await fetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -328,11 +324,16 @@ async function sendWhatsAppOrderConfirmation(token, phoneId, toPhone, order, sto
         text: { body: msg },
       }),
     });
-    const json = await res.json();
-    console.log(`[whatsapp] Order confirmation sent to ${phone}:`, json);
+    console.log(`[whatsapp] Order confirmation sent to ${phone}`);
   } catch (e) {
     console.error(`[whatsapp] Failed to send order confirmation:`, e.message);
   }
+}
+
+function safeSend(ws, data) {
+  try {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
+  } catch {}
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
