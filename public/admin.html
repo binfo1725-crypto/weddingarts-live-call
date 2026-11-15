@@ -1838,6 +1838,14 @@ async function fetchProducts() {
 function renderProducts(products) {
   const tbody = document.getElementById('products-tbody');
   tbody.innerHTML = '';
+  if (!products || products.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:48px 20px;color:var(--text-muted);font-size:0.9rem;">
+      <div style="font-size:1.75rem;margin-bottom:8px;">📦</div>
+      <div style="font-weight:600;color:var(--text-secondary);margin-bottom:4px;">No Products in Catalog (Products ඇතුළත් කර නොමැත)</div>
+      <div style="font-size:0.8rem;">ඉහත <b>"➕ Add Product"</b> බොත්තම ඔබා ඔබේ නව භාණ්ඩ හෝ සේවාවන් එක් කරන්න.</div>
+    </td></tr>`;
+    return;
+  }
   products.forEach(p => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1915,6 +1923,14 @@ async function fetchFlows() {
 function renderFlows(flows) {
   const tbody = document.getElementById('flows-tbody');
   tbody.innerHTML = '';
+  if (!flows || flows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:48px 20px;color:var(--text-muted);font-size:0.9rem;">
+      <div style="font-size:1.75rem;margin-bottom:8px;">⚡</div>
+      <div style="font-weight:600;color:var(--text-secondary);margin-bottom:4px;">No Custom Flows (Custom Flows සකස් කර නොමැත)</div>
+      <div style="font-size:0.8rem;">ඉහත <b>"➕ New Flow"</b> ඔබා පාරිභෝගිකයින් නිතර අසන ප්‍රශ්න සඳහා ස්වයංක්‍රීය පිළිතුරු සකස් කරන්න.</div>
+    </td></tr>`;
+    return;
+  }
   flows.forEach(f => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
