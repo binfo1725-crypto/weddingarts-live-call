@@ -1,0 +1,141 @@
+{
+  "businesses": [
+    {
+      "id": "weddingarts",
+      "name": "WEDDING ARTS",
+      "category": "studio",
+      "ownerName": "D T Rajapaksha (Tharindu)",
+      "phone": "076 210 7801",
+      "whatsappPhone": "94762107801",
+      "bankDetails": "Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha",
+      "deliveryPolicy": "Islandwide Courier Delivery available. Free delivery on 16x24 and above. 2-3 business days.",
+      "currency": "Rs.",
+      "welcomeMessage": "ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
+      "dataset": "Store: WEDDING ARTS\nOwner: D T Rajapaksha (Tharindu)\nBOC Bank Account: 92949122\nContact / WhatsApp: 076 210 7801\n\nPRODUCTS & SERVICES:\n- Western / Kandyan Single Photo Edit: Rs. 1,500\n- 10-Photo Shoot Retouching: Rs. 5,000\n- Army Uniform Single Photo Edit: Rs. 2,000\n- Army Uniform 10-Photo Shoot: Rs. 8,000\n- 8x12 UV Gloss Frameless: Rs. 2,300\n- 10x15 UV Gloss Frameless: Rs. 3,200\n- 12x18 UV Gloss Frameless: Rs. 4,800\n- 16x24 UV Gloss Frameless: Rs. 7,800 (FREE Island-wide Courier Delivery)\n- 20x30 UV Gloss Frameless: Rs. 11,500 (FREE Island-wide Courier Delivery)\n- 24x36 UV Gloss Frameless: Rs. 13,000 (FREE Island-wide Courier Delivery)\n- 3-Panel Wall Hanging Set: Rs. 14,000 (FREE Island-wide Courier Delivery)\n\nDELIVERY & PAYMENT:\n- 12x18 and below courier delivery fee: Rs. 450\n- 16x24 and above: 100% Free Island-wide Courier Delivery\n- Payment: Bank of Ceylon (BOC) Account 92949122 D T Rajapaksha. Advance payment required to begin editing & printing.",
+      "isActive": true
+    },
+    {
+      "id": "urbanstyle",
+      "name": "URBAN STYLE FASHION",
+      "category": "fashion",
+      "ownerName": "Kasun Perera",
+      "phone": "077 123 4567",
+      "whatsappPhone": "94771234567",
+      "bankDetails": "Commercial Bank | Account: 8001234567 | Name: Urban Style PVT LTD",
+      "deliveryPolicy": "Cash on Delivery (COD) islandwide Rs. 350. Free delivery for orders over Rs. 6,000. 2-4 days delivery.",
+      "currency": "Rs.",
+      "welcomeMessage": "Hi! Urban Style Fashion වෙත සාදරයෙන් පිළිගන්නවා. අලුත්ම ඇඳුම් විලාසිතා ගැන විස්තර දැනගන්න පුළුවන්.",
+      "dataset": "Store: URBAN STYLE FASHION\nOwner: Kasun Perera\nCommercial Bank Account: 8001234567\nContact / WhatsApp: 077 123 4567\n\nCOLLECTION & PRICES:\n- Linen Floral Maxi Dress: Rs. 3,850 (Sizes: S, M, L, XL | Colors: Maroon, Teal, Beige)\n- Men's Premium Casual Slim Shirt: Rs. 2,950 (Sizes: M, L, XL | Colors: Navy, White, Olive)\n- Crop Top & High-Waist Wide Pants Set: Rs. 4,200 (Sizes: Free Size fits S-L | Colors: Black, Sage Green)\n- Oversized Unisex Graphic Tees: Rs. 1,850 (Sizes: M, L, XL, XXL | 100% Cotton)\n- Casual Denim Jumpsuit: Rs. 4,500 (Sizes: S, M, L)\n\nDELIVERY & RETURNS:\n- Islandwide Cash on Delivery (COD): Rs. 350\n- Orders over Rs. 6,000: Free Delivery\n- Exchange policy: 7 days size exchange available.",
+      "isActive": false
+    },
+    {
+      "id": "royalcakes",
+      "name": "ROYAL CAKES & BAKES",
+      "category": "food",
+      "ownerName": "Nimasha Fernando",
+      "phone": "071 987 6543",
+      "whatsappPhone": "94719876543",
+      "bankDetails": "Sampath Bank | Account: 1009876543 | Name: Royal Cakes",
+      "deliveryPolicy": "Delivery across Colombo & suburbs within 24 hours. Custom cakes require 24 hours prior booking.",
+      "currency": "Rs.",
+      "welcomeMessage": "ආයුබෝවන්! Royal Cakes වෙත සාදරයෙන් පිළිගන්නවා. ඔබට අවශ්‍ය රසවත් කේක් හෝ බේකරි නිෂ්පාදන ඇණවුම් කරන්න පුළුවන්.",
+      "dataset": "Store: ROYAL CAKES & BAKES\nOwner: Nimasha Fernando\nSampath Bank Account: 1009876543\nContact / WhatsApp: 071 987 6543\n\nCAKES & PRICES:\n- Signature Ribbon Birthday Cake (1kg): Rs. 3,200 | (2kg): Rs. 5,800\n- Belgian Chocolate Fudge Drip Cake (1.5kg): Rs. 4,800\n- Classic Black Forest Gateau (1kg): Rs. 3,900\n- Red Velvet Cream Cheese Heart Cake (1kg): Rs. 4,500\n- Box of 6 Decorated Cupcakes: Rs. 1,500\n- Box of 12 Éclairs / Brownies: Rs. 2,400\n\nCUSTOMIZATION & DELIVERY:\n- Free personalized icing message on all cakes!\n- Advance notice: At least 24 hours required for custom birthday/wedding cakes.\n- Delivery: Colombo 1-15 (Rs. 300), Suburbs (Rs. 450). Free pickup available.",
+      "isActive": false
+    },
+    {
+      "id": "techzone",
+      "name": "TECHZONE GADGETS",
+      "category": "electronics",
+      "ownerName": "Malik Jayawardena",
+      "phone": "075 555 8899",
+      "whatsappPhone": "94755558899",
+      "bankDetails": "Hatton National Bank (HNB) | Account: 0300123499 | Name: TechZone Electronics",
+      "deliveryPolicy": "Prompt 1-2 days delivery. 6-Month One-to-One replacement warranty on all electronics.",
+      "currency": "Rs.",
+      "welcomeMessage": "Welcome to TechZone! How can we assist you with mobile accessories and gadgets today?",
+      "dataset": "Store: TECHZONE GADGETS\nOwner: Malik Jayawardena\nHNB Bank Account: 0300123499\nContact / WhatsApp: 075 555 8899\n\nPRODUCTS & PRICES:\n- 20W PD Fast Charger (iPhone & Type-C): Rs. 2,450 (6 Months Warranty)\n- TWS Wireless Bluetooth Gaming Earbuds: Rs. 3,950 (Low Latency, 24h Playtime)\n- 10,000mAh Ultra-Slim Fast Power Bank: Rs. 4,800 (Dual Output)\n- 9D Edge-to-Edge Tempered Glass: Rs. 1,200\n- MagSafe Magnetic Wireless Car Mount: Rs. 2,800\n- Braided Heavy Duty 60W Type-C Cable: Rs. 950\n\nDELIVERY & WARRANTY:\n- Islandwide Courier: Rs. 350 | Cash on Delivery available.\n- All electronics covered with 6-month replacement warranty.",
+      "isActive": false
+    },
+    {
+      "id": "glamour_salon",
+      "name": "GLAMOUR SALON & SPA",
+      "category": "salon",
+      "ownerName": "Dr. Senuri Wickramasinghe",
+      "phone": "070 333 4455",
+      "whatsappPhone": "94703334455",
+      "bankDetails": "Nations Trust Bank | Account: 0200888999 | Name: Glamour Beauty Studio",
+      "deliveryPolicy": "Appointment-based service. Open Tuesday to Sunday, 9:00 AM - 7:00 PM.",
+      "currency": "Rs.",
+      "welcomeMessage": "ආයුබෝවන්! Glamour Salon වෙත සාදරයෙන් පිළිගන්නවා. ඔබට Hair, Skin හෝ Bridal සේවාවක් වෙන්කරවා ගැනීමට අවශ්‍යද?",
+      "dataset": "Store: GLAMOUR SALON & SPA\nOwner: Dr. Senuri Wickramasinghe\nContact / WhatsApp: 070 333 4455\n\nSERVICES & CHARGES:\n- Hair Keratin Protein Treatment: Rs. 8,500 (Short) | Rs. 14,000 (Medium) | Rs. 18,000 (Long)\n- Full Face Clean-up & 24K Gold Glow Facial: Rs. 4,500\n- Spa Manicure & Gel Pedicure with Nail Art: Rs. 3,500\n- Professional Hair Color & Highlights: Rs. 6,500 - Rs. 12,000\n- Complete Party Hair Styling & Make-up: Rs. 6,000\n- Bridal Dressing Consultation & Trial: Rs. 5,000\n\nBOOKINGS & HOURS:\n- Open Tuesday to Sunday: 9:00 AM - 7:00 PM (Closed on Mondays)\n- Prior reservation required to avoid waiting time. Send name & preferred time.",
+      "isActive": false
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-1001",
+      "businessId": "weddingarts",
+      "customerName": "Kamal Perera",
+      "customerPhone": "077 456 7890",
+      "item": "16x24 UV Gloss Frameless",
+      "amount": "7,800",
+      "address": "No 45, Temple Road, Kandy",
+      "paymentMethod": "Bank of Ceylon Transfer",
+      "status": "In Production",
+      "createdAt": "2026-11-15T03:24:26.651Z",
+      "source": "Live Voice Call"
+    },
+    {
+      "id": "ORD-1002",
+      "businessId": "weddingarts",
+      "customerName": "Dilshan Silva",
+      "customerPhone": "071 888 9900",
+      "item": "12x18 UV Gloss Frame + Edit",
+      "amount": "4,800",
+      "address": "12/A, Galle Road, Matara",
+      "paymentMethod": "Cash on Delivery",
+      "status": "Dispatched",
+      "createdAt": "2026-11-14T21:24:26.653Z",
+      "source": "WhatsApp"
+    },
+    {
+      "id": "ORD-1003",
+      "businessId": "weddingarts",
+      "customerName": "Chathurika Madu",
+      "customerPhone": "075 222 3344",
+      "item": "10-Photo Shoot Retouching",
+      "amount": "5,000",
+      "address": "Colombo 07",
+      "paymentMethod": "Bank Slip Sent",
+      "status": "Slip Received",
+      "createdAt": "2026-11-14T11:24:26.653Z",
+      "source": "WhatsApp"
+    }
+  ],
+  "chats": [],
+  "broadcasts": [
+    {
+      "id": "BC-1",
+      "businessId": "weddingarts",
+      "title": "Wedding Season 15% OFF UV Frames",
+      "message": "විශේෂ මංගල වාරයේ දීමනාව! 16x24 සහ 20x30 UV Frames සඳහා 15% ක විශේෂ වට්ටමක් සහ නොමිලේ දිවයින පුරා බෙදාහැරීම. අදම ඇණවුම් කරන්න!",
+      "targetCount": 142,
+      "sentCount": 142,
+      "status": "Completed",
+      "createdAt": "2026-11-14T05:24:26.653Z"
+    }
+  ],
+  "whatsapp": {
+    "connected": false,
+    "phoneNumber": "076 210 7801",
+    "pairedAt": null,
+    "pairingCode": "WED-8842",
+    "qrData": "https://weddingarts-live-call.onrender.com/ws/pair",
+    "lastSeen": "2026-11-15T05:24:26.653Z"
+  },
+  "analytics": {
+    "totalCalls": 34,
+    "totalWhatsappMessages": 189,
+    "activeSessions": 2
+  }
+}

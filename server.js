@@ -8,6 +8,7 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
+const db = require('./db.js');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -110,15 +111,162 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 app.get('/health', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
   res.json({
     status: 'ok',
+    activeBusiness: activeBiz.name,
     sessions: sessions.size,
-    datasetChars: BUILTIN_DATASET.length,
+    datasetChars: (activeBiz.dataset || BUILTIN_DATASET).length,
     time: new Date().toISOString()
   });
 });
 
+// ─── Executive Web Admin Dashboard & Omnichannel UI ─────────────────────────
+app.get(['/admin', '/dashboard'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Business Profile & Preset Management
+app.get('/api/business', (req, res) => {
+  res.json({
+    ok: true,
+    active: db.getActiveBusiness(),
+    businesses: db.getAllBusinesses()
+  });
+});
+
+app.post('/api/business/select', (req, res) => {
+  const { id } = req.body;
+  const active = db.setActiveBusiness(id);
+  res.json({ ok: true, active });
+});
+
+app.post('/api/business/save', (req, res) => {
+  const business = db.saveBusiness(req.body);
+  res.json({ ok: true, business });
+});
+
+// Real-time Business Analytics
+app.get('/api/analytics', (req, res) => {
+  res.json({
+    ok: true,
+    analytics: db.getAnalytics()
+  });
+});
+
+// Orders Pipeline & Slips
+app.get('/api/orders', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
+  res.json({
+    ok: true,
+    orders: db.getOrders(activeBiz.id)
+  });
+});
+
+app.post('/api/orders/status', (req, res) => {
+  const { id, status } = req.body;
+  const order = db.updateOrderStatus(id, status);
+  res.json({ ok: true, order });
+});
+
+// Live Chat Inbox & Human Takeover
+app.get('/api/chats', (req, res) => {
+  res.json({
+    ok: true,
+    chats: db.getChats()
+  });
+});
+
+app.post('/api/chats/reply', (req, res) => {
+  const { chatId, text } = req.body;
+  if (!chatId || !text) return res.status(400).json({ error: 'chatId and text required' });
+  const result = db.addChatMessage(chatId, 'agent', text);
+  res.json({ ok: true, ...result });
+});
+
+app.post('/api/chats/mute', (req, res) => {
+  const { chatId, isMuted } = req.body;
+  const chat = db.setChatAiMute(chatId, !!isMuted);
+  res.json({ ok: true, chat });
+});
+
+// WhatsApp Simulated / Webhook Incoming Message
+app.post('/api/whatsapp/incoming', async (req, res) => {
+  const { chatId, customerName, text } = req.body;
+  const id = chatId || ('9477' + Math.floor(1000000 + Math.random() * 9000000));
+  const name = customerName || 'Customer';
+  const incomingText = text || '';
+
+  const activeBiz = db.getActiveBusiness();
+  db.addChatMessage(id, 'customer', incomingText, name);
+
+  const chat = db.getChat(id);
+  if (chat && chat.aiMuted) {
+    console.log(`[whatsapp] Chat ${id} is human-takeover muted. AI will not reply.`);
+    return res.json({ ok: true, aiMuted: true });
+  }
+
+  const tempSess = {
+    storeName: activeBiz.name,
+    customerName: name,
+    dataset: activeBiz.dataset || BUILTIN_DATASET,
+    voice: VOICE_NAME,
+    apiKey: DEFAULT_GEMINI_API_KEY,
+    history: (chat?.messages || []).slice(-6).map(m => ({
+      role: m.sender === 'customer' ? 'user' : 'model',
+      parts: [{ text: m.text }]
+    }))
+  };
+
+  try {
+    const aiReply = await getGeminiReply(incomingText, tempSess);
+    checkForOrderTag(aiReply, tempSess, id);
+    db.addChatMessage(id, 'ai', aiReply, name);
+    res.json({ ok: true, reply: aiReply });
+  } catch (err) {
+    const fallback = `${activeBiz.name} වෙතින් ස්තූතියි! ඔබේ පණිවිඩය අප වෙත ලැබුණා. අපේ නියෝජිතයෙක් ඉක්මනින් සම්බන්ධ වනු ඇත.`;
+    db.addChatMessage(id, 'ai', fallback, name);
+    res.json({ ok: true, reply: fallback });
+  }
+});
+
+// Safe Broadcast Campaigns
+app.get('/api/broadcasts', (req, res) => {
+  res.json({
+    ok: true,
+    broadcasts: db.getBroadcasts()
+  });
+});
+
+app.post('/api/broadcasts', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
+  const broadcast = db.addBroadcast({
+    ...req.body,
+    businessId: activeBiz.id
+  });
+  res.json({ ok: true, broadcast });
+});
+
+// WhatsApp Multi-Device Pairing State
+app.get('/api/whatsapp/status', (req, res) => {
+  res.json({
+    ok: true,
+    ...db.getWhatsAppStatus()
+  });
+});
+
+app.post('/api/whatsapp/pair', (req, res) => {
+  const newCode = 'OMNI-' + Math.floor(1000 + Math.random() * 9000);
+  const updated = db.updateWhatsAppStatus({
+    pairingCode: newCode,
+    lastSeen: new Date().toISOString()
+  });
+  res.json({ ok: true, ...updated });
+});
+
+// ─── Session Management ──────────────────────────────────────────────────────
 app.post('/api/session', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
@@ -131,14 +279,14 @@ app.post('/api/session', (req, res) => {
     browserWs: null,
     customerName: customerName || 'Customer',
     customerPhone: customerPhone || '',
-    storeName: storeName || 'WEDDING ARTS',
+    storeName: storeName || activeBiz.name,
     apiKey: geminiApiKey || DEFAULT_GEMINI_API_KEY,
-    dataset: (dataset && dataset.trim().length > 50) ? dataset : BUILTIN_DATASET,
+    dataset: (dataset && dataset.trim().length > 50) ? dataset : (activeBiz.dataset || BUILTIN_DATASET),
     history: [],
     createdAt: Date.now(),
   });
 
-  console.log(`[session] Created: ${id} | store: ${storeName} | datasetLen: ${(dataset || BUILTIN_DATASET).length}`);
+  console.log(`[session] Created: ${id} | store: ${storeName || activeBiz.name}`);
   res.json({ ok: true, sessionId: id, callUrl: `${serverHost}/call?s=${id}` });
 });
 
@@ -148,14 +296,15 @@ app.get('/call', (req, res) => {
 
 // Direct HTTP Chat API
 app.post('/api/chat', async (req, res) => {
+  const activeBiz = db.getActiveBusiness();
   const { sessionId, message } = req.body;
   const sess = sessions.get(sessionId) || {
     customerName: 'Customer',
-    storeName: 'WEDDING ARTS',
+    storeName: activeBiz.name,
     voice: VOICE_NAME,
     apiKey: DEFAULT_GEMINI_API_KEY,
     history: [],
-    dataset: BUILTIN_DATASET
+    dataset: activeBiz.dataset || BUILTIN_DATASET
   };
 
   try {
@@ -182,9 +331,11 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', (browserWs, req) => {
   const url = new URL(req.url, `http://localhost`);
+  const activeBiz = db.getActiveBusiness();
   const sessionId = url.searchParams.get('s');
   const customerName = url.searchParams.get('n') || 'Customer';
-  const storeName = url.searchParams.get('store') || 'WEDDING ARTS';
+  const paramStore = url.searchParams.get('store');
+  const storeName = (paramStore && paramStore !== 'WEDDING ARTS') ? paramStore : activeBiz.name;
   const voice = url.searchParams.get('v') || VOICE_NAME;
 
   let sess = sessions.get(sessionId);
@@ -196,14 +347,14 @@ wss.on('connection', (browserWs, req) => {
       storeName: storeName,
       voice: voice,
       apiKey: DEFAULT_GEMINI_API_KEY,
-      dataset: BUILTIN_DATASET,
+      dataset: activeBiz.dataset || BUILTIN_DATASET,
       history: [],
       createdAt: Date.now()
     };
     if (sessionId) sessions.set(sessionId, sess);
   } else {
     if (customerName && customerName !== 'Customer') sess.customerName = customerName;
-    if (storeName && storeName !== 'WEDDING ARTS') sess.storeName = storeName;
+    if (paramStore && paramStore !== 'WEDDING ARTS') sess.storeName = paramStore;
     if (voice) sess.voice = voice;
   }
 
@@ -218,8 +369,9 @@ wss.on('connection', (browserWs, req) => {
   // Initial welcome greeting with guaranteed natural Gemini Voice audio
   (async () => {
     try {
-      const welcomeStore = sess.storeName || 'Wedding Arts';
-      const welcomeText = `ආයුබෝවන්! ${welcomeStore} වෙත සාදරයෙන් පිළිගන්නවා. මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?`;
+      const currentBiz = db.getActiveBusiness();
+      const welcomeStore = sess.storeName || currentBiz.name;
+      const welcomeText = currentBiz.welcomeMessage || `ආයුබෝවන්! ${welcomeStore} වෙත සාදරයෙන් පිළිගන්නවා. මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?`;
       const audioResult = await synthesizeVoiceAudio(welcomeText, sess.voice, sess.apiKey);
       safeSend(browserWs, JSON.stringify({
         type: 'ai_speech',
@@ -497,15 +649,20 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
 }
 
 function buildSystemPrompt(sess, datasetText, userLang) {
-  return `You are a live voice AI assistant on a real-time telephone voice call for "${sess.storeName}".
-Customer Name: "${sess.customerName}".
+  const activeBiz = db.getActiveBusiness();
+  const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
+  const customerName = sess.customerName || 'Customer';
+  const dataset = (datasetText && datasetText.length > 50) ? datasetText : (activeBiz.dataset || BUILTIN_DATASET);
+
+  return `You are a live voice AI assistant on a real-time telephone voice call for "${storeName}".
+Customer Name: "${customerName}".
 
 === LANGUAGE COMPREHENSION & RULES (100% MULTILINGUAL) ===
 You must effortlessly understand the customer regardless of which language or format they speak:
-1. PURE SINHALA (සිංහල අකුරින්): e.g. "මට UV Frame වල ගණන් කියන්න", "ඩිලිවරි නොමිලේද?"
-2. SINGLISH (Sinhala written with Latin letters): e.g. "mata uv frame mila kiyanna", "delivery free da", "bank details ewanna", "order ekak danna puluwanda", "wistara one"
-3. PURE ENGLISH: e.g. "What are the frame sizes and prices?", "Do you provide cash on delivery?", "Can I place an order?"
-4. MIXED GREETINGS & EXPRESSIONS: e.g. "ආයි good morning", "Good morning machan", "Hello frame gana kiyanna", "Hi ayye wistara ewanna"
+1. PURE SINHALA (සිංහල අකුරින්): e.g. "මට ගණන් කියන්න", "ඩිලිවරි නොමිලේද?", "order එකක් දාන්නේ කොහොමද?"
+2. SINGLISH (Sinhala written with Latin letters): e.g. "mata mila kiyanna", "delivery free da", "bank details ewanna", "order ekak danna puluwanda", "wistara one"
+3. PURE ENGLISH: e.g. "What are the sizes and prices?", "Do you provide cash on delivery?", "Can I place an order?"
+4. MIXED GREETINGS & EXPRESSIONS: e.g. "ආයි good morning", "Good morning machan", "Hello gana kiyanna", "Hi ayye wistara ewanna"
 
 CRITICAL OUTPUT RULES FOR VOICE SYNTHESIS (GEMINI LEDA VOICE):
 - IF THE CUSTOMER SPEAKS IN ENGLISH: Reply in fluent, friendly, natural English.
@@ -513,30 +670,19 @@ CRITICAL OUTPUT RULES FOR VOICE SYNTHESIS (GEMINI LEDA VOICE):
   * CRITICAL REASON: The voice synthesizer reads English letters with an American English accent. If you reply in Latin Singlish, the voice sounds broken and unintelligible. When you reply in authentic Sinhala script (සිංහල අකුරින්), the Gemini Leda voice engine speaks with an authentic, sweet, crystal-clear Sri Lankan female voice! Therefore: NEVER output Latin Singlish — ALWAYS translate user Singlish intent into natural spoken Sinhala script!
 
 --- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---
-${datasetText}
+${dataset}
 --- END OFFICIAL MASTER DATASET ---
 
 KEY RULES FOR LIVE VOICE CALL:
 1. STRICT DATASET ACCURACY:
-   - Western / Kandyan Single Photo Edit: Rs. 1,500
-   - 10-Photo Shoot Retouch: Rs. 5,000
-   - Army Uniform Single Edit: Rs. 2,000 | 10-Photo Shoot: Rs. 8,000
-   - UV Gloss Frameless Sizes & Prices:
-     * 8x12: Rs. 2,300
-     * 10x15: Rs. 3,200
-     * 12x18: Rs. 4,800
-     * 16x24: Rs. 7,800 (Free Islandwide Courier Delivery)
-     * 20x30: Rs. 11,500 (Free Islandwide Courier Delivery)
-   - 3-Panel Wall Frame Set: Rs. 14,000 (Free Islandwide Courier Delivery)
-   - Bank Details: Bank of Ceylon (BOC), Account: 92949122, Name: D T Rajapaksha
-   - Contact / WhatsApp: 076 210 7801
-   - Never invent discounts or incorrect prices.
+   - Always quote ONLY the exact products, services, delivery policies, bank accounts, and prices given in the OFFICIAL MASTER DATASET above.
+   - Never invent discounts, nonexistent products, or incorrect prices.
 
-2. CONVERSATIONAL BREVITY: Keep answers to 1 to 3 natural spoken sentences (around 20-40 words maximum). Customers are listening on a live phone call.
-3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like a friendly Sri Lankan customer service agent (e.g., "ඔව් සහෝදරයා / අක්කේ", "අපේ Wedding Arts එකේ...").
-   - If greeted (e.g. "ආයි good morning" or "Good morning"), warmly greet back ("Good morning! ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට කොහොමද උදව් කරන්න පුළුවන්?").
+2. CONVERSATIONAL BREVITY: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words maximum). Customers are listening on a live phone call.
+3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like a friendly Sri Lankan customer service agent (e.g., "ඔව් සහෝදරයා / අක්කේ", "${storeName} වෙතින්...").
+   - If greeted (e.g. "ආයි good morning" or "Good morning"), warmly greet back ("Good morning! ආයුබෝවන්! ${storeName} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට කොහොමද උදව් කරන්න පුළුවන්?").
 4. If order is confirmed, add this tag at the end:
-   [[ORDER: name=${sess.customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
+   [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
 }
 
 function checkForOrderTag(text, sess, sessionId) {
@@ -553,14 +699,27 @@ function checkForOrderTag(text, sess, sessionId) {
   });
 
   console.log(`[order] Confirmed — session: ${sessionId}`, fields);
-  safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields }));
+
+  // Automatically record order in Multi-Business Database
+  const activeBiz = db.getActiveBusiness();
+  const newOrder = db.addOrder({
+    businessId: activeBiz.id,
+    customerName: fields.name || sess.customerName || 'Customer',
+    customerPhone: sess.customerPhone || '076 210 7801',
+    item: fields.item || 'Custom Order',
+    amount: fields.amount || '0',
+    source: 'Live Voice Call',
+    status: 'Pending Payment'
+  });
+
+  safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields, orderId: newOrder.id }));
 
   const token = WHATSAPP_TOKEN || sess.whatsappToken;
   const phoneId = WHATSAPP_PHONE_NUMBER_ID || sess.whatsappPhoneId;
   const customerPhone = sess.customerPhone;
 
   if (token && phoneId && customerPhone) {
-    sendWhatsAppOrderConfirmation(token, phoneId, customerPhone, fields, sess.storeName);
+    sendWhatsAppOrderConfirmation(token, phoneId, customerPhone, fields, activeBiz.name);
   }
 }
 

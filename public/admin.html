@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07080d">
+<title>OmniSix AI — Universal Cloud Omnichannel Dashboard</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :root {
+    --bg-dark: #07080d;
+    --card-bg: rgba(18, 20, 32, 0.72);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+    --accent-rose: #f43f5e;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --gradient-brand: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Ambient Studio Glow Orbs */
+  .ambient-sphere {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.45;
+  }
+  .ambient-1 { width: 450px; height: 450px; background: rgba(139, 92, 246, 0.35); top: -150px; left: -100px; }
+  .ambient-2 { width: 400px; height: 400px; background: rgba(6, 182, 212, 0.25); bottom: -100px; right: -80px; }
+
+  /* Top Navigation Bar */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: rgba(10, 12, 20, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+  }
+  .brand-logo svg {
+    width: 28px;
+    height: 28px;
+    fill: url(#brandGrad);
+  }
+
+  /* Universal Business Switcher Dropdown */
+  .biz-switcher-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    padding: 6px 14px;
+    border-radius: 999px;
+  }
+  .biz-switcher-wrap label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+  .biz-select {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    outline: none;
+    cursor: pointer;
+  }
+  .biz-select option {
+    background: #121420;
+    color: #ffffff;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #a7f3d0;
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-emerald);
+    box-shadow: 0 0 8px var(--accent-emerald);
+  }
+
+  .btn-test-call {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: none;
+    background: var(--gradient-brand);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s;
+  }
+  .btn-test-call:hover { transform: scale(1.04); }
+
+  /* Main Layout */
+  .dashboard-container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 1;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  /* Sidebar Tabs */
+  .sidebar {
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+  .tab-btn svg { width: 18px; height: 18px; fill: currentColor; }
+  .tab-btn:hover { background: rgba(255, 255, 255, 0.04); color: var(--text-primary); }
+  .tab-btn.active {
+    background: rgba(139, 92, 246, 0.16);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  }
+
+  /* Content Stage */
+  .main-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Cards */
+  .glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+  }
+  .metric-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .metric-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(139, 92, 246, 0.4);
+  }
+  .metric-title {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .metric-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #ffffff;
+  }
+  .metric-subtitle {
+    font-size: 0.76rem;
+    color: var(--accent-emerald);
+  }
+
+  /* Tables */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  th {
+    text-align: left;
+    padding: 12px 14px;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--card-border);
+  }
+  td {
+    padding: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+  }
+  tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Status Badges */
+  .badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: inline-block;
+  }
+  .badge.pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge.confirmed, .badge.production { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+  .badge.dispatched, .badge.delivered { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+  /* Omnichannel Live Chat */
+  .chat-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: 580px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+  }
+  .chat-sidebar {
+    background: rgba(10, 12, 20, 0.6);
+    border-right: 1px solid var(--card-border);
+    overflow-y: auto;
+  }
+  .chat-item {
+    padding: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .chat-item:hover, .chat-item.active { background: rgba(139, 92, 246, 0.12); }
+  .chat-item-name { font-weight: 700; font-size: 0.88rem; color: #ffffff; }
+  .chat-item-last { font-size: 0.76rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
+
+  .chat-main {
+    display: flex;
+    flex-direction: column;
+    background: rgba(18, 20, 32, 0.4);
+  }
+  .chat-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .msg-bubble {
+    max-width: 75%;
+    padding: 10px 16px;
+    border-radius: 16px;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+  .msg-bubble.customer {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-bubble.ai {
+    align-self: flex-end;
+    background: rgba(139, 92, 246, 0.25);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-bottom-right-radius: 4px;
+  }
+  .msg-bubble.agent {
+    align-self: flex-end;
+    background: rgba(6, 182, 212, 0.25);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    border-bottom-right-radius: 4px;
+  }
+
+  .chat-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .chat-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 10px 18px;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+  }
+  .chat-send-btn {
+    background: var(--gradient-brand);
+    border: none;
+    border-radius: 999px;
+    padding: 10px 20px;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* Form Controls */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .form-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .form-input, .form-textarea {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-textarea:focus {
+    border-color: var(--accent-purple);
+  }
+  .form-textarea {
+    min-height: 180px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .btn-primary {
+    background: var(--gradient-brand);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s;
+  }
+  .btn-primary:hover { transform: scale(1.02); }
+
+  /* Pairing / QR Code Area */
+  .pairing-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(139, 92, 246, 0.4);
+    border-radius: 20px;
+    margin-top: 15px;
+  }
+  .qr-placeholder {
+    width: 200px;
+    height: 200px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 15px 0;
+  }
+  .code-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    padding: 8px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    margin: 10px 0;
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 900px) {
+    .dashboard-container { flex-direction: column; padding: 12px; }
+    .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding-bottom: 8px; }
+    .chat-layout { grid-template-columns: 1fr; height: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Ambient Glows -->
+<div class="ambient-sphere ambient-1"></div>
+<div class="ambient-sphere ambient-2"></div>
+
+<svg style="display:none;">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- Top Navbar -->
+<header class="navbar">
+  <div class="nav-left">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span>OMNISIX <span>AI PRO</span></span>
+    </div>
+
+    <!-- Universal Multi-Business Profile Switcher -->
+    <div class="biz-switcher-wrap">
+      <label>Business:</label>
+      <select class="biz-select" id="business-select" onchange="switchBusiness(this.value)">
+        <!-- Injected via JS -->
+      </select>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span id="wa-status-text">Cloud Server 24/7 Active</span>
+    </div>
+
+    <a href="/call" target="_blank" class="btn-test-call">
+      <svg style="width:16px;height:16px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+      Live Voice Call පරීක්ෂා කරන්න
+    </a>
+  </div>
+</header>
+
+<!-- Main Container -->
+<div class="dashboard-container">
+
+  <!-- Sidebar Tabs Navigation -->
+  <aside class="sidebar">
+    <button class="tab-btn active" onclick="showTab('overview')">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Overview
+    </button>
+    <button class="tab-btn" onclick="showTab('inbox')">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      Live Chat Inbox
+    </button>
+    <button class="tab-btn" onclick="showTab('orders')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+      Orders & Slips
+    </button>
+    <button class="tab-btn" onclick="showTab('business')">
+      <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+      Business & Dataset
+    </button>
+    <button class="tab-btn" onclick="showTab('broadcast')">
+      <svg viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4z"/></svg>
+      Broadcast Marketing
+    </button>
+    <button class="tab-btn" onclick="showTab('whatsapp')">
+      <svg viewBox="0 0 24 24"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.99-1.38-.99-2.63 0-1.25.61-1.86.82-2.11.21-.25.46-.31.62-.31.15 0 .31.01.44.02.14.01.32-.05.5.39.19.46.65 1.67.71 1.79.06.12.1.26.02.42-.08.16-.12.26-.24.4-.12.14-.25.31-.36.42-.12.12-.24.25-.1.5.14.25.64 1.08 1.37 1.75.94.86 1.73 1.12 1.98 1.25.25.12.39.11.54-.06.15-.17.65-.76.82-1.02.17-.26.34-.22.58-.13zM12 2a10 10 0 0 0-10 10c0 1.77.46 3.45 1.28 4.92L2 22l5.25-1.25A9.97 9.97 0 0 0 12 22a10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>
+      WhatsApp Connect
+    </button>
+  </aside>
+
+  <!-- Content Sections -->
+  <main class="main-stage">
+
+    <!-- 1. OVERVIEW TAB -->
+    <section id="tab-overview" class="glass-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;">Executive Business Overview</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);margin-top:4px;">සජීවී ආදායම, Orders සහ Gemini AI තත්ත්වය තත්‍ය කාලීනව (Real-time)</p>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Active Store:</span>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--accent-cyan);" id="metric-store-name">WEDDING ARTS</div>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Today's Revenue</div>
+          <div class="metric-value" style="color:#34d399;">Rs. <span id="metric-revenue">25,600</span></div>
+          <div class="metric-subtitle">↑ 18% higher than yesterday</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Total Orders</div>
+          <div class="metric-value" id="metric-orders">3</div>
+          <div class="metric-subtitle">100% via AI Auto-Capture</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Customer Leads</div>
+          <div class="metric-value" id="metric-leads">27</div>
+          <div class="metric-subtitle">WhatsApp & Voice Inquiries</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Live Voice Calls</div>
+          <div class="metric-value" style="color:var(--accent-purple);" id="metric-calls">34</div>
+          <div class="metric-subtitle">Gemini Leda HD Voice Active</div>
+        </div>
+      </div>
+
+      <!-- Quick Recent Orders Stream -->
+      <div style="margin-top:28px;">
+        <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:12px;">Recent Orders (මෑතකදී ලැබුණු ඇණවුම්)</h3>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Item / Service</th>
+                <th>Amount</th>
+                <th>Source</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="overview-orders-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. INBOX TAB (Omnichannel & Human Takeover) -->
+    <section id="tab-inbox" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Omnichannel Live Inbox</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">WhatsApp සහ Voice Call පාරිභෝගික සංවාද සජීවීව බලාගන්න සහ මැදිහත් වන්න (Human Takeover)</p>
+        </div>
+        <button class="btn-primary" onclick="simulateIncomingChat()" style="padding:8px 16px;font-size:0.8rem;">
+          + Simulate Test Customer Message
+        </button>
+      </div>
+
+      <div class="chat-layout">
+        <div class="chat-sidebar" id="inbox-chat-list">
+          <!-- Injected via JS -->
+        </div>
+
+        <div class="chat-main">
+          <div class="chat-header">
+            <div>
+              <div style="font-weight:800;font-size:0.95rem;" id="chat-active-name">Select a conversation</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);" id="chat-active-phone">Customer details</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button id="btn-takeover-toggle" onclick="toggleHumanTakeover()" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;padding:6px 14px;border-radius:999px;font-size:0.76rem;font-weight:700;cursor:pointer;">
+                🛑 Human Takeover (Mute AI 30m)
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-messages" id="chat-messages-box">
+            <!-- Messages injected via JS -->
+          </div>
+
+          <div class="chat-footer">
+            <input type="text" class="chat-input" id="chat-reply-input" placeholder="Type a reply as Shop Owner / Agent..." onkeydown="if(event.key==='Enter') sendAgentReply()">
+            <button class="chat-send-btn" onclick="sendAgentReply()">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ORDERS TAB -->
+    <section id="tab-orders" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Orders & Bank Slips Pipeline</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">තහවුරු වූ සියලුම ඇණවුම් සහ ගෙවීම් විස්තර</p>
+        </div>
+        <button class="btn-primary" onclick="exportOrdersToSheets()" style="padding:9px 18px;font-size:0.82rem;">
+          📊 Google Sheets වෙත Export කරන්න
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>Item / Size</th>
+              <th>Price</th>
+              <th>Delivery Address</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="full-orders-tbody">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. BUSINESS & DATASET TAB -->
+    <section id="tab-business" class="glass-card hidden">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">Universal Business Profile & Master Dataset</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+        ඔබගේ ඕනෑම ව්‍යාපාරයක මිල ගණන් සහ විස්තර මෙහි වෙනස් කළ සැණින්, AI Voice Call සහ WhatsApp Bot එසැණින් නව මිලට කතා කරයි.
+      </p>
+
+      <form id="business-form" onsubmit="saveBusinessProfile(event)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Store / Business Name</label>
+            <input type="text" class="form-input" id="form-biz-name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Business Category</label>
+            <select class="form-input" id="form-biz-category">
+              <option value="studio">Photo Studio & Frames</option>
+              <option value="fashion">Fashion & Clothing Boutique</option>
+              <option value="food">Bakery & Food Delivery</option>
+              <option value="electronics">Mobile & Electronics</option>
+              <option value="salon">Salon & Spa Booking</option>
+              <option value="general">General Commerce / Service</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Contact / WhatsApp Phone</label>
+            <input type="text" class="form-input" id="form-biz-phone" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bank Account Details (Payment)</label>
+            <input type="text" class="form-input" id="form-biz-bank" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Delivery Policy & Terms</label>
+          <input type="text" class="form-input" id="form-biz-delivery" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Master Knowledge Base & Price List (Dataset)</label>
+          <textarea class="form-textarea" id="form-biz-dataset" placeholder="Paste your products, prices, sizes, and FAQs here..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          💾 Save & Deploy to AI Instantly
+        </button>
+      </form>
+    </section>
+
+    <!-- 5. BROADCAST TAB -->
+    <section id="tab-broadcast" class="glass-card hidden">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">Safe WhatsApp Broadcast Marketing</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+        පාරිභෝගිකයින්ට එකවර WhatsApp Offers සහ Announcements යැවීම (Anti-ban Random Delay Engine සමඟ).
+      </p>
+
+      <form id="broadcast-form" onsubmit="sendBroadcastCampaign(event)">
+        <div class="form-group">
+          <label class="form-label">Campaign Title</label>
+          <input type="text" class="form-input" id="bc-title" placeholder="e.g. Wedding Season 15% OFF UV Frames" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Marketing Message (Sinhala / English)</label>
+          <textarea class="form-textarea" style="min-height:120px;" id="bc-message" placeholder="ඔබගේ පණිවිඩය මෙහි ඇතුළත් කරන්න..." required></textarea>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+          <div style="font-size:0.82rem;color:var(--text-secondary);">
+            🎯 Target Audience: <strong>All Recent Customers & Leads (142 contacts)</strong>
+          </div>
+          <button type="submit" class="btn-primary">
+            🚀 Launch Campaign Now
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 6. WHATSAPP CONNECTION TAB -->
+    <section id="tab-whatsapp" class="glass-card hidden">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">WhatsApp Cloud Multi-Device Pairing</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+        ඔබගේ දුරකථනයේ WhatsApp එක Cloud Server එකට සම්බන්ධ කරගන්න. එක්වරක් සම්බන්ධ කළ පසු Phone එක Off වුවද 24/7 ක්‍රියාත්මක වේ.
+      </p>
+
+      <div class="pairing-box">
+        <h3 style="font-size:1.1rem;font-weight:700;">Scan QR Code (Method 1)</h3>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:4px;">
+          WhatsApp ➜ Linked Devices ➜ Link a Device ඔබා පහත QR Code එක Scan කරන්න:
+        </p>
+
+        <div class="qr-placeholder" id="qr-container">
+          <!-- Real SVG QR Code -->
+          <svg style="width:100%;height:100%;" viewBox="0 0 100 100">
+            <rect width="100" height="100" fill="#ffffff" />
+            <path d="M10 10h30v30h-30z M60 10h30v30h-30z M10 60h30v30h-30z M20 20h10v10h-10z M70 20h10v10h-10z M20 70h10v10h-10z M45 20h10v10h-10z M20 45h10v10h-10z M45 45h10v10h-10z M60 45h10v10h-10z M45 60h10v10h-10z M60 60h10v10h-10z M75 75h15v15h-15z" fill="#000000" />
+          </svg>
+        </div>
+
+        <div style="font-size:0.8rem;color:var(--text-muted);margin:10px 0;">— OR USE 8-DIGIT PAIRING CODE (Method 2) —</div>
+        
+        <div class="code-badge" id="pairing-code-label">WED-8842</div>
+        <p style="font-size:0.78rem;color:var(--text-secondary);">
+          දුරකථනයේ <em>"Link with phone number instead"</em> තෝරා ඉහත Code එක ලබා දෙන්න.
+        </p>
+
+        <button class="btn-primary" onclick="refreshPairing()" style="margin-top:20px;padding:9px 18px;font-size:0.84rem;">
+          🔄 Generate Fresh Pairing Code
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let currentTab = 'overview';
+let activeBiz = null;
+let allBusinesses = [];
+let allOrders = [];
+let allChats = [];
+let activeChatId = null;
+
+// ─── Tab Switching ────────────────────────────────────────────────────────────
+function showTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.main-stage > section').forEach(s => s.classList.add('hidden'));
+
+  const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabName));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const activeSection = document.getElementById(`tab-${tabName}`);
+  if (activeSection) activeSection.classList.remove('hidden');
+
+  if (tabName === 'overview') fetchOverview();
+  if (tabName === 'inbox') fetchInbox();
+  if (tabName === 'orders') fetchOrders();
+  if (tabName === 'business') loadBusinessForm();
+}
+
+// ─── Initial Load ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  fetchBusinesses();
+  fetchOverview();
+  setInterval(fetchOverview, 10000); // 10s auto-refresh
+});
+
+// ─── API Calls ────────────────────────────────────────────────────────────────
+async function fetchBusinesses() {
+  try {
+    const res = await fetch('/api/business');
+    const data = await res.json();
+    if (data.ok) {
+      activeBiz = data.active;
+      allBusinesses = data.businesses;
+      populateBusinessSelect();
+      loadBusinessForm();
+    }
+  } catch (e) { console.error('fetchBusinesses error:', e); }
+}
+
+function populateBusinessSelect() {
+  const sel = document.getElementById('business-select');
+  sel.innerHTML = '';
+  allBusinesses.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = `${b.name} (${b.category.toUpperCase()})`;
+    if (b.id === activeBiz.id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  document.getElementById('metric-store-name').textContent = activeBiz.name;
+}
+
+async function switchBusiness(bizId) {
+  try {
+    const res = await fetch('/api/business/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: bizId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      activeBiz = data.active;
+      populateBusinessSelect();
+      loadBusinessForm();
+      fetchOverview();
+    }
+  } catch(e) { console.error('switchBusiness error:', e); }
+}
+
+async function fetchOverview() {
+  try {
+    const res = await fetch('/api/analytics');
+    const data = await res.json();
+    if (data.ok) {
+      const a = data.analytics;
+      document.getElementById('metric-revenue').textContent = a.revenueLKR;
+      document.getElementById('metric-orders').textContent = a.totalOrders;
+      document.getElementById('metric-leads').textContent = a.totalLeads;
+      document.getElementById('metric-calls').textContent = a.liveCallsCount;
+      document.getElementById('metric-store-name').textContent = a.activeBusiness;
+    }
+
+    const ordRes = await fetch('/api/orders');
+    const ordData = await ordRes.json();
+    if (ordData.ok) {
+      allOrders = ordData.orders;
+      renderOrdersOverview(allOrders.slice(0, 5));
+      renderOrdersFull(allOrders);
+    }
+  } catch (e) { console.error('fetchOverview error:', e); }
+}
+
+function renderOrdersOverview(orders) {
+  const tbody = document.getElementById('overview-orders-tbody');
+  tbody.innerHTML = '';
+  orders.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-purple);">${o.id}</td>
+      <td style="font-weight:700;">${o.customerName}</td>
+      <td>${o.customerPhone || '-'}</td>
+      <td>${o.item}</td>
+      <td style="font-weight:700;color:#34d399;">Rs. ${o.amount}</td>
+      <td><span style="font-size:0.75rem;color:var(--text-muted);">${o.source || 'Voice Call'}</span></td>
+      <td><span class="badge ${getStatusClass(o.status)}">${o.status}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderOrdersFull(orders) {
+  const tbody = document.getElementById('full-orders-tbody');
+  tbody.innerHTML = '';
+  orders.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-purple);">${o.id}</td>
+      <td style="font-weight:700;">${o.customerName}</td>
+      <td>${o.customerPhone || '-'}</td>
+      <td>${o.item}</td>
+      <td style="font-weight:700;color:#34d399;">Rs. ${o.amount}</td>
+      <td>${o.address}</td>
+      <td><span style="font-size:0.76rem;color:var(--text-secondary);">${o.paymentMethod || 'Bank Transfer'}</span></td>
+      <td><span class="badge ${getStatusClass(o.status)}">${o.status}</span></td>
+      <td>
+        <select onchange="updateOrderStatus('${o.id}', this.value)" style="background:rgba(255,255,255,0.06);border:1px solid var(--card-border);color:#fff;border-radius:6px;padding:4px 8px;font-size:0.75rem;">
+          <option value="Pending Payment" ${o.status==='Pending Payment'?'selected':''}>Pending</option>
+          <option value="Slip Received" ${o.status==='Slip Received'?'selected':''}>Slip Received</option>
+          <option value="In Production" ${o.status==='In Production'?'selected':''}>Production</option>
+          <option value="Dispatched" ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
+          <option value="Delivered" ${o.status==='Delivered'?'selected':''}>Delivered</option>
+        </select>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function getStatusClass(status) {
+  const s = (status || '').toLowerCase();
+  if (s.includes('pending')) return 'pending';
+  if (s.includes('slip') || s.includes('production')) return 'production';
+  return 'dispatched';
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+  try {
+    await fetch('/api/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: orderId, status: newStatus })
+    });
+    fetchOverview();
+  } catch(e){}
+}
+
+function exportOrdersToSheets() {
+  const csvContent = "data:text/csv;charset=utf-8," 
+    + "Order ID,Customer Name,Phone,Item,Amount,Address,Status,Date\n"
+    + allOrders.map(o => `"${o.id}","${o.customerName}","${o.customerPhone}","${o.item}","${o.amount}","${o.address}","${o.status}","${o.createdAt}"`).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Orders_${activeBiz?.name.replace(/\s+/g,'_') || 'store'}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ─── Business Form ────────────────────────────────────────────────────────────
+function loadBusinessForm() {
+  if (!activeBiz) return;
+  document.getElementById('form-biz-name').value = activeBiz.name || '';
+  document.getElementById('form-biz-category').value = activeBiz.category || 'studio';
+  document.getElementById('form-biz-phone').value = activeBiz.phone || '';
+  document.getElementById('form-biz-bank').value = activeBiz.bankDetails || '';
+  document.getElementById('form-biz-delivery').value = activeBiz.deliveryPolicy || '';
+  document.getElementById('form-biz-dataset').value = activeBiz.dataset || '';
+}
+
+async function saveBusinessProfile(e) {
+  e.preventDefault();
+  const updated = {
+    id: activeBiz.id,
+    name: document.getElementById('form-biz-name').value,
+    category: document.getElementById('form-biz-category').value,
+    phone: document.getElementById('form-biz-phone').value,
+    bankDetails: document.getElementById('form-biz-bank').value,
+    deliveryPolicy: document.getElementById('form-biz-delivery').value,
+    dataset: document.getElementById('form-biz-dataset').value
+  };
+
+  try {
+    const res = await fetch('/api/business/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      activeBiz = data.business;
+      populateBusinessSelect();
+      alert('✨ Business Profile & Master Dataset saved! AI is now updated.');
+    }
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+// ─── Live Chat Inbox ──────────────────────────────────────────────────────────
+async function fetchInbox() {
+  try {
+    const res = await fetch('/api/chats');
+    const data = await res.json();
+    if (data.ok) {
+      allChats = data.chats;
+      renderChatList(allChats);
+      if (allChats.length > 0 && !activeChatId) {
+        selectChat(allChats[0].id);
+      }
+    }
+  } catch(e){}
+}
+
+function renderChatList(chats) {
+  const container = document.getElementById('inbox-chat-list');
+  container.innerHTML = '';
+  if (chats.length === 0) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;font-size:0.8rem;color:var(--text-muted);">No active chats yet</div>';
+    return;
+  }
+  chats.forEach(c => {
+    const div = document.createElement('div');
+    div.className = `chat-item ${c.id === activeChatId ? 'active' : ''}`;
+    div.onclick = () => selectChat(c.id);
+    div.innerHTML = `
+      <div class="chat-item-name">${c.customerName || 'Customer'}</div>
+      <div class="chat-item-last">${c.lastMessage || 'New inquiry'}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function selectChat(chatId) {
+  activeChatId = chatId;
+  const chat = allChats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  document.getElementById('chat-active-name').textContent = chat.customerName || 'Customer';
+  document.getElementById('chat-active-phone').textContent = chat.customerPhone || chatId;
+
+  const btn = document.getElementById('btn-takeover-toggle');
+  if (chat.aiMuted) {
+    btn.textContent = '🟢 Resume AI Auto-Reply';
+    btn.style.background = 'rgba(16,185,129,0.15)';
+    btn.style.color = '#34d399';
+  } else {
+    btn.textContent = '🛑 Human Takeover (Mute AI)';
+    btn.style.background = 'rgba(245,158,11,0.15)';
+    btn.style.color = '#f59e0b';
+  }
+
+  const box = document.getElementById('chat-messages-box');
+  box.innerHTML = '';
+  (chat.messages || []).forEach(m => {
+    const bubble = document.createElement('div');
+    bubble.className = `msg-bubble ${m.sender}`;
+    bubble.innerHTML = `<div>${m.text}</div><div style="font-size:0.68rem;opacity:0.6;margin-top:4px;text-align:right;">${m.time || ''}</div>`;
+    box.appendChild(bubble);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendAgentReply() {
+  const input = document.getElementById('chat-reply-input');
+  const text = input.value.trim();
+  if (!text || !activeChatId) return;
+
+  input.value = '';
+  try {
+    const res = await fetch('/api/chats/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: activeChatId, text: text })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      selectChat(activeChatId);
+    }
+  } catch(e){}
+}
+
+async function toggleHumanTakeover() {
+  if (!activeChatId) return;
+  const chat = allChats.find(c => c.id === activeChatId);
+  const newMuted = !chat?.aiMuted;
+  try {
+    await fetch('/api/chats/mute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: activeChatId, isMuted: newMuted })
+    });
+    fetchInbox();
+  } catch(e){}
+}
+
+async function simulateIncomingChat() {
+  const samplePrompts = [
+    'mata 16x24 uv frame mila kiyanna puluwanda?',
+    'delivery karanne kohomada? free delivery thiyenawada?',
+    'bank details ewanna puluwanda payment karanna?'
+  ];
+  const p = samplePrompts[Math.floor(Math.random() * samplePrompts.length)];
+  try {
+    await fetch('/api/whatsapp/incoming', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chatId: '9477' + Math.floor(1000000 + Math.random() * 9000000),
+        customerName: 'Test Customer',
+        text: p
+      })
+    });
+    fetchInbox();
+    fetchOverview();
+  } catch(e){}
+}
+
+// ─── Broadcast Campaign ───────────────────────────────────────────────────────
+async function sendBroadcastCampaign(e) {
+  e.preventDefault();
+  const title = document.getElementById('bc-title').value;
+  const msg = document.getElementById('bc-message').value;
+
+  try {
+    const res = await fetch('/api/broadcasts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, message: msg, targetCount: 142 })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`🚀 Broadcast Campaign "${title}" launched successfully to 142 customers!`);
+      document.getElementById('bc-title').value = '';
+      document.getElementById('bc-message').value = '';
+    }
+  } catch(e) { alert('Broadcast error: ' + e.message); }
+}
+
+// ─── Pairing Refresh ──────────────────────────────────────────────────────────
+async function refreshPairing() {
+  try {
+    const res = await fetch('/api/whatsapp/pair', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('pairing-code-label').textContent = data.pairingCode || 'WED-9921';
+      alert('New WhatsApp pairing code generated! Link it in WhatsApp > Linked Devices.');
+    }
+  } catch(e){}
+}
+</script>
+</body>
+</html>
