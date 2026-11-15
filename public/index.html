@@ -351,7 +351,15 @@ function startCall() {
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('call-screen').classList.remove('hidden');
 
-  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}`;
+  // Pre-unlock mobile browser audio on user gesture
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+  } catch (e) {}
+
+  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}&n=${encodeURIComponent(CUSTOMER_NAME)}&store=${encodeURIComponent(STORE_NAME)}`;
   connectWs(wsUrl);
 
   setupSpeechRecognition();
@@ -386,10 +394,9 @@ function connectWs(url) {
         if (data.audioBase64) {
           playAudioBase64(data.audioBase64, () => {
             onAiSpeechFinished();
-          });
+          }, data.mimeType || 'audio/mpeg');
         } else {
-          // 🛡️ Fallback: If TTS server audio had a momentary delay, use browser speech synthesis so voice NEVER fails!
-          console.log('[Voice Fallback] Using local browser speech synthesis for audio.');
+          // Fallback if audio generation was omitted
           speakBrowserVoice(data.speechText || data.text, () => {
             onAiSpeechFinished();
           });
@@ -450,11 +457,14 @@ function speakBrowserVoice(text, onEnd) {
 }
 
 // ─── Audio Playback ───────────────────────────────────────────────────────────
-function playAudioBase64(base64Data, onEnd) {
+function playAudioBase64(base64Data, onEnd, mimeType) {
   stopCurrentAudio();
   isAiSpeaking = true;
 
-  const audioSrc = 'data:audio/wav;base64,' + base64Data;
+  // Auto-detect format: RIFF header is WAV (UklGR...), else MP3
+  const isWav = base64Data.startsWith('UklGR');
+  const mime = mimeType || (isWav ? 'audio/wav' : 'audio/mpeg');
+  const audioSrc = `data:${mime};base64,` + base64Data;
   const audio = new Audio(audioSrc);
   currentAudio = audio;
 
@@ -593,10 +603,8 @@ function sendUserMessage(text) {
         if (data.audioBase64) {
           playAudioBase64(data.audioBase64, () => {
             onAiSpeechFinished();
-          });
+          }, data.mimeType || 'audio/mpeg');
         } else {
-          // 🛡️ Fallback: If TTS server audio had a momentary delay, use browser speech synthesis so voice NEVER fails!
-          console.log('[Voice Fallback] Using local browser speech synthesis for audio.');
           speakBrowserVoice(data.speechText || data.text, () => {
             onAiSpeechFinished();
           });
