@@ -16,7 +16,8 @@ const {
   AngryCustomerEscalationEngine,
   SmartNegotiationEngine,
   SmartUpsellEngine,
-  SlipDetectionEngine
+  SlipDetectionEngine,
+  LanguageDetectionEngine
 } = require('./ai_engines.js');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -332,6 +333,8 @@ app.post('/api/whatsapp/incoming', async (req, res) => {
     dataset: activeBiz.dataset || BUILTIN_DATASET,
     voice: VOICE_NAME,
     apiKey: DEFAULT_GEMINI_API_KEY,
+    isWhatsApp: true,
+    isVoiceCall: false,
     history: (chat?.messages || []).slice(-6).map(m => ({
       role: m.sender === 'customer' ? 'user' : 'model',
       parts: [{ text: m.text }]
@@ -566,6 +569,8 @@ app.post('/api/chat', async (req, res) => {
     storeName: activeBiz.name,
     voice: VOICE_NAME,
     apiKey: DEFAULT_GEMINI_API_KEY,
+    isVoiceCall: false,
+    isWhatsApp: true,
     history: [],
     dataset: activeBiz.dataset || BUILTIN_DATASET
   };
@@ -623,6 +628,7 @@ wss.on('connection', (browserWs, req) => {
   }
 
   sess.browserWs = browserWs;
+  sess.isVoiceCall = true;
   console.log(`[ws] Browser connected — session: ${sessionId} | customer: ${sess.customerName} | store: ${sess.storeName} | voice: ${sess.voice}`);
 
   safeSend(browserWs, JSON.stringify({
@@ -706,9 +712,17 @@ wss.on('connection', (browserWs, req) => {
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess, userLang) {
   const activeBiz = db.getActiveBusiness();
+  const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
+
+  // Detect customer's actual contextual language with history memory
+  const detectedLang = (userLang === 'en-US')
+    ? 'English'
+    : LanguageDetectionEngine.detectLanguage(userMessage, sess.history || []);
+
+  console.log(`[ai-engine] Detected Language: "${detectedLang}" (session mode: ${sess.isVoiceCall ? 'Voice' : 'WhatsApp/Text'}) for: "${(userMessage || '').substring(0, 50)}"`);
 
   // 1. Angry Customer Escalation Engine
-  const angryCheck = AngryCustomerEscalationEngine.check(userMessage);
+  const angryCheck = AngryCustomerEscalationEngine.check(userMessage, detectedLang, storeName);
   if (angryCheck.isAngry) {
     console.log(`[ai-engine] 😡 Angry customer escalation triggered: "${angryCheck.trigger}"`);
     if (sess.customerPhone) {
@@ -737,7 +751,7 @@ async function getGeminiReply(userMessage, sess, userLang) {
   }
 
   const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : (activeBiz.dataset || BUILTIN_DATASET);
-  const systemInstruction = buildSystemPrompt(sess, datasetContext, userLang, userMessage);
+  const systemInstruction = buildSystemPrompt(sess, datasetContext, userLang, userMessage, detectedLang);
 
   if (!Array.isArray(sess.history)) sess.history = [];
 
@@ -751,18 +765,40 @@ async function getGeminiReply(userMessage, sess, userLang) {
     }
   }
 
-  const isEnglishQuery = userLang === 'en-US' || (!/[\u0D80-\u0DFF]/.test(userMessage) && /\b(hello|hi|good morning|good afternoon|how much|what is|price|pricing|delivery|bank|order|can i|please|package|packages|edit|editing|shoot)\b/i.test(userMessage));
+  let turnInstruction = '';
+  let initialModelAck = '';
 
-  const turnInstruction = isEnglishQuery
-    ? `\n[VOICE RULE: The user is speaking in English. You MUST reply in fluent, natural English in 1 to 2 concise spoken sentences using exact dataset prices.]`
-    : `\n[VOICE RULE: The user is speaking in Sinhala/Singlish. You MUST reply in natural spoken Sinhala script (සිංහල අකුරින්). NEVER output Latin Singlish. 1 to 2 concise spoken sentences using exact dataset prices.]`;
+  if (sess.isVoiceCall) {
+    if (detectedLang === 'English') {
+      turnInstruction = `\n[VOICE CALL: The customer is speaking in English. Reply in fluent, natural English in 1 to 2 concise spoken sentences using exact dataset prices.]`;
+      initialModelAck = `Understood. I represent ${storeName} and will provide concise answers in English with 100% accurate prices and details from the official dataset.`;
+    } else {
+      turnInstruction = `\n[VOICE CALL: The customer is speaking in Sinhala/Singlish. You MUST reply in natural spoken Sinhala script (සිංහල අකුරින්). NEVER output Latin Singlish. 1 to 2 concise spoken sentences using exact dataset prices.]`;
+      initialModelAck = `තේරුණා. මම ${storeName} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.`;
+    }
+  } else {
+    // WhatsApp & Text Chat Dynamic Matching
+    if (detectedLang === 'English') {
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in English. Reply strictly in clear, professional, warm English. NEVER reply in Sinhala. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      initialModelAck = `Understood. I represent ${storeName} and will reply to the customer in clear, friendly English with accurate details from the master dataset.`;
+    } else if (detectedLang === 'Tamil') {
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Tamil. Reply strictly in polite, warm Tamil script (தமிழ் எழுத்துகளில்). NEVER reply in English or Tanglish. Use clean WhatsApp formatting with exact prices from dataset.]`;
+      initialModelAck = `புரிந்தது. உத்தியோகபூர்வ Dataset விபரங்களின்படி சரியான தகவல்களை தமிழில் வழங்குகிறேன்.`;
+    } else if (detectedLang === 'Tanglish') {
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Tanglish (Tamil in Latin letters). Reply strictly in conversational Tanglish using Latin letters. NEVER reply in Tamil script and NEVER reply in English. Use clean WhatsApp formatting with exact prices from dataset.]`;
+      initialModelAck = `Purinjithu. Official dataset padi sariyana details Tanglish la solren.`;
+    } else if (['Italian', 'French', 'German', 'Spanish', 'Arabic', 'Hindi', 'Russian', 'Chinese', 'Japanese'].includes(detectedLang)) {
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in ${detectedLang}. Reply strictly and fluently in ${detectedLang} matching the customer. Use clean WhatsApp formatting with exact prices from dataset.]`;
+      initialModelAck = `Understood. I represent ${storeName} and will reply fluently in ${detectedLang} matching the customer's inquiry.`;
+    } else {
+      // Sinhala or Singlish -> ABSOLUTE SCRIPT MANDATE: Sinhala script (සිංහල අකුරින් පමණි)!
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Sinhala/Singlish. You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි). NEVER reply in English and NEVER reply in Latin Singlish. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      initialModelAck = `තේරුණා. මම ${storeName} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පදනම්ව, පාරිභෝගිකයාට ස්වභාවික ගෞරවනීය සිංහල අකුරින් පමණක් පිළිතුරු සපයන්නම්.`;
+    }
+  }
 
   // Append user message with per-turn steering prompt for the API call
   cleanHistory.push({ role: 'user', parts: [{ text: userMessage + turnInstruction }] });
-
-  const initialModelAck = isEnglishQuery
-    ? `Understood. I represent ${sess.storeName || 'WEDDING ARTS'} and will provide concise answers in English with 100% accurate prices and details from the official dataset.`
-    : `තේරුණා. මම ${sess.storeName || 'WEDDING ARTS'} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.`;
 
   const contents = [
     { role: 'user', parts: [{ text: `[OFFICIAL MASTER DATASET & SYSTEM INSTRUCTIONS]\n${systemInstruction}\n[END SYSTEM INSTRUCTIONS]` }] },
@@ -785,10 +821,10 @@ async function getGeminiReply(userMessage, sess, userLang) {
             contents: contents,
             generationConfig: {
               temperature: 0.6,
-              maxOutputTokens: 250
+              maxOutputTokens: sess.isVoiceCall ? 250 : 800
             }
           }),
-          signal: AbortSignal.timeout(4500)
+          signal: AbortSignal.timeout(6000)
         });
 
         const data = await response.json();
@@ -804,7 +840,7 @@ async function getGeminiReply(userMessage, sess, userLang) {
         if (replyText) {
           sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
           sess.history.push({ role: 'model', parts: [{ text: replyText }] });
-          console.log(`[Gemini Text] Success using model: ${model}`);
+          console.log(`[Gemini Text] Success using model: ${model} (language: ${detectedLang})`);
           return replyText;
         }
       } catch (err) {
@@ -817,7 +853,14 @@ async function getGeminiReply(userMessage, sess, userLang) {
   // Smart fallback from dataset if all Gemini models exhaust daily quota
   console.warn('[Gemini Text] All text models hit quota or failed. Using smart dataset fallback.');
   const store = sess.storeName || 'Wedding Arts';
-  const fallbackReply = `ස්තූතියි! ${store} වෙතින් ෆොටෝ එඩිටිං, 12x18 UV Frames (රු. 4800) සහ 16x24 UV Frames (රු. 7800 නොමිලේ ඩිලිවරි සහිතව) ලබාගත හැක. ඔබට අවශ්‍ය විස්තරය හෝ ඇණවුම ලබා දෙන්න.`;
+  let fallbackReply = '';
+  if (detectedLang === 'English') {
+    fallbackReply = `Thank you for reaching out to ${store}! We offer professional photo retouching, 12x18 UV Frames (Rs. 4,800), and 16x24 UV Frames (Rs. 7,800 with Free Islandwide Delivery). Please let us know how we can assist you today! 😊`;
+  } else if (detectedLang === 'Tamil') {
+    fallbackReply = `நன்றி! ${store} உங்களுக்கு உயர்தர புகைப்பட எடிட்டிங் மற்றும் UV Frames சேவைகளை வழங்குகிறது. உங்களுக்கு தேவையான விபரங்களை கூறவும். 😊`;
+  } else {
+    fallbackReply = `ස්තූතියි! ${store} වෙතින් ෆොටෝ එඩිටිං, 12x18 UV Frames (රු. 4800) සහ 16x24 UV Frames (රු. 7800 නොමිලේ ඩිලිවරි සහිතව) ලබාගත හැක. ඔබට අවශ්‍ය විස්තරය හෝ ඇණවුම ලබා දෙන්න. 😊`;
+  }
   sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
   sess.history.push({ role: 'model', parts: [{ text: fallbackReply }] });
   return fallbackReply;
@@ -943,7 +986,7 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
   return { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
 }
 
-function buildSystemPrompt(sess, datasetText, userLang, userMessage) {
+function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLang = 'Sinhala') {
   const activeBiz = db.getActiveBusiness();
   const settings = db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
@@ -973,20 +1016,40 @@ function buildSystemPrompt(sess, datasetText, userLang, userMessage) {
     personaInstruction = 'efficient, fast, direct and crystal-clear business representative';
   }
 
-  return `You are "${settings.aiName || 'Nethmi'}", a ${personaInstruction} for "${storeName}".
+  const scriptRequirement = detectedLang === 'English'
+    ? 'English'
+    : (['Sinhala', 'Singlish'].includes(detectedLang)
+      ? 'Sinhala Script (සිංහල අකුරින් පමණි)'
+      : (detectedLang === 'Tamil' ? 'Tamil Script (தமிழ்)' : (detectedLang === 'Tanglish' ? 'Tanglish (Tamil in Latin letters)' : `${detectedLang} (Exact matching foreign language)`)));
+
+  return `You are "${settings.aiName || 'Nethmi'}", a ${personaInstruction} representing "${storeName}".
 Customer Name: "${customerName}".
 
-=== LANGUAGE COMPREHENSION & RULES (100% MULTILINGUAL) ===
-You must effortlessly understand the customer regardless of which language or format they speak:
-1. PURE SINHALA (සිංහල අකුරින්): e.g. "මට ගණන් කියන්න", "ඩිලිවරි නොමිලේද?", "order එකක් දාන්නේ කොහොමද?"
-2. SINGLISH (Sinhala written with Latin letters): e.g. "mata mila kiyanna", "delivery free da", "bank details ewanna", "order ekak danna puluwanda"
-3. PURE ENGLISH: e.g. "What are the sizes and prices?", "Do you provide cash on delivery?", "Can I place an order?"
-4. MIXED GREETINGS: e.g. "ආයි good morning", "Good morning machan", "Hello gana kiyanna"
+=== 🌐 MULTILINGUAL & SCRIPT MANDATE (EXACT APK DYNAMIC LANGUAGE MATCHING) ===
+Customer Input Contextual Language: "${detectedLang}"
+Required Output Script: "${scriptRequirement}"
 
-CRITICAL OUTPUT RULES FOR VOICE SYNTHESIS (GEMINI LEDA VOICE):
-- IF THE CUSTOMER SPEAKS IN ENGLISH: Reply in fluent, friendly, natural English.
-- IF THE CUSTOMER SPEAKS IN SINHALA, SINGLISH, OR MIXED: Reply in NATURAL CONVERSATIONAL SPOKEN SINHALA SCRIPT (සිංහල අකුරින්).
-  * CRITICAL REASON: The voice synthesizer reads English letters with an American English accent. If you reply in Latin Singlish, the voice sounds broken and unintelligible. When you reply in authentic Sinhala script (සිංහල අකුරින්), the Gemini Leda voice engine speaks with an authentic, sweet, crystal-clear Sri Lankan female voice! Therefore: NEVER output Latin Singlish — ALWAYS translate user Singlish intent into natural spoken Sinhala script!
+CRITICAL DYNAMIC LANGUAGE MATCHING RULES:
+1. 🔄 DYNAMIC LANGUAGE ADAPTATION:
+   - If the customer writes or switches language (English, Sinhala, Singlish, Tamil, Tanglish, Italian, French, German, Spanish, etc.), you MUST IMMEDIATELY ADAPT and reply in that customer's MATCHING language!
+2. 🇱🇰 SINHALA & SINGLISH (when customer writes in Sinhala letters OR Singlish Latin letters):
+   * ABSOLUTE SCRIPT MANDATE: You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි)!
+   * EVEN IF the customer writes in Singlish using Latin letters (e.g. "meke gana keeyada?", "deliver karanna puluwanda?", "size thiyenawada?", "bank details ewanna", "order ekak danna ona", "wisthara ewanna"):
+     👉 NEVER reply in Singlish (Latin letters)!
+     👉 NEVER reply in English!
+     👉 ALWAYS reply strictly in natural, respectful Sinhala script (සිංහල අකුරු).
+   * Address customer respectfully and speak in warm, natural colloquial Sri Lankan Sinhala (අපේ, ඔබට/ඔයාට, ලබාගන්න පුළුවන්, ස්තූතියි).
+3. 🇬🇧 ENGLISH (when detected language is English and customer writes in English):
+   * Reply strictly in clear, professional, warm English (e.g. "Hello! The price is Rs. 4,800 with free delivery...").
+   * NEVER reply in Sinhala or Singlish when customer asks in English!
+4. 🇮🇳 TAMIL SCRIPT (when detected language is Tamil):
+   * If customer writes in Tamil letters (தமிழ் எழுத்துகளில்), reply strictly in warm, polite Tamil script. Never output English or Tanglish!
+5. 🔤 TANGLISH (when detected language is Tanglish):
+   * If customer writes in Tanglish (Tamil in Latin letters), reply strictly in conversational Tanglish using Latin letters. Never reply in Tamil script and never reply in English!
+6. 🌍 OTHER FOREIGN LANGUAGES (Italian, French, German, Spanish, Arabic, Hindi, etc.):
+   * Reply strictly, fluently, and politely in that customer's EXACT MATCHING FOREIGN LANGUAGE!
+7. 🔄 CONVERSATIONAL CONTINUITY FOR SHORT / AMBIGUOUS INPUTS:
+   * If customer sends short answers ("ok", "yes", "1", "size M", "red", phone number, or delivery address), seamlessly preserve the ongoing conversation's language.
 
 --- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---
 ${dataset}
@@ -998,8 +1061,8 @@ ${negotiationDirective}
 
 KEY RULES FOR CONVERSATION & SALES:
 1. STRICT DATASET ACCURACY: Always quote ONLY the exact products, services, delivery policies, bank accounts, and prices given in the OFFICIAL MASTER DATASET above.
-2. CONVERSATIONAL BREVITY: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words maximum). Customers are listening on a live phone call or chat.
-3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like an authentic Sri Lankan customer service agent.
+2. ${sess.isVoiceCall ? 'CONVERSATIONAL BREVITY FOR VOICE CALL: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words maximum) since the customer is listening on a live phone call.' : 'ELEGANT WHATSAPP FORMATTING: Use clean WhatsApp formatting with *bold* headers, • bullets for packages/features, and clear line spacing. Do NOT use markdown # headings or **double asterisks**.'}
+3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like an authentic customer service agent with friendly emojis (😊, 🙏, ✨, 📦).
 4. If order is confirmed, add this tag at the end:
    [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
 }

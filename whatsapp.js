@@ -189,6 +189,8 @@ class WhatsAppAccountSession {
                 customerName: senderName,
                 customerPhone: senderPhone,
                 dataset: activeBiz.dataset,
+                isWhatsApp: true,
+                isVoiceCall: false,
                 history: (chat?.messages || []).slice(-6).map(m => ({
                   role: m.sender === 'customer' ? 'user' : 'model',
                   parts: [{ text: m.text }]
