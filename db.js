@@ -1,5 +1,7 @@
-// ─── Universal Multi-Business Database Engine ────────────────────────────────
-// Persistent JSON Storage for Omnichannel AI Agent (Businesses, Orders, Chats, Products, Broadcasts)
+// ─── Universal Multi-Business Database Engine (Production Clean) ─────────────
+// Real Production Database for Omnichannel AI Agent
+// Supports Multi-Business, Products Catalog, Custom Keyword Flows, Orders Pipeline,
+// Live Chats Inbox, Safe Broadcasts, and Settings. ZERO DEMO / FAKE DATA.
 
 const fs = require('fs');
 const path = require('path');
@@ -8,12 +10,10 @@ const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 
 if (!fs.existsSync(DATA_DIR)) {
-  try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  } catch (e) {}
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
 }
 
-// ─── Default Business Presets ─────────────────────────────────────────────────
+// ─── Business Presets ─────────────────────────────────────────────────────────
 const DEFAULT_BUSINESSES = [
   {
     id: 'weddingarts',
@@ -22,7 +22,7 @@ const DEFAULT_BUSINESSES = [
     ownerName: 'D T Rajapaksha (Tharindu)',
     phone: '076 210 7801',
     whatsappPhone: '94762107801',
-    bankDetails: 'Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha',
+    bankDetails: 'Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha | Branch: Kandy',
     deliveryPolicy: 'Islandwide Courier Delivery available. Free delivery on 16x24 and above. 2-3 business days.',
     currency: 'Rs.',
     welcomeMessage: 'ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?',
@@ -168,112 +168,186 @@ BOOKINGS & HOURS:
   }
 ];
 
-const DEFAULT_ORDERS = [
+// ─── Real Official Store Products ─────────────────────────────────────────────
+const DEFAULT_PRODUCTS = [
   {
-    id: 'ORD-1001',
+    id: 'PROD-1',
     businessId: 'weddingarts',
-    customerName: 'Kamal Perera',
-    customerPhone: '077 456 7890',
-    item: '16x24 UV Gloss Frameless',
-    amount: '7,800',
-    address: 'No 45, Temple Road, Kandy',
-    paymentMethod: 'Bank of Ceylon Transfer',
-    status: 'In Production',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    source: 'Live Voice Call'
+    name: '16x24 UV Gloss Frameless',
+    category: 'UV Frames',
+    price: 7800,
+    cost: 4200,
+    minFloorPrice: 7200,
+    maxDiscountPct: 10,
+    description: '16x24 inch Premium High-Gloss UV Protected Frameless Wall Portrait. 100% Free Island-wide Courier Delivery.',
+    inStock: true
   },
   {
-    id: 'ORD-1002',
+    id: 'PROD-2',
     businessId: 'weddingarts',
-    customerName: 'Dilshan Silva',
-    customerPhone: '071 888 9900',
-    item: '12x18 UV Gloss Frame + Edit',
-    amount: '4,800',
-    address: '12/A, Galle Road, Matara',
-    paymentMethod: 'Cash on Delivery',
-    status: 'Dispatched',
-    createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    source: 'WhatsApp'
+    name: '12x18 UV Gloss Frameless',
+    category: 'UV Frames',
+    price: 4800,
+    cost: 2600,
+    minFloorPrice: 4500,
+    maxDiscountPct: 10,
+    description: '12x18 inch High-Gloss UV Frameless Wall Hanging.',
+    inStock: true
   },
   {
-    id: 'ORD-1003',
+    id: 'PROD-3',
     businessId: 'weddingarts',
-    customerName: 'Chathurika Madu',
-    customerPhone: '075 222 3344',
-    item: '10-Photo Shoot Retouching',
-    amount: '5,000',
-    address: 'Colombo 07',
-    paymentMethod: 'Bank Slip Sent',
-    status: 'Slip Received',
-    createdAt: new Date(Date.now() - 3600000 * 18).toISOString(),
-    source: 'WhatsApp'
+    name: '20x30 UV Gloss Frameless',
+    category: 'UV Frames',
+    price: 11500,
+    cost: 6500,
+    minFloorPrice: 10500,
+    maxDiscountPct: 10,
+    description: '20x30 inch Grand Wall Portrait UV Gloss Frameless. Free Island-wide Courier Delivery.',
+    inStock: true
+  },
+  {
+    id: 'PROD-4',
+    businessId: 'weddingarts',
+    name: '8x12 UV Gloss Frameless',
+    category: 'UV Frames',
+    price: 2300,
+    cost: 1200,
+    minFloorPrice: 2100,
+    maxDiscountPct: 10,
+    description: '8x12 inch Desk / Wall UV Gloss Frameless Photo Print.',
+    inStock: true
+  },
+  {
+    id: 'PROD-5',
+    businessId: 'weddingarts',
+    name: '10x15 UV Gloss Frameless',
+    category: 'UV Frames',
+    price: 3200,
+    cost: 1700,
+    minFloorPrice: 3000,
+    maxDiscountPct: 10,
+    description: '10x15 inch Medium UV Frameless Portrait.',
+    inStock: true
+  },
+  {
+    id: 'PROD-6',
+    businessId: 'weddingarts',
+    name: '3-Panel Wall Hanging Set',
+    category: 'UV Frames',
+    price: 14000,
+    cost: 7500,
+    minFloorPrice: 13000,
+    maxDiscountPct: 10,
+    description: '3-Piece Triptych Luxury UV Gloss Wall Gallery. Free Courier Delivery.',
+    inStock: true
+  },
+  {
+    id: 'PROD-7',
+    businessId: 'weddingarts',
+    name: 'Western / Kandyan Single Photo Edit',
+    category: 'Photo Editing',
+    price: 1500,
+    cost: 200,
+    minFloorPrice: 1300,
+    maxDiscountPct: 15,
+    description: 'High-end portrait skin retouching, background enhancement & color grading.',
+    inStock: true
+  },
+  {
+    id: 'PROD-8',
+    businessId: 'weddingarts',
+    name: '10-Photo Shoot Retouching Bundle',
+    category: 'Photo Editing',
+    price: 5000,
+    cost: 1000,
+    minFloorPrice: 4500,
+    maxDiscountPct: 10,
+    description: 'Complete 10-photo album retouching bundle. Best value for pre-shoots and weddings.',
+    inStock: true
+  },
+  {
+    id: 'PROD-9',
+    businessId: 'weddingarts',
+    name: 'Army / Police Uniform Photo Edit',
+    category: 'Photo Editing',
+    price: 2000,
+    cost: 300,
+    minFloorPrice: 1800,
+    maxDiscountPct: 10,
+    description: 'Specialized uniform portrait restoration, medal detailing & official retouching.',
+    inStock: true
   }
 ];
 
-const DEFAULT_CHATS = [
+// ─── Automated Keyword Flows ──────────────────────────────────────────────────
+const DEFAULT_FLOWS = [
   {
-    id: '94762107801',
-    customerName: 'Kavindu Sandaruwan',
-    customerPhone: '076 210 7801',
-    aiMuted: false,
-    aiMuteUntil: 0,
-    unread: 0,
-    lastTime: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    lastMessage: 'ඔව් මම BOC එකට payment කරලා slip එක එවන්නම්.',
-    messages: [
-      { id: 'm1', sender: 'customer', text: 'Hi, 16x24 UV Frame eke price kiyada?', time: '10:15 AM', timestamp: Date.now() - 1000 * 60 * 20 },
-      { id: 'm2', sender: 'ai', text: 'ආයුබෝවන්! 16x24 UV Gloss Frameless එක රුපියල් 7,800ක් වෙනවා. ඒකට දිවයින පුරා නොමිලේ ඩිලිවරි (Free Courier Delivery) ලැබෙනවා.', time: '10:15 AM', timestamp: Date.now() - 1000 * 60 * 18 },
-      { id: 'm3', sender: 'customer', text: 'Mata BOC bank details ewanna puluwanda?', time: '10:20 AM', timestamp: Date.now() - 1000 * 60 * 14 },
-      { id: 'm4', sender: 'ai', text: 'අපගේ BOC ගිණුම් අංකය 92949122, නම D T Rajapaksha. මුදල් තැන්පත් කර රිසිට්පත මෙහි එවන්න.', time: '10:20 AM', timestamp: Date.now() - 1000 * 60 * 13 },
-      { id: 'm5', sender: 'customer', text: 'ඔව් මම BOC එකට payment කරලා slip එක එවන්නම්.', time: '10:22 AM', timestamp: Date.now() - 1000 * 60 * 12 }
-    ]
+    id: 'FLOW-1',
+    businessId: 'weddingarts',
+    trigger: 'bank',
+    matchType: 'contains',
+    response: '🏦 *Bank Details (Wedding Arts)*:\n\nBank: Bank of Ceylon (BOC)\nAccount: 92949122\nName: D T Rajapaksha\nBranch: Kandy City\n\n_Payment කළ පසු කරුණාකර Slip පත හෝ Screenshot එක මෙහි එවන්න._',
+    isActive: true
   },
   {
-    id: '94775551234',
-    customerName: 'Rashmi Senanayake',
-    customerPhone: '077 555 1234',
-    aiMuted: true,
-    aiMuteUntil: Date.now() + 3600000,
-    unread: 1,
-    lastTime: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    lastMessage: 'Wedding shoot package eka customize karaganna puluwanda?',
-    messages: [
-      { id: 'm11', sender: 'customer', text: 'Wedding shoot package eka customize karaganna puluwanda?', time: '10:45 AM', timestamp: Date.now() - 1000 * 60 * 5 }
-    ]
+    id: 'FLOW-2',
+    businessId: 'weddingarts',
+    trigger: 'delivery',
+    matchType: 'contains',
+    response: '🚚 *Delivery Information*:\n\n• 16x24, 20x30 සහ 3-Panel Sets සඳහා *100% Free Islandwide Courier Delivery*!\n• 12x18 සහ ඊට කුඩා Frames සඳහා Delivery Fee රු. 450කි.\n• දින 2-4ක් ඇතුළත ආරක්ෂිතව නිවසටම ගෙන්වා ගත හැක.',
+    isActive: true
+  },
+  {
+    id: 'FLOW-3',
+    businessId: 'weddingarts',
+    trigger: 'order',
+    matchType: 'contains',
+    response: '📦 *ඇණවුමක් ලබා දීමට අවශ්‍ය විස්තර*:\n\n1. ඔබගේ නම:\n2. ලිපිනය:\n3. දුරකථන අංක 2ක්:\n4. අවශ්‍ය Frame ප්‍රමාණය (උදා: 16x24):\n5. Print කිරීමට අවශ්‍ය පැහැදිලි ඡායාරූපය Document එකක් ලෙස මෙහි එවන්න.',
+    isActive: true
   }
 ];
+
+// ─── Store & AI Settings ──────────────────────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  aiPersona: 'FRIENDLY_CUSTOMER_CARE',
+  aiName: 'Nethmi (OmniSix AI)',
+  assistantTitle: 'Senior Customer Support Agent',
+  voiceProfile: 'Leda',
+  typingDelaySeconds: 1.5,
+  isWorkingHoursEnabled: false,
+  openTime: '08:30',
+  closeTime: '21:00',
+  closedMessage: 'ආයුබෝවන්! දැනට අපගේ සේවාවන් වසා ඇත. අප නැවත විවෘත වූ වහාම ඔබට පිළිතුරු ලබා දෙන්නෙමු.',
+  humanTakeoverDurationMinutes: 30,
+  isAntiBanSpacedBroadcast: true,
+  isSmartUpsellEnabled: true,
+  isSmartNegotiationEnabled: true,
+  isArchetypeProfilingEnabled: true,
+  isAngryEscalationEnabled: true
+};
 
 // ─── Database Class ───────────────────────────────────────────────────────────
 class Database {
   constructor() {
     this.data = {
       businesses: DEFAULT_BUSINESSES,
-      orders: DEFAULT_ORDERS,
-      chats: DEFAULT_CHATS,
-      broadcasts: [
-        {
-          id: 'BC-1',
-          businessId: 'weddingarts',
-          title: 'Wedding Season 15% OFF UV Frames',
-          message: 'විශේෂ මංගල වාරයේ දීමනාව! 16x24 සහ 20x30 UV Frames සඳහා 15% ක විශේෂ වට්ටමක් සහ නොමිලේ දිවයින පුරා බෙදාහැරීම. අදම ඇණවුම් කරන්න!',
-          targetCount: 142,
-          sentCount: 142,
-          status: 'Completed',
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        }
-      ],
+      products: DEFAULT_PRODUCTS,
+      customFlows: DEFAULT_FLOWS,
+      settings: DEFAULT_SETTINGS,
+      orders: [],      // Pure Real Production: Starts with 0 fake orders
+      chats: [],       // Pure Real Production: Starts with 0 fake chats
+      broadcasts: [],  // Pure Real Production: Starts with 0 fake campaigns
       whatsapp: {
         connected: false,
-        phoneNumber: '076 210 7801',
+        phoneNumber: null,
         pairedAt: null,
-        pairingCode: 'WED-8842',
-        qrData: 'https://weddingarts-live-call.onrender.com/ws/pair',
+        pairingCode: null,
+        qrData: null,
         lastSeen: new Date().toISOString()
       },
       analytics: {
-        totalCalls: 34,
-        totalWhatsappMessages: 189,
-        activeSessions: 2
+        totalCalls: 0
       }
     };
     this.load();
@@ -285,10 +359,15 @@ class Database {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         if (parsed.businesses && parsed.businesses.length > 0) {
-          this.data = { ...this.data, ...parsed };
-          if (!this.data.chats || this.data.chats.length === 0) {
-            this.data.chats = [...DEFAULT_CHATS];
-          }
+          this.data.businesses = parsed.businesses;
+          this.data.products = parsed.products || DEFAULT_PRODUCTS;
+          this.data.customFlows = parsed.customFlows || DEFAULT_FLOWS;
+          this.data.settings = parsed.settings || DEFAULT_SETTINGS;
+          this.data.orders = parsed.orders || [];
+          this.data.chats = parsed.chats || [];
+          this.data.broadcasts = parsed.broadcasts || [];
+          if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
+          if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
         }
       } else {
         this.save();
@@ -335,15 +414,125 @@ class Database {
     return biz;
   }
 
-  // ─── Orders Methods ──────────────────────────────────────────────────────────
+  // ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────
+  getProducts(businessId) {
+    const bId = businessId || this.getActiveBusiness().id;
+    return (this.data.products || []).filter(p => !p.businessId || p.businessId === bId);
+  }
+
+  addProduct(prod) {
+    if (!this.data.products) this.data.products = [];
+    const newProd = {
+      id: 'PROD-' + (this.data.products.length + 1),
+      businessId: prod.businessId || this.getActiveBusiness().id,
+      name: prod.name || 'Untitled Product',
+      category: prod.category || 'General',
+      price: parseFloat(prod.price) || 0,
+      cost: parseFloat(prod.cost) || 0,
+      minFloorPrice: parseFloat(prod.minFloorPrice) || (parseFloat(prod.price) * 0.9) || 0,
+      maxDiscountPct: parseInt(prod.maxDiscountPct) || 10,
+      description: prod.description || '',
+      inStock: prod.inStock !== false
+    };
+    this.data.products.push(newProd);
+    this.save();
+    return newProd;
+  }
+
+  updateProduct(id, updates) {
+    const idx = (this.data.products || []).findIndex(p => p.id === id);
+    if (idx >= 0) {
+      this.data.products[idx] = { ...this.data.products[idx], ...updates };
+      this.save();
+      return this.data.products[idx];
+    }
+    return null;
+  }
+
+  deleteProduct(id) {
+    const initialLen = (this.data.products || []).length;
+    this.data.products = (this.data.products || []).filter(p => p.id !== id);
+    if (this.data.products.length !== initialLen) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  // ─── Custom Keyword Flows (From APK) ──────────────────────────────────────────
+  getCustomFlows(businessId) {
+    const bId = businessId || this.getActiveBusiness().id;
+    return (this.data.customFlows || []).filter(f => !f.businessId || f.businessId === bId);
+  }
+
+  addCustomFlow(flow) {
+    if (!this.data.customFlows) this.data.customFlows = [];
+    const newFlow = {
+      id: 'FLOW-' + (this.data.customFlows.length + 1),
+      businessId: flow.businessId || this.getActiveBusiness().id,
+      trigger: (flow.trigger || '').toLowerCase().trim(),
+      matchType: flow.matchType || 'contains', // 'contains' | 'exact'
+      response: flow.response || '',
+      isActive: flow.isActive !== false
+    };
+    this.data.customFlows.push(newFlow);
+    this.save();
+    return newFlow;
+  }
+
+  updateCustomFlow(id, updates) {
+    const idx = (this.data.customFlows || []).findIndex(f => f.id === id);
+    if (idx >= 0) {
+      this.data.customFlows[idx] = { ...this.data.customFlows[idx], ...updates };
+      this.save();
+      return this.data.customFlows[idx];
+    }
+    return null;
+  }
+
+  deleteCustomFlow(id) {
+    const initialLen = (this.data.customFlows || []).length;
+    this.data.customFlows = (this.data.customFlows || []).filter(f => f.id !== id);
+    if (this.data.customFlows.length !== initialLen) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  matchCustomFlow(text, businessId) {
+    const flows = this.getCustomFlows(businessId);
+    const clean = (text || '').toLowerCase().trim();
+    for (const f of flows) {
+      if (!f.isActive) continue;
+      const trig = f.trigger.toLowerCase();
+      if (f.matchType === 'exact' && clean === trig) return f;
+      if (f.matchType === 'contains' && clean.includes(trig)) return f;
+    }
+    return null;
+  }
+
+  // ─── Store & AI Persona Settings (From APK) ──────────────────────────────────
+  getSettings() {
+    return this.data.settings || DEFAULT_SETTINGS;
+  }
+
+  updateSettings(updates) {
+    this.data.settings = { ...this.data.settings, ...updates };
+    this.save();
+    return this.data.settings;
+  }
+
+  // ─── Real Orders Pipeline Methods ────────────────────────────────────────────
   getOrders(businessId) {
     const list = businessId
-      ? this.data.orders.filter(o => !o.businessId || o.businessId === businessId)
-      : this.data.orders;
+      ? (this.data.orders || []).filter(o => !o.businessId || o.businessId === businessId)
+      : (this.data.orders || []);
     return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
   addOrder(order) {
+    if (!this.data.orders) this.data.orders = [];
     const newOrder = {
       id: order.id || 'ORD-' + (Math.floor(1000 + Math.random() * 9000)),
       businessId: order.businessId || this.getActiveBusiness().id,
@@ -354,6 +543,7 @@ class Database {
       address: order.address || order.note || 'To be confirmed',
       paymentMethod: order.paymentMethod || 'Bank Transfer',
       status: order.status || 'Pending Payment',
+      trackingNumber: order.trackingNumber || '',
       createdAt: new Date().toISOString(),
       source: order.source || 'Live Voice Call'
     };
@@ -362,26 +552,34 @@ class Database {
     return newOrder;
   }
 
-  updateOrderStatus(orderId, status) {
-    const ord = this.data.orders.find(o => o.id === orderId);
+  updateOrderStatus(orderId, status, trackingNumber) {
+    const ord = (this.data.orders || []).find(o => o.id === orderId);
     if (ord) {
       ord.status = status;
+      if (trackingNumber !== undefined) ord.trackingNumber = trackingNumber;
       this.save();
       return ord;
     }
     return null;
   }
 
-  // ─── Chats & Omnichannel Inbox ───────────────────────────────────────────────
+  deleteOrder(orderId) {
+    this.data.orders = (this.data.orders || []).filter(o => o.id !== orderId);
+    this.save();
+    return true;
+  }
+
+  // ─── Chats & Omnichannel Inbox (Real Production) ──────────────────────────────
   getChats(businessId) {
-    return this.data.chats.sort((a, b) => new Date(b.lastTime || 0) - new Date(a.lastTime || 0));
+    return (this.data.chats || []).sort((a, b) => new Date(b.lastTime || 0) - new Date(a.lastTime || 0));
   }
 
   getChat(chatId) {
-    return this.data.chats.find(c => c.id === chatId);
+    return (this.data.chats || []).find(c => c.id === chatId);
   }
 
   addChatMessage(chatId, sender, text, customerName = 'Customer', customerPhone = '') {
+    if (!this.data.chats) this.data.chats = [];
     let chat = this.data.chats.find(c => c.id === chatId);
     if (!chat) {
       chat = {
@@ -391,6 +589,9 @@ class Database {
         aiMuted: false,
         aiMuteUntil: 0,
         unread: 0,
+        archetype: 'GENERAL',
+        isEscalated: false,
+        escalationReason: '',
         lastTime: new Date().toISOString(),
         messages: []
       };
@@ -415,7 +616,7 @@ class Database {
   }
 
   setChatAiMute(chatId, isMuted, minutes = 30) {
-    const chat = this.data.chats.find(c => c.id === chatId);
+    const chat = (this.data.chats || []).find(c => c.id === chatId);
     if (chat) {
       chat.aiMuted = isMuted;
       chat.aiMuteUntil = isMuted ? Date.now() + minutes * 60 * 1000 : 0;
@@ -425,20 +626,47 @@ class Database {
     return null;
   }
 
-  // ─── Broadcasts ─────────────────────────────────────────────────────────────
+  setChatEscalation(chatId, isEscalated, reason = '') {
+    const chat = (this.data.chats || []).find(c => c.id === chatId);
+    if (chat) {
+      chat.isEscalated = isEscalated;
+      chat.escalationReason = reason;
+      if (isEscalated) {
+        chat.aiMuted = true;
+        chat.aiMuteUntil = Date.now() + 60 * 60 * 1000;
+      }
+      this.save();
+      return chat;
+    }
+    return null;
+  }
+
+  setChatArchetype(chatId, archetype) {
+    const chat = (this.data.chats || []).find(c => c.id === chatId);
+    if (chat) {
+      chat.archetype = archetype;
+      this.save();
+      return chat;
+    }
+    return null;
+  }
+
+  // ─── Broadcast Campaigns ──────────────────────────────────────────────────────
   getBroadcasts(businessId) {
-    return this.data.broadcasts;
+    return this.data.broadcasts || [];
   }
 
   addBroadcast(bc) {
+    if (!this.data.broadcasts) this.data.broadcasts = [];
     const newBc = {
       id: 'BC-' + (this.data.broadcasts.length + 1),
       businessId: bc.businessId || this.getActiveBusiness().id,
       title: bc.title || 'Untitled Campaign',
       message: bc.message,
-      targetCount: bc.targetCount || 100,
-      sentCount: bc.sentCount || bc.targetCount || 100,
-      status: 'Completed',
+      targetAudience: bc.targetAudience || 'All Customers',
+      targetCount: bc.targetCount || 0,
+      sentCount: bc.sentCount || 0,
+      status: bc.status || 'Active',
       createdAt: new Date().toISOString()
     };
     this.data.broadcasts.unshift(newBc);
@@ -448,7 +676,7 @@ class Database {
 
   // ─── WhatsApp Status ────────────────────────────────────────────────────────
   getWhatsAppStatus() {
-    return this.data.whatsapp;
+    return this.data.whatsapp || {};
   }
 
   updateWhatsAppStatus(status) {
@@ -457,23 +685,38 @@ class Database {
     return this.data.whatsapp;
   }
 
-  // ─── Analytics ──────────────────────────────────────────────────────────────
+  recordLiveCall() {
+    if (!this.data.analytics) this.data.analytics = { totalCalls: 0 };
+    this.data.analytics.totalCalls = (this.data.analytics.totalCalls || 0) + 1;
+    this.save();
+  }
+
+  // ─── Real Production Analytics (Zero Fake Figures) ───────────────────────────
   getAnalytics() {
     const biz = this.getActiveBusiness();
     const orders = this.getOrders(biz.id);
-    const totalRev = orders.reduce((sum, o) => {
+    const confirmedOrders = orders.filter(o => ['Confirmed', 'In Production', 'Dispatched', 'Delivered', 'Slip Received'].includes(o.status));
+    const totalRev = confirmedOrders.reduce((sum, o) => {
       const val = parseInt((o.amount || '0').replace(/[^0-9]/g, '')) || 0;
       return sum + val;
     }, 0);
 
+    const chats = this.data.chats || [];
+    const unreadChats = chats.filter(c => (c.unread || 0) > 0).length;
+    const escalatedChats = chats.filter(c => c.isEscalated).length;
+
     return {
       activeBusiness: biz.name,
       totalOrders: orders.length,
+      confirmedOrders: confirmedOrders.length,
       revenueLKR: totalRev.toLocaleString('en-US'),
-      totalChats: this.data.chats.length,
-      whatsappConnected: this.data.whatsapp.connected,
-      liveCallsCount: this.data.analytics.totalCalls,
-      totalLeads: 24 + this.data.chats.length
+      totalChats: chats.length,
+      unreadChats: unreadChats,
+      escalatedChats: escalatedChats,
+      whatsappConnected: !!(this.data.whatsapp && this.data.whatsapp.connected),
+      liveCallsCount: this.data.analytics?.totalCalls || 0,
+      totalLeads: chats.length,
+      productsCount: (this.data.products || []).filter(p => !p.businessId || p.businessId === biz.id).length
     };
   }
 }

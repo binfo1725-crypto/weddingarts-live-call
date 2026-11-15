@@ -10,6 +10,13 @@ const fs = require('fs');
 const path = require('path');
 const db = require('./db.js');
 const waEngine = require('./whatsapp.js');
+const {
+  CustomerArchetypeEngine,
+  AngryCustomerEscalationEngine,
+  SmartNegotiationEngine,
+  SmartUpsellEngine,
+  SlipDetectionEngine
+} = require('./ai_engines.js');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -165,9 +172,81 @@ app.get('/api/orders', (req, res) => {
 });
 
 app.post('/api/orders/status', (req, res) => {
-  const { id, status } = req.body;
-  const order = db.updateOrderStatus(id, status);
+  const { id, status, trackingNumber } = req.body;
+  const order = db.updateOrderStatus(id, status, trackingNumber);
   res.json({ ok: true, order });
+});
+
+app.post('/api/orders/create', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
+  const order = db.addOrder({
+    ...req.body,
+    businessId: activeBiz.id,
+    source: 'Manual Dashboard'
+  });
+  res.json({ ok: true, order });
+});
+
+app.post('/api/orders/delete', (req, res) => {
+  const { id } = req.body;
+  db.deleteOrder(id);
+  res.json({ ok: true });
+});
+
+// ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────
+app.get('/api/products', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
+  res.json({ ok: true, products: db.getProducts(activeBiz.id) });
+});
+
+app.post('/api/products', (req, res) => {
+  const product = db.addProduct(req.body);
+  res.json({ ok: true, product });
+});
+
+app.post('/api/products/update', (req, res) => {
+  const { id, ...updates } = req.body;
+  const product = db.updateProduct(id, updates);
+  res.json({ ok: true, product });
+});
+
+app.post('/api/products/delete', (req, res) => {
+  const { id } = req.body;
+  const success = db.deleteProduct(id);
+  res.json({ ok: success });
+});
+
+// ─── Custom Keyword Flows CRUD (From APK) ──────────────────────────────────────
+app.get('/api/flows', (req, res) => {
+  const activeBiz = db.getActiveBusiness();
+  res.json({ ok: true, flows: db.getCustomFlows(activeBiz.id) });
+});
+
+app.post('/api/flows', (req, res) => {
+  const flow = db.addCustomFlow(req.body);
+  res.json({ ok: true, flow });
+});
+
+app.post('/api/flows/update', (req, res) => {
+  const { id, ...updates } = req.body;
+  const flow = db.updateCustomFlow(id, updates);
+  res.json({ ok: true, flow });
+});
+
+app.post('/api/flows/delete', (req, res) => {
+  const { id } = req.body;
+  const success = db.deleteCustomFlow(id);
+  res.json({ ok: success });
+});
+
+// ─── Store & AI Persona Settings (From APK) ───────────────────────────────────
+app.get('/api/settings', (req, res) => {
+  res.json({ ok: true, settings: db.getSettings() });
+});
+
+app.post('/api/settings', (req, res) => {
+  const settings = db.updateSettings(req.body);
+  res.json({ ok: true, settings });
 });
 
 // Live Chat Inbox & Human Takeover
@@ -363,6 +442,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', (browserWs, req) => {
+  db.recordLiveCall();
   const url = new URL(req.url, `http://localhost`);
   const activeBiz = db.getActiveBusiness();
   const sessionId = url.searchParams.get('s');
@@ -474,8 +554,39 @@ wss.on('connection', (browserWs, req) => {
 
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess, userLang) {
-  const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : BUILTIN_DATASET;
-  const systemInstruction = buildSystemPrompt(sess, datasetContext, userLang);
+  const activeBiz = db.getActiveBusiness();
+
+  // 1. Angry Customer Escalation Engine
+  const angryCheck = AngryCustomerEscalationEngine.check(userMessage);
+  if (angryCheck.isAngry) {
+    console.log(`[ai-engine] 😡 Angry customer escalation triggered: "${angryCheck.trigger}"`);
+    if (sess.customerPhone) {
+      db.setChatEscalation(sess.customerPhone, true, angryCheck.trigger);
+    }
+    return angryCheck.deEscalationReply;
+  }
+
+  // 2. Slip / Receipt Detection Engine
+  if (SlipDetectionEngine.isSlipSubmission(userMessage)) {
+    console.log(`[ai-engine] 💳 Bank slip / receipt submission detected.`);
+    if (sess.customerPhone) {
+      const orders = db.getOrders(activeBiz.id);
+      const pendingOrd = orders.find(o => o.customerPhone === sess.customerPhone && o.status === 'Pending Payment');
+      if (pendingOrd) {
+        db.updateOrderStatus(pendingOrd.id, 'Slip Received');
+      }
+    }
+  }
+
+  // 3. Keyword-Triggered Custom Flows
+  const matchedFlow = db.matchCustomFlow(userMessage, activeBiz.id);
+  if (matchedFlow) {
+    console.log(`[ai-engine] ⚡ Custom Flow triggered: "${matchedFlow.trigger}"`);
+    return matchedFlow.response;
+  }
+
+  const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : (activeBiz.dataset || BUILTIN_DATASET);
+  const systemInstruction = buildSystemPrompt(sess, datasetContext, userLang, userMessage);
 
   if (!Array.isArray(sess.history)) sess.history = [];
 
@@ -681,21 +792,45 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
   return { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
 }
 
-function buildSystemPrompt(sess, datasetText, userLang) {
+function buildSystemPrompt(sess, datasetText, userLang, userMessage) {
   const activeBiz = db.getActiveBusiness();
+  const settings = db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
   const customerName = sess.customerName || 'Customer';
   const dataset = (datasetText && datasetText.length > 50) ? datasetText : (activeBiz.dataset || BUILTIN_DATASET);
 
-  return `You are a live voice AI assistant on a real-time telephone voice call for "${storeName}".
+  // 1. Classify Customer Psychological Archetype
+  const archetypeResult = CustomerArchetypeEngine.classify(userMessage || '');
+  if (sess.customerPhone && archetypeResult.archetype !== 'GENERAL') {
+    db.setChatArchetype(sess.customerPhone, archetypeResult.archetype);
+  }
+
+  // 2. Dynamic Upsell Directive
+  const upsellDirective = SmartUpsellEngine.detectUpsellOpportunity(userMessage || '', db.getProducts(activeBiz.id));
+
+  // 3. Dynamic Negotiation Directive
+  const isNegotiating = SmartNegotiationEngine.isBargaining(userMessage || '');
+  const negotiationDirective = isNegotiating ? SmartNegotiationEngine.getNegotiationDirective(1) : '';
+
+  // 4. Persona Tone
+  let personaInstruction = 'friendly, warm, respectful Sri Lankan customer care agent';
+  if (settings.aiPersona === 'LUXURY_EXECUTIVE') {
+    personaInstruction = 'sophisticated, prestigious luxury concierge agent with polite elite tone';
+  } else if (settings.aiPersona === 'ENERGETIC_SALES') {
+    personaInstruction = 'highly enthusiastic, proactive sales rep highlighting special limited-time offers';
+  } else if (settings.aiPersona === 'DIRECT_CRISP') {
+    personaInstruction = 'efficient, fast, direct and crystal-clear business representative';
+  }
+
+  return `You are "${settings.aiName || 'Nethmi'}", a ${personaInstruction} for "${storeName}".
 Customer Name: "${customerName}".
 
 === LANGUAGE COMPREHENSION & RULES (100% MULTILINGUAL) ===
 You must effortlessly understand the customer regardless of which language or format they speak:
 1. PURE SINHALA (සිංහල අකුරින්): e.g. "මට ගණන් කියන්න", "ඩිලිවරි නොමිලේද?", "order එකක් දාන්නේ කොහොමද?"
-2. SINGLISH (Sinhala written with Latin letters): e.g. "mata mila kiyanna", "delivery free da", "bank details ewanna", "order ekak danna puluwanda", "wistara one"
+2. SINGLISH (Sinhala written with Latin letters): e.g. "mata mila kiyanna", "delivery free da", "bank details ewanna", "order ekak danna puluwanda"
 3. PURE ENGLISH: e.g. "What are the sizes and prices?", "Do you provide cash on delivery?", "Can I place an order?"
-4. MIXED GREETINGS & EXPRESSIONS: e.g. "ආයි good morning", "Good morning machan", "Hello gana kiyanna", "Hi ayye wistara ewanna"
+4. MIXED GREETINGS: e.g. "ආයි good morning", "Good morning machan", "Hello gana kiyanna"
 
 CRITICAL OUTPUT RULES FOR VOICE SYNTHESIS (GEMINI LEDA VOICE):
 - IF THE CUSTOMER SPEAKS IN ENGLISH: Reply in fluent, friendly, natural English.
@@ -706,14 +841,14 @@ CRITICAL OUTPUT RULES FOR VOICE SYNTHESIS (GEMINI LEDA VOICE):
 ${dataset}
 --- END OFFICIAL MASTER DATASET ---
 
-KEY RULES FOR LIVE VOICE CALL:
-1. STRICT DATASET ACCURACY:
-   - Always quote ONLY the exact products, services, delivery policies, bank accounts, and prices given in the OFFICIAL MASTER DATASET above.
-   - Never invent discounts, nonexistent products, or incorrect prices.
+${archetypeResult.promptDirective}
+${upsellDirective}
+${negotiationDirective}
 
-2. CONVERSATIONAL BREVITY: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words maximum). Customers are listening on a live phone call.
-3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like a friendly Sri Lankan customer service agent (e.g., "ඔව් සහෝදරයා / අක්කේ", "${storeName} වෙතින්...").
-   - If greeted (e.g. "ආයි good morning" or "Good morning"), warmly greet back ("Good morning! ආයුබෝවන්! ${storeName} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට කොහොමද උදව් කරන්න පුළුවන්?").
+KEY RULES FOR CONVERSATION & SALES:
+1. STRICT DATASET ACCURACY: Always quote ONLY the exact products, services, delivery policies, bank accounts, and prices given in the OFFICIAL MASTER DATASET above.
+2. CONVERSATIONAL BREVITY: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words maximum). Customers are listening on a live phone call or chat.
+3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like an authentic Sri Lankan customer service agent.
 4. If order is confirmed, add this tag at the end:
    [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
 }
