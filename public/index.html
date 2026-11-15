@@ -61,8 +61,8 @@
 
   .avatar-ring {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: 145px;
+    height: 145px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,14 +83,14 @@
   }
 
   .avatar {
-    width: 90px;
-    height: 90px;
+    width: 86px;
+    height: 86px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
+    font-size: 2.4rem;
     box-shadow: 0 0 35px rgba(124,58,237,0.4);
     z-index: 2;
     transition: all 0.3s ease;
@@ -98,10 +98,6 @@
   .avatar.speaking {
     box-shadow: 0 0 50px rgba(6,182,212,0.8), 0 0 25px rgba(124,58,237,0.6);
     transform: scale(1.06);
-  }
-  .avatar.listening {
-    box-shadow: 0 0 45px rgba(34,197,94,0.8);
-    background: linear-gradient(135deg, #10b981, #06b6d4);
   }
 
   .customer-name {
@@ -215,18 +211,13 @@
     transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
   }
-  .btn-mute {
+  .btn-interrupt {
     width: 65px;
     height: 65px;
     font-size: 1.6rem;
-    background: var(--card);
-    border: 2px solid rgba(255,255,255,0.2);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow: 0 4px 20px rgba(124,58,237,0.5);
     color: white;
-  }
-  .btn-mute.muted {
-    background: #451a1a;
-    border-color: var(--red);
-    color: #fca5a5;
   }
   .btn-end {
     width: 65px;
@@ -283,9 +274,9 @@
   <!-- START SCREEN -->
   <div id="start-screen">
     <div class="avatar" style="width:105px;height:105px;font-size:3rem;margin-bottom:0.5rem;">🎙️</div>
-    <h2 style="font-size:1.45rem;">Hands-Free Live Voice Call</h2>
+    <h2 style="font-size:1.45rem;">Echo-Free Live Voice Call</h2>
     <p style="font-size:0.9rem;color:var(--muted);line-height:1.6;" id="start-sub">
-      සාමාන්‍ය Phone Call එකක් මෙන් කිසිවක් Touch නොකර<br>කෙලින්ම කතාබස් කිරීමට Call Start කරන්න.
+      Smart Turn-Taking තාක්ෂණය සමඟ ස්වයංක්‍රීය ඇමතුම.<br>AI කතා කර අවසන් වූ සැණින් Mic එක සක්‍රිය වේ.
     </p>
     <button class="btn-start" id="btn-start-call" onclick="startCall()">
       📞 Call Start කරන්න
@@ -307,7 +298,7 @@
 
     <div class="status-box">
       <div class="status-dot green" id="status-dot"></div>
-      <div class="status-text" id="status-text">🎙️ Hands-Free Call Active — කතා කරන්න</div>
+      <div class="status-text" id="status-text">සම්බන්ධ විය</div>
     </div>
 
     <div class="transcript-box" id="transcript">
@@ -326,11 +317,11 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()" title="Mute Mic">🎤</button>
+      <button class="btn btn-interrupt" onclick="interruptAi()" title="Interrupt / Cut AI">✋</button>
       <button class="btn btn-end" onclick="endCall()" title="End Call">📵</button>
     </div>
-    <div style="font-size:0.78rem;color:var(--accent2);text-align:center;font-weight:500;">
-      ✨ <strong>100% Hands-Free:</strong> සාමාන්‍ය Call එකක් මෙන් කෙලින්ම කතා කරන්න!
+    <div style="font-size:0.75rem;color:var(--muted);text-align:center;">
+      ✋ <strong>Interrupt:</strong> AI කතා කරන මැද්දෙන් කපා කතා කිරීමට Tap කරන්න
     </div>
 
   </div>
@@ -352,8 +343,8 @@ let callStartTime = null;
 let timerInterval = null;
 let currentAudio = null;
 let isAiSpeaking = false;
-let isMuted = false;
-let shouldKeepListening = false;
+let isRecognitionActive = false;
+let lastAiSpokenText = "";
 
 // ─── Start Call ───────────────────────────────────────────────────────────────
 function startCall() {
@@ -363,8 +354,7 @@ function startCall() {
   const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}`;
   connectWs(wsUrl);
 
-  shouldKeepListening = true;
-  setupContinuousSpeechRecognition();
+  setupSpeechRecognition();
 
   callStartTime = Date.now();
   timerInterval = setInterval(updateTimer, 1000);
@@ -375,7 +365,7 @@ function connectWs(url) {
   ws = new WebSocket(url);
 
   ws.onopen = () => {
-    setStatus('green', '🎙️ Hands-Free Call Active — කතා කරන්න');
+    setStatus('green', 'සම්බන්ධ විය');
   };
 
   ws.onmessage = (evt) => {
@@ -383,25 +373,25 @@ function connectWs(url) {
       const data = JSON.parse(evt.data);
 
       if (data.type === 'ai_speech') {
-        setStatus('green', 'AI කතා කරයි... (මැද්දෙන් කතා කළ හැක)');
+        lastAiSpokenText = (data.text || "").toLowerCase();
+        
+        // 🛡️ 1. ECHO PREVENTION: Stop listening while AI speaks!
+        pauseListening();
+
+        setStatus('green', '🔊 AI කතා කරයි...');
         setWaveformActive(true);
         setAvatarSpeaking(true);
         appendTranscript(data.text, 'ai');
 
         if (data.audioBase64) {
           playAudioBase64(data.audioBase64, () => {
-            isAiSpeaking = false;
-            setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
-            setWaveformActive(false);
-            setAvatarSpeaking(false);
+            onAiSpeechFinished();
           });
         } else {
-          isAiSpeaking = false;
-          setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
-          setWaveformActive(false);
-          setAvatarSpeaking(false);
+          onAiSpeechFinished();
         }
       } else if (data.type === 'ai_thinking') {
+        pauseListening();
         setStatus('orange', '⏳ AI සිතමින් පවතී...');
         setWaveformActive(true);
       } else if (data.type === 'order_confirmed') {
@@ -411,6 +401,7 @@ function connectWs(url) {
       } else if (data.type === 'error') {
         setStatus('red', data.message);
         appendTranscript('⚠️ ' + data.message, 'ai');
+        resumeListening();
       }
     } catch (e) {
       console.error(e);
@@ -419,16 +410,31 @@ function connectWs(url) {
 
   ws.onclose = () => {
     setStatus('red', 'Call එක විසන්ධි විය');
+    pauseListening();
     setWaveformActive(false);
     setAvatarSpeaking(false);
   };
 }
 
-// ─── Audio Playback with Instant Barge-In ─────────────────────────────────────
+function onAiSpeechFinished() {
+  isAiSpeaking = false;
+  setWaveformActive(false);
+  setAvatarSpeaking(false);
+  setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
+
+  // Small 400ms buffer after audio stops before opening mic (clears room echo)
+  setTimeout(() => {
+    if (!isAiSpeaking) {
+      resumeListening();
+    }
+  }, 400);
+}
+
+// ─── Audio Playback ───────────────────────────────────────────────────────────
 function playAudioBase64(base64Data, onEnd) {
   stopCurrentAudio();
-
   isAiSpeaking = true;
+
   const audioSrc = 'data:audio/wav;base64,' + base64Data;
   const audio = new Audio(audioSrc);
   currentAudio = audio;
@@ -464,28 +470,32 @@ function stopCurrentAudio() {
   isAiSpeaking = false;
 }
 
-// ─── 100% Always-On Hands-Free Speech Recognition ────────────────────────────
-function setupContinuousSpeechRecognition() {
+// ─── Echo-Cancelled Smart Speech Recognition ─────────────────────────────────
+function setupSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return;
 
   recognition = new SpeechRecognition();
-  recognition.continuous = true; // Stay alive continuously!
+  recognition.continuous = true;
   recognition.interimResults = false;
   recognition.lang = 'si-LK';
 
   recognition.onresult = (event) => {
-    if (isMuted) return;
+    // 🛡️ Double-check: Ignore any noise captured if AI was speaking
+    if (isAiSpeaking) {
+      console.log('[Echo Guard] Ignored speech because AI was speaking.');
+      return;
+    }
 
     const lastResultIndex = event.results.length - 1;
     const spokenText = event.results[lastResultIndex][0].transcript.trim();
 
     if (spokenText) {
-      // ⚡ INSTANT BARGE-IN: If AI is speaking and user says anything, cut AI audio immediately!
-      if (isAiSpeaking || currentAudio) {
-        console.log('[Hands-Free Barge-In] User interrupted AI with:', spokenText);
-        stopCurrentAudio();
-        setAvatarSpeaking(false);
+      // 🛡️ Echo Filter: Don't process if the transcript is simply an echo of what AI just said
+      const lower = spokenText.toLowerCase();
+      if (lastAiSpokenText && (lastAiSpokenText.includes(lower) || lower.includes(lastAiSpokenText))) {
+        console.log('[Echo Guard] Filtered out reflected AI speech:', spokenText);
+        return;
       }
 
       appendTranscript(spokenText, 'user');
@@ -501,37 +511,47 @@ function setupContinuousSpeechRecognition() {
   };
 
   recognition.onend = () => {
-    // Auto-restart recognition so user NEVER has to touch mic button!
-    if (shouldKeepListening && !isMuted) {
+    isRecognitionActive = false;
+    // Auto-restart if we should be listening and AI is not speaking
+    if (!isAiSpeaking && recognition) {
       try {
         recognition.start();
+        isRecognitionActive = true;
       } catch (e) {}
     }
   };
-
-  try {
-    recognition.start();
-  } catch (e) {}
 }
 
-function toggleMute() {
-  isMuted = !isMuted;
-  const btn = document.getElementById('btn-mute');
-  if (isMuted) {
-    btn.classList.add('muted');
-    btn.textContent = '🔇';
-    setStatus('red', 'Microphone Muted (අක්‍රියයි)');
-    if (recognition) try { recognition.stop(); } catch(e){}
-  } else {
-    btn.classList.remove('muted');
-    btn.textContent = '🎤';
-    setStatus('green', '🎙️ Hands-Free Call Active — කතා කරන්න');
-    if (recognition) try { recognition.start(); } catch(e){}
+function pauseListening() {
+  if (recognition && isRecognitionActive) {
+    try {
+      recognition.stop();
+      isRecognitionActive = false;
+    } catch (e) {}
+  }
+}
+
+function resumeListening() {
+  if (recognition && !isRecognitionActive && !isAiSpeaking) {
+    try {
+      recognition.start();
+      isRecognitionActive = true;
+      setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
+    } catch (e) {}
+  }
+}
+
+// ─── Manual Interrupt (✋ Button) ─────────────────────────────────────────────
+function interruptAi() {
+  if (isAiSpeaking || currentAudio) {
+    stopCurrentAudio();
+    onAiSpeechFinished();
   }
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
 function sendUserMessage(text) {
+  pauseListening();
   setStatus('orange', '⏳ AI සිතමින් පවතී...');
   setWaveformActive(true);
 
@@ -546,21 +566,23 @@ function sendUserMessage(text) {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        setStatus('green', 'AI කතා කරයි... (මැද්දෙන් කතා කළ හැක)');
+        lastAiSpokenText = (data.reply || "").toLowerCase();
+        setStatus('green', '🔊 AI කතා කරයි...');
         setWaveformActive(true);
         setAvatarSpeaking(true);
         appendTranscript(data.reply, 'ai');
         if (data.audioBase64) {
           playAudioBase64(data.audioBase64, () => {
-            setStatus('green', '🎙️ ඔබගේ වාරය — කෙලින්ම කතා කරන්න');
-            setWaveformActive(false);
-            setAvatarSpeaking(false);
+            onAiSpeechFinished();
           });
+        } else {
+          onAiSpeechFinished();
         }
       }
     })
     .catch(() => {
       setStatus('red', 'දෝෂයක් සිදුවිය');
+      resumeListening();
     });
   }
 }
@@ -594,9 +616,8 @@ function updateTimer() {
   document.getElementById('call-timer').textContent = `${m}:${s}`;
 }
 function endCall() {
-  shouldKeepListening = false;
   stopCurrentAudio();
-  if (recognition) try { recognition.abort(); } catch(e){}
+  pauseListening();
   if (ws) ws.close();
   clearInterval(timerInterval);
   setStatus('red', '📵 Call එක අවසන් විය');
