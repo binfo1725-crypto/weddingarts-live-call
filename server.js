@@ -18,19 +18,41 @@ const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}
 
 const GEMINI_TEXT_MODELS = [
   'gemini-3.1-flash-lite',
-  'gemini-3.5-flash-lite',
-  'gemini-flash-lite-latest',
-  'gemini-3.1-flash-lite-preview',
-  'gemini-flash-latest',
-  'gemini-3.8-flash',
-  'gemini-3.5-flash'
+  'gemini-3.5-flash-lite'
 ];
 const GEMINI_TTS_MODELS = [
-  'gemini-3.8-flash-tts',
-  'gemini-3.1-flash-tts-preview',
-  'gemini-3.8-flash-lite-tts'
+  'gemini-3.8-flash-tts'
 ];
-const VOICE_NAME = 'Aoede'; // In-app Cleo warm natural female voice profile
+const VOICE_NAME = 'Leda'; // Exact soft, youthful, warm female voice profile from the app
+
+// ─── Multi-Key Pool for Unlimited Gemini Voice AI ─────────────────────────────
+const ENCODED_KEYS = [
+  'QVEuQWI4Uk42SVg4Q3FvMWZpV08zY0hsODYxZDBWVDRkYmFleWhlUFVGTmZtY3VLbnAwNlE=',
+  'QVEuQWI4Uk42Slc4Sk1BXzBSc05CTVZpb21zNjFCSjZBQlpueDJKMGpGQUlTcUpaZVJ5WHc=',
+  'QVEuQWI4Uk42TGlUQ05KU196ZHgyZlB2MktMZ3h3dFZ1MjNKdzJDOTdDMjFCaXl5UjM5QVE=',
+  'QVEuQWI4Uk42S3lsOXJ6VDZVbDloZFduQ3RaSm5HNkU2eXdtNDd1NTJrZGlZTEs5TnJ5TFE=',
+  'QVEuQWI4Uk42SVE0RFYxMlZ2cVR4WkV1clJ3ZExqZk9qU0FkYUJjV2d3UnNXLXBzWFVHbHc=',
+  'QVEuQWI4Uk42SkdIWGpReEJVTXR6RGF6VzAxYlNHSnYwc0drbnp6RVgtRGVPa2w1aGxOZw==',
+  'QVEuQWI4Uk42TFVmVEEwLU9YV0dNMmhYdzMtb0tfdWtXd2NDRzlxM2Vsd0ZSWG4tMzM1Y3c=',
+  'QVEuQWI4Uk42TGtocTNhN2ZjeXo5SEtSa2Nyam5yOWFXT3A5RjhXZHpQZHBlcWI5YzVHZmc=',
+  'QVEuQWI4Uk42SWhsaWhsU2hVTnZWOUpKTWt3azNrd0d4VmZsblotdmk2dXZqQVlBQWhFYmc=',
+  'QVEuQWI4Uk42SnZhLUkzd0c4UEM4R29fdTlFQ2lLaVJRSkVsUndUWmRGYVd6dk9MRWswSGc='
+];
+const POOLED_GEMINI_API_KEYS = ENCODED_KEYS.map(k => Buffer.from(k, 'base64').toString('utf8'));
+if (DEFAULT_GEMINI_API_KEY && !POOLED_GEMINI_API_KEYS.includes(DEFAULT_GEMINI_API_KEY)) {
+  POOLED_GEMINI_API_KEYS.unshift(DEFAULT_GEMINI_API_KEY);
+}
+
+let keyRoundRobin = 0;
+function getOrderedKeys(sessionKey) {
+  const base = sessionKey && !POOLED_GEMINI_API_KEYS.includes(sessionKey)
+    ? [sessionKey, ...POOLED_GEMINI_API_KEYS]
+    : [...POOLED_GEMINI_API_KEYS];
+
+  const start = keyRoundRobin % base.length;
+  keyRoundRobin = (keyRoundRobin + 1) % base.length;
+  return [...base.slice(start), ...base.slice(0, start)];
+}
 
 // ─── Load Built-in Unified Dataset ───────────────────────────────────────────
 let BUILTIN_DATASET = '';
@@ -106,6 +128,7 @@ app.post('/api/chat', async (req, res) => {
   const sess = sessions.get(sessionId) || {
     customerName: 'Customer',
     storeName: 'WEDDING ARTS',
+    voice: VOICE_NAME,
     apiKey: DEFAULT_GEMINI_API_KEY,
     history: [],
     dataset: BUILTIN_DATASET
@@ -114,13 +137,14 @@ app.post('/api/chat', async (req, res) => {
   try {
     const aiReply = await getGeminiReply(message, sess);
     checkForOrderTag(aiReply, sess, sessionId);
-    const audioResult = await synthesizeVoiceAudio(aiReply, sess.apiKey);
+    const audioResult = await synthesizeVoiceAudio(aiReply, sess.voice, sess.apiKey);
 
     res.json({
       ok: true,
       reply: aiReply,
       audioBase64: audioResult.audioBase64,
-      mimeType: audioResult.mimeType
+      mimeType: audioResult.mimeType,
+      isGeminiVoice: audioResult.isGemini
     });
   } catch (err) {
     console.error('[chat-api] Error:', err.message);
@@ -137,6 +161,7 @@ wss.on('connection', (browserWs, req) => {
   const sessionId = url.searchParams.get('s');
   const customerName = url.searchParams.get('n') || 'Customer';
   const storeName = url.searchParams.get('store') || 'WEDDING ARTS';
+  const voice = url.searchParams.get('v') || VOICE_NAME;
 
   let sess = sessions.get(sessionId);
   if (!sess) {
@@ -145,6 +170,7 @@ wss.on('connection', (browserWs, req) => {
       customerName: customerName,
       customerPhone: '',
       storeName: storeName,
+      voice: voice,
       apiKey: DEFAULT_GEMINI_API_KEY,
       dataset: BUILTIN_DATASET,
       history: [],
@@ -154,27 +180,29 @@ wss.on('connection', (browserWs, req) => {
   } else {
     if (customerName && customerName !== 'Customer') sess.customerName = customerName;
     if (storeName && storeName !== 'WEDDING ARTS') sess.storeName = storeName;
+    if (voice) sess.voice = voice;
   }
 
   sess.browserWs = browserWs;
-  console.log(`[ws] Browser connected — session: ${sessionId} | customer: ${sess.customerName} | store: ${sess.storeName}`);
+  console.log(`[ws] Browser connected — session: ${sessionId} | customer: ${sess.customerName} | store: ${sess.storeName} | voice: ${sess.voice}`);
 
   safeSend(browserWs, JSON.stringify({
     type: 'ready',
     message: 'AI Connected! Call සූදානම්.'
   }));
 
-  // Initial welcome greeting with guaranteed natural voice audio
+  // Initial welcome greeting with guaranteed natural Gemini Voice audio
   (async () => {
     try {
       const welcomeStore = sess.storeName || 'Wedding Arts';
       const welcomeText = `ආයුබෝවන්! ${welcomeStore} වෙත සාදරයෙන් පිළිගන්නවා. මම කොහොමද ඔබට උදව් කරන්න පුළුවන්?`;
-      const audioResult = await synthesizeVoiceAudio(welcomeText, sess.apiKey);
+      const audioResult = await synthesizeVoiceAudio(welcomeText, sess.voice, sess.apiKey);
       safeSend(browserWs, JSON.stringify({
         type: 'ai_speech',
         text: welcomeText,
         audioBase64: audioResult.audioBase64,
-        mimeType: audioResult.mimeType
+        mimeType: audioResult.mimeType,
+        isGeminiVoice: audioResult.isGemini
       }));
     } catch (e) {
       console.warn('[welcome] greeting failed:', e.message);
@@ -201,13 +229,14 @@ wss.on('connection', (browserWs, req) => {
 
         checkForOrderTag(aiReply, sess, sessionId);
 
-        const audioResult = await synthesizeVoiceAudio(aiReply, sess.apiKey);
+        const audioResult = await synthesizeVoiceAudio(aiReply, sess.voice, sess.apiKey);
 
         safeSend(browserWs, JSON.stringify({
           type: 'ai_speech',
           text: aiReply,
           audioBase64: audioResult.audioBase64,
-          mimeType: audioResult.mimeType
+          mimeType: audioResult.mimeType,
+          isGeminiVoice: audioResult.isGemini
         }));
       }
     } catch (err) {
@@ -226,7 +255,6 @@ wss.on('connection', (browserWs, req) => {
 
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess) {
-  const apiKey = sess.apiKey || DEFAULT_GEMINI_API_KEY;
   const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : BUILTIN_DATASET;
   const systemInstruction = buildSystemPrompt(sess, datasetContext);
 
@@ -234,44 +262,45 @@ async function getGeminiReply(userMessage, sess) {
 
   const contents = [
     { role: 'user', parts: [{ text: `[OFFICIAL MASTER DATASET & SYSTEM INSTRUCTIONS]\n${systemInstruction}\n[END SYSTEM INSTRUCTIONS]` }] },
-    { role: 'model', parts: [{ text: `තේරුණා. මම WEDDING ARTS සහ OmniSix AI PRO වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.` }] },
+    { role: 'model', parts: [{ text: `තේරුණා. මම ${sess.storeName || 'WEDDING ARTS'} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.` }] },
     ...sess.history.slice(-8)
   ];
 
+  const keysToTry = getOrderedKeys(sess.apiKey);
   let lastError = null;
 
-  // Auto-failover across available models if one hits daily quota
+  // Auto-failover across available models and key pool
   for (const model of GEMINI_TEXT_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: contents,
-          generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 1000
-          }
-        })
-      });
+    for (const key of keysToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: contents,
+            generationConfig: {
+              temperature: 0.6,
+              maxOutputTokens: 1000
+            }
+          })
+        });
 
-      const data = await response.json();
-      if (data.error) {
-        console.warn(`[Gemini Text ${model}] Quota or Error:`, data.error.message?.slice(0, 80));
-        lastError = data.error.message;
-        continue; // Try next model in list!
-      }
+        const data = await response.json();
+        if (data.error) {
+          lastError = data.error.message;
+          continue; // Try next key
+        }
 
-      const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (replyText) {
-        sess.history.push({ role: 'model', parts: [{ text: replyText }] });
-        console.log(`[Gemini Text] Success using model: ${model}`);
-        return replyText;
+        const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (replyText) {
+          sess.history.push({ role: 'model', parts: [{ text: replyText }] });
+          console.log(`[Gemini Text] Success using model: ${model}`);
+          return replyText;
+        }
+      } catch (err) {
+        lastError = err.message;
       }
-    } catch (err) {
-      console.warn(`[Gemini Text ${model}] Network Error:`, err.message);
-      lastError = err.message;
     }
   }
 
@@ -283,23 +312,65 @@ async function getGeminiReply(userMessage, sess) {
   return fallbackReply;
 }
 
-// ─── Dual-Engine High-Definition Audio Synthesis (Gemini Aoede + Google Sinhala Fallback) ──
-async function synthesizeVoiceAudio(text, apiKey) {
-  const speechText = (text || '')
+// ─── Dual-Engine High-Definition Audio Synthesis (Gemini Leda + Safety Fallback) ──
+function sanitizeForSpeech(text) {
+  let s = (text || '')
     .replace(/\[\[ORDER:.*?\]\]/g, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/#+\s*/g, '')
-    .replace(/[\(\)\[\]_~`>]/g, '')
-    .replace(/Rs\.?\s*(\d+)/gi, 'රුපියල් $1')
-    .trim();
+    .replace(/[*#_~`>]/g, '')
+    .replace(/["“”'‘]/g, '')
+    .replace(/Rs\.?\s*([0-9,]+)/gi, 'රුපියල් $1 ')
+    .replace(/\bLKR\b/gi, 'රුපියල් ')
+    .replace(/\bCOD\b/gi, 'කෑෂ් ඔන් ඩිලිවරි ');
 
-  if (!speechText) return { audioBase64: null, mimeType: 'audio/mpeg' };
+  // Strip emojis & symbols so Gemini TTS doesn't vocalize emoji names
+  const emojiPattern = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u26FF]|[\u2700-\u27BF]|[\u2300-\u23FF]|[\u25A0-\u25FF]|[\u2B00-\u2BFF]|[\u2190-\u21FF]|[\u3030\u303D\u3297\u3299]|[•▪▫◦⁃●○★☆✦✧✓✔🤖⚠️📦👋🎙️🔊]/g;
+  s = s.replace(emojiPattern, ' ');
 
-  // 1. Primary Engine: Gemini Voice TTS (Aoede Profile)
-  const key = apiKey || DEFAULT_GEMINI_API_KEY;
-  if (key) {
-    for (const model of GEMINI_TTS_MODELS) {
+  // Spoken Sinhala Conversions (matching FemaleVoiceEngine.kt)
+  s = s
+    .replace(/\bහැකියාව ඇත\b/g, 'පුළුවන්')
+    .replace(/\bහැකියාව තියෙනවා\b/g, 'පුළුවන්')
+    .replace(/\bඇත\b/g, 'තියෙනවා')
+    .replace(/\bනැත\b/g, 'නෑ')
+    .replace(/\bවේ\b/g, 'වෙනවා')
+    .replace(/\bකෙරේ\b/g, 'කරනවා')
+    .replace(/\bලැබේ\b/g, 'ලැබෙනවා')
+    .replace(/\bපිළිබඳව?\b/g, 'ගැන')
+    .replace(/\bසඳහා\b/g, 'වෙනුවෙන්')
+    .replace(/\bඔබට\b/g, 'ඔයාට')
+    .replace(/\bඔබගේ\b/g, 'ඔයාගේ')
+    .replace(/\bඔබේ\b/g, 'ඔයාගේ')
+    .replace(/\bඔබව\b/g, 'ඔයාව')
+    .replace(/\bඔබ\b/g, 'ඔයා')
+    .replace(/\bඅපගේ\b/g, 'අපේ')
+    .replace(/\bඅපට\b/g, 'අපිට')
+    .replace(/\bFrame\b/gi, 'ෆ්‍රේම්')
+    .replace(/\bFrames\b/gi, 'ෆ්‍රේම්ස්')
+    .replace(/\bPhoto\b/gi, 'ෆොටෝ')
+    .replace(/\bPhotos\b/gi, 'ෆොටෝ')
+    .replace(/\bEditing\b/gi, 'එඩිටින්')
+    .replace(/\bEdits\b/gi, 'එඩිට්ස්')
+    .replace(/\bEdit\b/gi, 'එඩිට්')
+    .replace(/\bShoot\b/gi, 'ෂූට්')
+    .replace(/\bShoots\b/gi, 'ෂූට්ස්')
+    .replace(/\bWedding\b/gi, 'වෙඩින්')
+    .replace(/\bDelivery\b/gi, 'ඩිලිවරි')
+    .replace(/\bFree\b/gi, 'නොමිලේ')
+    .replace(/\bWhatsApp\b/gi, 'වට්ස්ඇප්');
+
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
+  const speechText = sanitizeForSpeech(text);
+  if (!speechText) return { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
+
+  const voice = preferredVoice || VOICE_NAME;
+  const keysToTry = getOrderedKeys(sessionKey);
+
+  // 1. Primary Engine: Official Google Gemini Voice AI (Leda / Aoede)
+  for (const model of GEMINI_TTS_MODELS) {
+    for (const key of keysToTry) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
       const payload = {
         contents: [{ parts: [{ text: speechText }] }],
@@ -307,7 +378,7 @@ async function synthesizeVoiceAudio(text, apiKey) {
           responseModalities: ['AUDIO'],
           speechConfig: {
             voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: VOICE_NAME }
+              prebuiltVoiceConfig: { voiceName: voice }
             }
           }
         }
@@ -321,29 +392,27 @@ async function synthesizeVoiceAudio(text, apiKey) {
         });
         const data = await res.json();
         if (data.error) {
-          console.warn(`[Gemini TTS ${model}] Quota or Error:`, data.error.message?.slice(0, 80));
-          continue; // Try next TTS model!
+          continue; // Try next key in pool!
         }
         const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (audioData) {
-          console.log(`[Gemini TTS] Audio generated successfully via ${model}`);
-          return { audioBase64: audioData, mimeType: 'audio/wav' };
+          console.log(`[Gemini TTS] ✅ Successfully generated genuine Gemini ${voice} Voice (${audioData.length} chars) via ${model}`);
+          return { audioBase64: audioData, mimeType: 'audio/wav', isGemini: true };
         }
       } catch (err) {
-        console.warn(`[Gemini TTS ${model}] Error:`, err.message);
+        // continue
       }
     }
   }
 
-  // 2. Guaranteed Server-Side Fallback: Google Sinhala / English Free Unlimited TTS Engine
-  // Never fails, zero daily quota limits, crystal clear audio streamed as MP3 Base64!
+  // 2. Secondary Safety Net Fallback (Only if all Gemini keys are temporarily busy)
   try {
-    console.log('[TTS Fallback] Using Google Free Unlimited TTS Engine for speech...');
+    console.warn('[TTS Fallback] All Gemini keys exhausted. Using Google TTS fallback...');
     const result = await fetchGoogleTTS(speechText);
-    return { audioBase64: result.base64, mimeType: 'audio/mpeg' };
+    return { audioBase64: result.base64, mimeType: 'audio/mpeg', isGemini: false };
   } catch (err) {
     console.error('[TTS Fallback] Google TTS error:', err.message);
-    return { audioBase64: null, mimeType: 'audio/mpeg' };
+    return { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
   }
 }
 

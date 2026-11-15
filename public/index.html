@@ -333,6 +333,7 @@ const params = new URLSearchParams(location.search);
 const SESSION_ID = params.get('s') || 'direct-test-' + Date.now();
 const CUSTOMER_NAME = decodeURIComponent(params.get('n') || 'Customer');
 const STORE_NAME = decodeURIComponent(params.get('store') || 'WEDDING ARTS');
+const VOICE_NAME = decodeURIComponent(params.get('v') || 'Leda');
 
 document.getElementById('store-name-label').textContent = STORE_NAME.toUpperCase() + ' — LIVE AI CALL';
 document.getElementById('customer-label').textContent = CUSTOMER_NAME;
@@ -359,7 +360,7 @@ function startCall() {
     }
   } catch (e) {}
 
-  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}&n=${encodeURIComponent(CUSTOMER_NAME)}&store=${encodeURIComponent(STORE_NAME)}`;
+  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?s=${SESSION_ID}&n=${encodeURIComponent(CUSTOMER_NAME)}&store=${encodeURIComponent(STORE_NAME)}&v=${encodeURIComponent(VOICE_NAME)}`;
   connectWs(wsUrl);
 
   setupSpeechRecognition();
@@ -590,7 +591,7 @@ function sendUserMessage(text) {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: SESSION_ID, message: text })
+      body: JSON.stringify({ sessionId: SESSION_ID, message: text, voice: VOICE_NAME })
     })
     .then(r => r.json())
     .then(data => {
