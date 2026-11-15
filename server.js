@@ -16,7 +16,13 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}`;
 
-const GEMINI_TEXT_MODEL = 'gemini-3.5-flash';
+const GEMINI_TEXT_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.8-flash'
+];
 const GEMINI_TTS_MODELS = [
   'gemini-3.8-flash-lite-tts',
   'gemini-3.8-flash-tts',
@@ -211,8 +217,6 @@ wss.on('connection', (browserWs, req) => {
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess) {
   const apiKey = sess.apiKey || DEFAULT_GEMINI_API_KEY;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`;
-
   const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : BUILTIN_DATASET;
   const systemInstruction = buildSystemPrompt(sess, datasetContext);
 
@@ -224,25 +228,44 @@ async function getGeminiReply(userMessage, sess) {
     ...sess.history.slice(-8)
   ];
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: contents,
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 1200
+  let lastError = null;
+
+  // Auto-failover across available models if one hits daily quota
+  for (const model of GEMINI_TEXT_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: contents,
+          generationConfig: {
+            temperature: 0.6,
+            maxOutputTokens: 1000
+          }
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        console.warn(`[Gemini Text ${model}] Quota or Error:`, data.error.message?.slice(0, 80));
+        lastError = data.error.message;
+        continue; // Try next model in list!
       }
-    })
-  });
 
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message || 'Gemini API Error');
+      const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (replyText) {
+        sess.history.push({ role: 'model', parts: [{ text: replyText }] });
+        console.log(`[Gemini Text] Success using model: ${model}`);
+        return replyText;
+      }
+    } catch (err) {
+      console.warn(`[Gemini Text ${model}] Network Error:`, err.message);
+      lastError = err.message;
+    }
+  }
 
-  const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'කණගාටුයි, මට පැහැදිලි වුණේ නෑ. කරුණාකර නැවත කියන්න.';
-  sess.history.push({ role: 'model', parts: [{ text: replyText }] });
-
-  return replyText;
+  throw new Error(lastError || 'All Gemini models unavailable.');
 }
 
 // ─── Gemini Voice Audio Synthesis (Aoede / In-App Cleo Engine) ────────────────
