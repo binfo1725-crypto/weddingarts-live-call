@@ -282,6 +282,7 @@ class Database {
       minFloorPrice: parseFloat(prod.minFloorPrice) || (parseFloat(prod.price) * 0.9) || 0,
       maxDiscountPct: parseInt(prod.maxDiscountPct) || 10,
       description: prod.description || '',
+      imageUrl: prod.imageUrl || prod.image || '',
       inStock: prod.inStock !== false
     };
     this.data.products.push(newProd);

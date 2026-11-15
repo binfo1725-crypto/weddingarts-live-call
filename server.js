@@ -602,6 +602,35 @@ app.post('/api/products/delete', (req, res) => {
   res.json({ ok: success });
 });
 
+app.post('/api/products/send-photo', async (req, res) => {
+  try {
+    const { phone, productId, accountId, customCaption } = req.body;
+    if (!phone || !productId) {
+      return res.status(400).json({ ok: false, error: 'phone and productId are required' });
+    }
+    const bId = resolveReqBusinessId(req);
+    const products = db.getProducts(bId);
+    const prod = products.find(p => p.id === productId);
+    if (!prod || !prod.imageUrl) {
+      return res.status(404).json({ ok: false, error: 'Product or product image not found' });
+    }
+    const caption = customCaption || `📸 *${prod.name}*\n💰 මිල: Rs. ${(prod.price || 0).toLocaleString()}\n${prod.description ? prod.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`;
+
+    // Choose session for this business
+    let targetAccId = accountId;
+    if (!targetAccId && req.tenantBusinessId) {
+      targetAccId = 'wa_' + req.tenantBusinessId;
+    }
+    const result = await waEngine.sendImageMessage(phone, prod.imageUrl, targetAccId, caption);
+    if (result.ok) {
+      db.addChatMessage(phone, 'agent', `📷 [Sent Product Photo: ${prod.name}]`, 'Agent', phone, bId);
+    }
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ─── Custom Keyword Flows CRUD (From APK) ──────────────────────────────────────
 app.get('/api/flows', (req, res) => {
   const bId = resolveReqBusinessId(req);
@@ -1472,6 +1501,18 @@ function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLan
   const isNegotiating = SmartNegotiationEngine.isBargaining(userMessage || '');
   const negotiationDirective = isNegotiating ? SmartNegotiationEngine.getNegotiationDirective(1) : '';
 
+  // 3.1 Products with Photos for Instant Dispatch
+  const storeProducts = db.getProducts(activeBiz.id);
+  let catalogPhotoContext = '';
+  if (storeProducts && storeProducts.length > 0) {
+    const prodsWithImg = storeProducts.filter(p => !!(p.imageUrl && p.imageUrl.length > 20));
+    if (prodsWithImg.length > 0) {
+      catalogPhotoContext = `\n--- 📸 PRODUCTS WITH GENUINE PHOTOS AVAILABLE IN SYSTEM ---\n` +
+        prodsWithImg.map(p => `• Product: "${p.name}" | Price: Rs. ${(p.price || 0).toLocaleString()} [PHOTO AVAILABLE]`).join('\n') +
+        `\n👉 WHEN A CUSTOMER ASKS TO SEE PHOTOS / SAMPLES / PICS of any product above (e.g. "photos ewanna", "photo thiyenawada", "balanna puluwanda", "sample balanna puluwanda", "pics please"), reply politely and APPEND THIS EXACT TAG AT THE END of your reply: [[SEND_PHOTO: ProductName]]\nThe WhatsApp engine will automatically deliver the genuine product photo with details directly to the customer!\n--- END PRODUCTS WITH PHOTOS ---\n`;
+    }
+  }
+
   // 4. Persona Tone
   let personaInstruction = 'friendly, warm, respectful Sri Lankan customer care agent';
   if (settings.aiPersona === 'LUXURY_EXECUTIVE') {
@@ -1520,7 +1561,7 @@ CRITICAL DYNAMIC LANGUAGE MATCHING RULES:
 --- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---
 ${dataset}
 --- END OFFICIAL MASTER DATASET ---
-
+${catalogPhotoContext}
 ${archetypeResult.promptDirective}
 ${upsellDirective}
 ${negotiationDirective}
@@ -1530,7 +1571,9 @@ KEY RULES FOR CONVERSATION & SALES:
 2. ${sess.isVoiceCall ? 'CONVERSATIONAL BREVITY FOR VOICE CALL: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words maximum) since the customer is listening on a live phone call.' : 'ELEGANT WHATSAPP FORMATTING: Use clean WhatsApp formatting with *bold* headers, • bullets for packages/features, and clear line spacing. Do NOT use markdown # headings or **double asterisks**.'}
 3. CONVERSATIONAL WARMTH: Speak warmly and respectfully like an authentic customer service agent with friendly emojis (😊, 🙏, ✨, 📦).
 4. If order is confirmed, add this tag at the end:
-   [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
+   [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]
+5. If the customer asks for photos, images, samples or pictures of any product listed under [PHOTO AVAILABLE], append this tag at the very end of your response:
+   [[SEND_PHOTO: ProductName]]`;
 }
 
 function checkForOrderTag(text, sess, sessionId) {

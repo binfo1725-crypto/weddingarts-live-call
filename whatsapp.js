@@ -240,6 +240,48 @@ class WhatsAppAccountSession {
               aiReply = `ස්තූතියි! ${activeBiz.name} වෙතින් සාදරයෙන් පිළිගන්නවා. ඔබට අවශ්‍ය ඕනෑම විස්තරයක් හෝ ඇණවුමක් ලබා දෙන්න.`;
             }
 
+            // Check if any store product photo should be sent (via tag or photo inquiry match)
+            const storeProducts = db.getProducts(activeBiz.id);
+            const prodsWithImage = (storeProducts || []).filter(p => !!(p.imageUrl && p.imageUrl.length > 20));
+
+            let matchedProductToSend = null;
+            if (prodsWithImage.length > 0) {
+              // 1. Tag match from Gemini: [[SEND_PHOTO: ProductName]] or [[SEND_PRODUCT_IMAGE: ID]]
+              const photoTagMatch = aiReply.match(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*([^\]]+)\]\]/i);
+              if (photoTagMatch) {
+                const targetNameOrId = photoTagMatch[1].trim().toLowerCase();
+                matchedProductToSend = prodsWithImage.find(p =>
+                  (p.id && p.id.toLowerCase() === targetNameOrId) ||
+                  (p.name && p.name.toLowerCase().includes(targetNameOrId)) ||
+                  targetNameOrId.includes((p.name || '').toLowerCase())
+                );
+                aiReply = aiReply.replace(photoTagMatch[0], '').trim();
+              }
+
+              // 2. Keyword / Photo Inquiry Match
+              if (!matchedProductToSend) {
+                const isPhotoReq = /photo|image|picture|pic|ෆොටෝ|පින්තූර|පින්තුර|බලන්න|sample|දක්වන්න/i.test(text);
+                const textLower = text.toLowerCase();
+                const replyLower = aiReply.toLowerCase();
+                for (const prod of prodsWithImage) {
+                  const pNameLower = (prod.name || '').toLowerCase();
+                  if (!pNameLower || pNameLower.length < 3) continue;
+                  if (textLower.includes(pNameLower) || (isPhotoReq && replyLower.includes(pNameLower))) {
+                    matchedProductToSend = prod;
+                    break;
+                  }
+                }
+              }
+            }
+
+            // If a product with photo was requested or matched, send the genuine photo first!
+            if (matchedProductToSend && matchedProductToSend.imageUrl) {
+              const photoCaption = `📸 *${matchedProductToSend.name}*\n💰 මිල: Rs. ${(matchedProductToSend.price || 0).toLocaleString()}\n${matchedProductToSend.description ? matchedProductToSend.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`;
+              await this.sendImageMessage(senderPhone, matchedProductToSend.imageUrl, photoCaption);
+              db.addChatMessage(senderPhone, 'ai', `📷 [Product Photo: ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id);
+              await delay(800);
+            }
+
             if (aiReply) {
               const voiceMode = settings.voiceReplyMode || 'auto';
               const shouldReplyVoice = (voiceMode === 'always') ||
@@ -364,6 +406,42 @@ class WhatsAppAccountSession {
       return { ok: true };
     } catch (e) {
       console.error(`[whatsapp-acc:${this.id}] Send voice failed to ${clean}:`, e.message);
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async sendImageMessage(toPhone, imageInput, caption = '') {
+    if (!this.sock || !this.connected) {
+      return { ok: false, error: `Account ${this.id} not connected` };
+    }
+    const clean = toPhone.replace(/\D/g, '');
+    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
+
+    try {
+      let imageBuffer;
+      if (Buffer.isBuffer(imageInput)) {
+        imageBuffer = imageInput;
+      } else if (typeof imageInput === 'string') {
+        if (imageInput.startsWith('data:')) {
+          const parts = imageInput.split(',');
+          imageBuffer = Buffer.from(parts[1], 'base64');
+        } else if (imageInput.startsWith('http')) {
+          imageBuffer = { url: imageInput };
+        } else {
+          imageBuffer = Buffer.from(imageInput, 'base64');
+        }
+      }
+
+      await this.sock.sendPresenceUpdate('composing', jid);
+      await delay(800);
+      await this.sock.sendMessage(jid, {
+        image: imageBuffer,
+        caption: caption || ''
+      });
+      console.log(`[whatsapp-acc:${this.id}] 📷 Sent product image to ${clean} with caption: "${(caption || '').slice(0, 40)}"`);
+      return { ok: true };
+    } catch (e) {
+      console.error(`[whatsapp-acc:${this.id}] Send image failed to ${clean}:`, e.message);
       return { ok: false, error: e.message };
     }
   }
@@ -594,6 +672,23 @@ class MultiAccountWhatsAppManager {
       return { ok: false, error: 'No connected WhatsApp account available' };
     }
     return await session.sendVoiceMessage(toPhone, audioBuffer, ptt);
+  }
+
+  // Send image message (with optional accountId target or round-robin)
+  async sendImageMessage(toPhone, imageInput, accountId = null, caption = '') {
+    let session = accountId ? this.sessions.get(accountId) : null;
+    if (!session) {
+      for (const [, s] of this.sessions.entries()) {
+        if (s.connected) {
+          session = s;
+          break;
+        }
+      }
+    }
+    if (!session || !session.connected) {
+      return { ok: false, error: 'No connected WhatsApp account available' };
+    }
+    return await session.sendImageMessage(toPhone, imageInput, caption);
   }
 
   async toggleBot(accountId, botActive) {
