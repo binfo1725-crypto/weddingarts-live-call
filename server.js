@@ -1,11 +1,12 @@
 // OmniSix Live AI Call Server
-// Real-time Voice Call Server for WEDDING ARTS
-// Browser Mic <-> Node.js <-> Gemini 3.5 Flash (Complete Details) <-> Gemini Voice AI (Aoede/Cleo Audio Stream)
+// Real-time Voice Call Server for WEDDING ARTS & OMNISIX AI PRO
+// Full Dataset Integration + Instant Full-Duplex Barge-in + Gemini 3.5 Flash & Aoede Voice
 
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
+const fs = require('fs');
 const path = require('path');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -16,8 +17,25 @@ const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}`;
 
 const GEMINI_TEXT_MODEL = 'gemini-3.5-flash';
-const GEMINI_TTS_MODEL = 'gemini-3.8-flash-lite-tts';
-const VOICE_NAME = 'Aoede'; // Natural warm Sri Lankan female voice profile (Cleo)
+const GEMINI_TTS_MODELS = [
+  'gemini-3.8-flash-lite-tts',
+  'gemini-3.8-flash-tts',
+  'gemini-3.1-flash-tts-preview',
+  'gemini-2.5-flash-preview-tts'
+];
+const VOICE_NAME = 'Aoede'; // In-app Cleo warm natural female voice profile
+
+// ─── Load Built-in Unified Dataset ───────────────────────────────────────────
+let BUILTIN_DATASET = '';
+try {
+  const dsPath = path.join(__dirname, 'dataset.txt');
+  if (fs.existsSync(dsPath)) {
+    BUILTIN_DATASET = fs.readFileSync(dsPath, 'utf8');
+    console.log(`[dataset] Loaded built-in dataset (${BUILTIN_DATASET.length} chars)`);
+  }
+} catch (e) {
+  console.warn('[dataset] Failed to load dataset.txt:', e.message);
+}
 
 // ─── Session Store ───────────────────────────────────────────────────────────
 const sessions = new Map();
@@ -35,34 +53,16 @@ setInterval(() => {
 
 // ─── Express App ─────────────────────────────────────────────────────────────
 const app = express();
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', sessions: sessions.size, time: new Date().toISOString() });
-});
-
-// Diagnostic TTS endpoint
-app.get('/api/test-tts', async (req, res) => {
-  const apiKey = req.query.key || DEFAULT_GEMINI_API_KEY;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${apiKey}`;
-  try {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Ayubowan' }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: VOICE_NAME } } }
-        }
-      })
-    });
-    const data = await r.json();
-    res.json({ status: r.status, data });
-  } catch (e) {
-    res.json({ error: e.message });
-  }
+  res.json({
+    status: 'ok',
+    sessions: sessions.size,
+    datasetChars: BUILTIN_DATASET.length,
+    time: new Date().toISOString()
+  });
 });
 
 app.post('/api/session', (req, res) => {
@@ -80,12 +80,12 @@ app.post('/api/session', (req, res) => {
     customerPhone: customerPhone || '',
     storeName: storeName || 'WEDDING ARTS',
     apiKey: geminiApiKey || DEFAULT_GEMINI_API_KEY,
-    dataset: dataset || '',
+    dataset: (dataset && dataset.trim().length > 50) ? dataset : BUILTIN_DATASET,
     history: [],
     createdAt: Date.now(),
   });
 
-  console.log(`[session] Created: ${id} | store: ${storeName} | customer: ${customerName}`);
+  console.log(`[session] Created: ${id} | store: ${storeName} | datasetLen: ${(dataset || BUILTIN_DATASET).length}`);
   res.json({ ok: true, sessionId: id, callUrl: `${serverHost}/call?s=${id}` });
 });
 
@@ -93,7 +93,7 @@ app.get('/call', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Direct HTTP Chat API with Gemini Audio Generation
+// Direct HTTP Chat API
 app.post('/api/chat', async (req, res) => {
   const { sessionId, message } = req.body;
   const sess = sessions.get(sessionId) || {
@@ -101,20 +101,18 @@ app.post('/api/chat', async (req, res) => {
     storeName: 'WEDDING ARTS',
     apiKey: DEFAULT_GEMINI_API_KEY,
     history: [],
-    dataset: ''
+    dataset: BUILTIN_DATASET
   };
 
   try {
     const aiReply = await getGeminiReply(message, sess);
     checkForOrderTag(aiReply, sess, sessionId);
-
-    // Generate Natural Human Voice via Gemini TTS Engine (App Audio Engine)
     const audioBase64 = await synthesizeGeminiAudio(aiReply, sess.apiKey);
 
     res.json({
       ok: true,
       reply: aiReply,
-      audioBase64: audioBase64 // Base64 WAV audio stream
+      audioBase64: audioBase64
     });
   } catch (err) {
     console.error('[chat-api] Error:', err.message);
@@ -138,7 +136,7 @@ wss.on('connection', (browserWs, req) => {
       customerPhone: '',
       storeName: 'WEDDING ARTS',
       apiKey: DEFAULT_GEMINI_API_KEY,
-      dataset: '',
+      dataset: BUILTIN_DATASET,
       history: [],
       createdAt: Date.now()
     };
@@ -172,18 +170,22 @@ wss.on('connection', (browserWs, req) => {
     try {
       const msg = JSON.parse(data.toString());
 
+      // Barge-in cancel notification from browser
+      if (msg.type === 'barge_in') {
+        console.log(`[ws] Customer barge-in triggered on session ${sessionId}`);
+        return;
+      }
+
       if (msg.type === 'user_speech' && msg.text) {
         console.log(`[ws] User said (${sessionId}): "${msg.text}"`);
 
         safeSend(browserWs, JSON.stringify({ type: 'ai_thinking' }));
 
-        // 1. Get FULL complete response from Gemini Text Model
         const aiReply = await getGeminiReply(msg.text, sess);
         console.log(`[ws] AI reply (${sessionId}): "${aiReply}"`);
 
         checkForOrderTag(aiReply, sess, sessionId);
 
-        // 2. Synthesize with natural female voice (Aoede)
         const audioBase64 = await synthesizeGeminiAudio(aiReply, sess.apiKey);
 
         safeSend(browserWs, JSON.stringify({
@@ -206,18 +208,19 @@ wss.on('connection', (browserWs, req) => {
   });
 });
 
-// ─── Gemini AI Engine (Full Uncut Details) ────────────────────────────────────
+// ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess) {
   const apiKey = sess.apiKey || DEFAULT_GEMINI_API_KEY;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`;
 
-  const systemInstruction = buildSystemPrompt(sess);
+  const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : BUILTIN_DATASET;
+  const systemInstruction = buildSystemPrompt(sess, datasetContext);
 
   sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
 
   const contents = [
-    { role: 'user', parts: [{ text: `[SYSTEM CONTEXT & KNOWLEDGE]\n${systemInstruction}\n[END SYSTEM CONTEXT]` }] },
-    { role: 'model', parts: [{ text: `හරි, මම ${sess.storeName} වෙනුවෙන් සියලු විස්තර සහ මිල ගණන් ඉතාම පැහැදිලිව, මැදින් නොකැඩෙන පරිදි සම්පූර්ණ වාක්‍ය වලින් ස්වභාවික සිංහලෙන් කියන්නම්.` }] },
+    { role: 'user', parts: [{ text: `[OFFICIAL MASTER DATASET & SYSTEM INSTRUCTIONS]\n${systemInstruction}\n[END SYSTEM INSTRUCTIONS]` }] },
+    { role: 'model', parts: [{ text: `තේරුණා. මම WEDDING ARTS සහ OmniSix AI PRO වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.` }] },
     ...sess.history.slice(-8)
   ];
 
@@ -227,8 +230,8 @@ async function getGeminiReply(userMessage, sess) {
     body: JSON.stringify({
       contents: contents,
       generationConfig: {
-        temperature: 0.65,
-        maxOutputTokens: 1000 // FULL details without cutting in the middle
+        temperature: 0.6,
+        maxOutputTokens: 1200
       }
     })
   });
@@ -242,16 +245,11 @@ async function getGeminiReply(userMessage, sess) {
   return replyText;
 }
 
-// ─── Gemini Voice Audio Synthesis (Natural Sri Lankan Female Voice) ──────────
+// ─── Gemini Voice Audio Synthesis (Aoede / In-App Cleo Engine) ────────────────
 async function synthesizeGeminiAudio(text, apiKey) {
   const key = apiKey || DEFAULT_GEMINI_API_KEY;
-  if (!key) {
-    console.warn('[Gemini TTS] No API key available');
-    return null;
-  }
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${key}`;
+  if (!key) return null;
 
-  // Clean text for speech pronunciation
   const speechText = text
     .replace(/\[\[ORDER:.*?\]\]/g, '')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
@@ -261,71 +259,56 @@ async function synthesizeGeminiAudio(text, apiKey) {
     .replace(/Rs\.?\s*(\d+)/gi, 'රුපියල් $1')
     .trim();
 
-  const payload = {
-    contents: [{ parts: [{ text: speechText }] }],
-    generationConfig: {
-      responseModalities: ['AUDIO'],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: VOICE_NAME }
+  // Try TTS models in order with automatic fallback
+  for (const model of GEMINI_TTS_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+    const payload = {
+      contents: [{ parts: [{ text: speechText }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: VOICE_NAME }
+          }
         }
       }
-    }
-  };
+    };
 
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (data.error) {
-      console.error('[Gemini TTS] API Error:', JSON.stringify(data.error));
-      return null;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (audioData) {
+        return audioData;
+      }
+    } catch (err) {
+      console.warn(`[Gemini TTS ${model}] Error:`, err.message);
     }
-    const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-    console.log(`[Gemini TTS] Generated audio chunk length: ${audioData ? audioData.length : 0}`);
-    return audioData;
-  } catch (err) {
-    console.error('[Gemini TTS] Exception:', err.message);
-    return null;
   }
+
+  return null;
 }
 
-function buildSystemPrompt(sess) {
-  const datasetSection = sess.dataset
-    ? `\n\n--- Store Information & Price List ---\n${sess.dataset}\n--- End of Store Information ---`
-    : `
-Store: WEDDING ARTS
-Owner: D T Rajapaksha (Tharindu)
-BOC Bank: 92949122
-Contact: 076 210 7801
+function buildSystemPrompt(sess, datasetText) {
+  return `You are a live voice AI assistant on a live phone call for "${sess.storeName}".
+Customer Name: "${sess.customerName}".
+Your primary language is natural conversational Sinhala (සිංහල). If the customer speaks English or Singlish, reply naturally in that language.
 
-SERVICES & COMPLETE PRICE DIRECTORY:
-- Single Photo Retouch / Edit: Rs. 1,500
-- 10-Photo Complete Wedding / Function Shoot Retouch: Rs. 12,000
-- UV Frame Sets:
-  * 8x12 UV Frame: Rs. 4,500
-  * 12x18 UV Frame: Rs. 7,500
-  * 16x24 UV Frame: Rs. 12,500
-  * 20x30 UV Frame: Rs. 18,500
-- 3-Panel Wall Frame Sets: Rs. 14,000 සිට Rs. 34,000 දක්වා (විශාල Wall Decor)
-- Island-wide Safe Courier Delivery: Rs. 450
-- Bank Account: BOC (Bank of Ceylon) - 92949122 (D T Rajapaksha)
-`;
+--- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---
+${datasetText}
+--- END OFFICIAL MASTER DATASET ---
 
-  return `You are speaking directly with a customer named "${sess.customerName}" on a live voice phone call for "${sess.storeName}".
-LANGUAGE: Conversational natural Sinhala (සිංහල). If the customer speaks English or Singlish, reply naturally in that language.
-
-CRITICAL INSTRUCTIONS FOR VOICE CALL:
-1. GIVE COMPLETE INFORMATION: Always answer customer questions with COMPLETE details. Never cut off thoughts midway. Complete every sentence clearly and properly.
-2. PRICE QUESTIONS: Clearly state exact prices, frame dimensions, and delivery charges. Do not leave prices vague.
-3. CONVERSATIONAL TONE: Speak warmly, professionally, and respectfully like a friendly Sri Lankan sales manager (e.g., "ඔව් සහෝදරයා/සහෝදරිය", "අපේ UV Frame එක ගැන විස්තර මෙහෙමයි...").
-4. CLOSING SALES: If the customer is satisfied, explain how to send photos via WhatsApp and confirm the order.
+CRITICAL INSTRUCTIONS FOR LIVE VOICE CALL:
+1. STRICT DATASET USAGE: Rely 100% on the Master Dataset above. State the EXACT prices (e.g. Western/Kandyan Single Edit Rs. 1,500; 10-Photo Shoot Rs. 5,000; Army Uniform Shoot Rs. 8,000; UV Frames 12x18 Rs. 4,800, 16x24 Rs. 7,800; Free Delivery on 16x24 and above; BOC Bank 92949122 D T Rajapaksha).
+2. COMPLETE DETAILS: When customer asks about frames or edits, give the FULL details and options clearly. Never cut off ideas midway.
+3. CONVERSATIONAL TONE: Speak warmly and respectfully like a friendly Sri Lankan sales executive (e.g., "ඔව් සහෝදරයා", "අපේ Wedding Arts එකේ...").
+4. BARGE-IN AWARE: The customer may interrupt you at any time. Keep your answers clear, concise, and structured.
 5. If order is confirmed, add this tag at the end:
-   [[ORDER: name=${sess.customerName}|item=ITEM_NAME|amount=TOTAL_RS]]
-${datasetSection}`;
+   [[ORDER: name=${sess.customerName}|item=ITEM_NAME|amount=TOTAL_RS]]`;
 }
 
 function checkForOrderTag(text, sess, sessionId) {

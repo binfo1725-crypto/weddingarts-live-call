@@ -46,7 +46,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.2rem;
+    gap: 1.15rem;
     position: relative;
     z-index: 1;
   }
@@ -59,11 +59,10 @@
     font-weight: 700;
   }
 
-  /* ── Avatar & Pulse Ring ── */
   .avatar-ring {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: 145px;
+    height: 145px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -107,7 +106,6 @@
     color: var(--text);
   }
 
-  /* ── Status Indicator ── */
   .status-box {
     background: var(--card);
     border: 1px solid rgba(255,255,255,0.08);
@@ -131,7 +129,6 @@
   @keyframes blink { 50% { opacity: 0.3; } }
   .status-text { font-size: 0.9rem; font-weight: 500; }
 
-  /* ── Live Transcript Box ── */
   .transcript-box {
     background: var(--card);
     border: 1px solid rgba(255,255,255,0.06);
@@ -166,7 +163,6 @@
     align-self: flex-end;
   }
 
-  /* ── Waveform Visualizer ── */
   .waveform {
     display: flex;
     align-items: center;
@@ -197,14 +193,13 @@
     to { height: 26px; }
   }
 
-  /* ── Action Buttons ── */
   .btn-row {
     display: flex;
     gap: 1.25rem;
     align-items: center;
     justify-content: center;
     width: 100%;
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
   }
   .btn {
     border: none;
@@ -246,7 +241,6 @@
     color: white;
   }
 
-  /* ── Start Screen ── */
   #start-screen {
     display: flex;
     flex-direction: column;
@@ -376,7 +370,7 @@
       <button class="btn btn-end" onclick="endCall()" title="End Call">📵</button>
     </div>
     <div style="font-size:0.75rem;color:var(--muted);text-align:center;">
-      🎙️ <strong>Hold to Speak</strong> (කතා කර අත අරින්න)
+      ⚡ <strong>Barge-In Active:</strong> AI කතා කරන මැද්දෙන් වුවද 🎙️ ඔබා කතා කළ හැක!
     </div>
 
   </div>
@@ -406,10 +400,12 @@ document.getElementById('customer-label').textContent = CUSTOMER_NAME;
 
 let ws = null;
 let recognition = null;
+let continuousRecognition = null;
 let isListening = false;
 let callStartTime = null;
 let timerInterval = null;
 let currentAudio = null;
+let isAiSpeaking = false;
 
 // ─── Start Call ───────────────────────────────────────────────────────────────
 function startCall() {
@@ -438,20 +434,20 @@ function connectWs(url) {
       const data = JSON.parse(evt.data);
 
       if (data.type === 'ai_speech') {
-        setStatus('green', 'AI කතා කරයි...');
+        setStatus('green', 'AI කතා කරයි... (මැද්දෙන් කතා කළ හැක)');
         setWaveformActive(true);
         setAvatarSpeaking(true);
         appendTranscript(data.text, 'ai');
 
         if (data.audioBase64) {
-          // Play High-Definition Natural Audio (Aoede/Cleo)
           playAudioBase64(data.audioBase64, () => {
+            isAiSpeaking = false;
             setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
             setWaveformActive(false);
             setAvatarSpeaking(false);
           });
         } else {
-          // Fallback if audio generation fails
+          isAiSpeaking = false;
           setStatus('green', 'ඔබගේ වාරය — Hold 🎙️ කර කතා කරන්න');
           setWaveformActive(false);
           setAvatarSpeaking(false);
@@ -479,32 +475,48 @@ function connectWs(url) {
   };
 }
 
-// ─── Audio Player (Aoede Natural Female Voice Stream) ─────────────────────────
+// ─── Audio Player with Instant Barge-In Cut ──────────────────────────────────
 function playAudioBase64(base64Data, onEnd) {
-  if (currentAudio) {
-    try { currentAudio.pause(); } catch(e){}
-    currentAudio = null;
-  }
+  // Stop existing audio immediately
+  stopCurrentAudio();
 
+  isAiSpeaking = true;
   const audioSrc = 'data:audio/wav;base64,' + base64Data;
   const audio = new Audio(audioSrc);
   currentAudio = audio;
 
   audio.onended = () => {
+    isAiSpeaking = false;
+    currentAudio = null;
     if (onEnd) onEnd();
   };
   audio.onerror = (e) => {
     console.warn('Audio play error:', e);
+    isAiSpeaking = false;
+    currentAudio = null;
     if (onEnd) onEnd();
   };
 
   audio.play().catch(e => {
     console.warn('Auto-play error:', e);
+    isAiSpeaking = false;
+    currentAudio = null;
     if (onEnd) onEnd();
   });
 }
 
-// ─── Speech Recognition (Speech-to-Text) ──────────────────────────────────────
+function stopCurrentAudio() {
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    } catch(e){}
+    currentAudio = null;
+  }
+  isAiSpeaking = false;
+}
+
+// ─── Speech Recognition & Full-Duplex Barge-In ────────────────────────────────
 function setupSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return;
@@ -535,10 +547,15 @@ function setupSpeechRecognition() {
 }
 
 function startListening() {
-  // Barge-in: Mute AI speech immediately if user begins talking
-  if (currentAudio) {
-    try { currentAudio.pause(); } catch(e){}
-    currentAudio = null;
+  // ⚡ 1. INSTANT FULL-DUPLEX BARGE-IN:
+  // If AI is talking, instantly mute and abort audio playback right now!
+  if (isAiSpeaking || currentAudio) {
+    console.log('[Barge-In] Interrupting AI speech immediately!');
+    stopCurrentAudio();
+    setAvatarSpeaking(false);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'barge_in' }));
+    }
   }
 
   setMicListeningState(true);
@@ -621,6 +638,11 @@ function sendManualText() {
   if (!val) return;
   input.value = '';
   closeTextModal();
+
+  // Instant barge-in on typed text as well
+  stopCurrentAudio();
+  setAvatarSpeaking(false);
+
   appendTranscript(val, 'user');
   sendUserMessage(val);
 }
@@ -654,7 +676,7 @@ function updateTimer() {
   document.getElementById('call-timer').textContent = `${m}:${s}`;
 }
 function endCall() {
-  if (currentAudio) try { currentAudio.pause(); } catch(e){}
+  stopCurrentAudio();
   if (recognition) try { recognition.abort(); } catch(e){}
   if (ws) ws.close();
   clearInterval(timerInterval);
