@@ -137,6 +137,8 @@ class Database {
     } catch (e) {
       console.warn('[db] Failed to load DB file, using in-memory defaults:', e.message);
     }
+    // Asynchronously pull latest snapshot from cloud storage if configured
+    this.syncFromCloud().catch(() => {});
   }
 
   save() {
@@ -146,6 +148,46 @@ class Database {
       fs.renameSync(tmpFile, DB_FILE);
     } catch (e) {
       console.warn('[db] Failed to save DB file atomically:', e.message);
+    }
+    // Asynchronously sync database snapshot to cloud storage if configured
+    this.syncToCloud().catch(() => {});
+  }
+
+  async syncToCloud() {
+    const cloudUrl = process.env.CLOUD_SYNC_URL;
+    const cloudKey = process.env.CLOUD_SYNC_KEY || '';
+    if (!cloudUrl) return;
+    try {
+      await fetch(cloudUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(cloudKey ? { 'Authorization': `Bearer ${cloudKey}`, 'x-access-token': cloudKey } : {})
+        },
+        body: JSON.stringify(this.data)
+      });
+    } catch (e) {
+      console.warn('[db] Cloud sync failed:', e.message);
+    }
+  }
+
+  async syncFromCloud() {
+    const cloudUrl = process.env.CLOUD_SYNC_URL;
+    const cloudKey = process.env.CLOUD_SYNC_KEY || '';
+    if (!cloudUrl) return;
+    try {
+      const res = await fetch(cloudUrl, {
+        headers: {
+          ...(cloudKey ? { 'Authorization': `Bearer ${cloudKey}`, 'x-access-token': cloudKey } : {})
+        }
+      });
+      if (res.ok) {
+        const cloudData = await res.json();
+        this.importDatabase(cloudData);
+        console.log('[db] Successfully restored latest database snapshot from Cloud Storage on boot!');
+      }
+    } catch (e) {
+      console.warn('[db] Failed to restore cloud database on boot:', e.message);
     }
   }
 
