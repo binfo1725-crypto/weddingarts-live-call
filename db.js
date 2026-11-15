@@ -75,7 +75,17 @@ const DEFAULT_SETTINGS = {
   isSmartUpsellEnabled: true,
   isSmartNegotiationEnabled: true,
   isArchetypeProfilingEnabled: true,
-  isAngryEscalationEnabled: true
+  isAngryEscalationEnabled: true,
+  // Automated Follow-Up Engine
+  isFollowUpEnabled: true,
+  followUpDelayHours: 2,
+  followUpMessage: 'Hi *{customer}*! 👋\n\nඔබ අපෙන් විමසූ විස්තර පිළිබඳ තව මොනවාද දැනගන්න අවශ්‍ය? 😊\n_අදම ඇණවුම් කළහොත් ඉක්මනින්ම ඔබට Delivery කරගත හැක!_ 📦✨',
+  isFollowUpStage2Enabled: true,
+  followUpStage2DelayHours: 24,
+  followUpStage2Message: 'හෙලෝ *{customer}*, ඔබ විමසූ භාණ්ඩයේ තොග සීමිතව පවතී. අද දිනය තුළ Order කළහොත් විශේෂ වට්ටමක් ලබා දිය හැක. 😊',
+  // Owner Instant Alerts
+  ownerAlertPhone: '',
+  isOwnerAlertEnabled: true
 };
 
 // ─── Database Class ───────────────────────────────────────────────────────────
@@ -91,6 +101,7 @@ class Database {
       broadcasts: [],  // Pure Real Production: Starts with 0 fake campaigns
       licenses: [],    // Multi-Tenant SaaS Client License Keys
       whatsappAccounts: [], // Multi-Account WhatsApp Sessions
+      leads: [],       // Unconfirmed Leads & Follow-Up Tracking
       whatsapp: {
         connected: false,
         phoneNumber: null,
@@ -129,6 +140,7 @@ class Database {
           this.data.broadcasts = parsed.broadcasts || [];
           this.data.licenses = parsed.licenses || [];
           this.data.whatsappAccounts = parsed.whatsappAccounts || [];
+          this.data.leads = parsed.leads || [];
           if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
           if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
         }
@@ -427,6 +439,7 @@ class Database {
       source: order.source || 'Live Voice Call'
     };
     this.data.orders.unshift(newOrder);
+    this.markLeadConfirmed(newOrder.customerPhone, newOrder.businessId);
     this.save();
     return newOrder;
   }
@@ -496,7 +509,15 @@ class Database {
     chat.messages.push(msgObj);
     chat.lastTime = new Date().toISOString();
     chat.lastMessage = text;
-    if (sender === 'customer') chat.unread = (chat.unread || 0) + 1;
+    if (sender === 'customer') {
+      chat.unread = (chat.unread || 0) + 1;
+      this.registerLead({
+        customerName: chat.customerName || customerName,
+        customerPhone: chat.customerPhone || customerPhone || chatId,
+        inquiryText: text,
+        businessId: assignedBizId
+      });
+    }
 
     this.save();
     return { chat, message: msgObj };
@@ -814,6 +835,105 @@ class Database {
       businessesCount: (this.data.businesses || []).length,
       ordersCount: (this.data.orders || []).length
     };
+  }
+
+  // ─── Automated Follow-Up & Leads Engine ────────────────────────────────────
+  registerLead({ customerName, customerPhone, inquiryText, businessId }) {
+    if (!this.data.leads) this.data.leads = [];
+    const cleanPhone = (customerPhone || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) return null;
+
+    const bId = businessId || this.getActiveBusiness().id;
+    let existing = this.data.leads.find(l => (l.customerPhone || '').replace(/\D/g, '') === cleanPhone && l.businessId === bId);
+
+    if (existing) {
+      if (!existing.isConfirmed) {
+        existing.lastInquiryText = inquiryText || existing.lastInquiryText;
+        existing.lastInquiryTimestamp = Date.now();
+        this.save();
+      }
+      return existing;
+    }
+
+    const newLead = {
+      id: 'lead_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      businessId: bId,
+      customerName: customerName || 'Customer',
+      customerPhone: cleanPhone,
+      lastInquiryText: inquiryText || '',
+      lastInquiryTimestamp: Date.now(),
+      isConfirmed: false,
+      isFollowUpSent: false,
+      followUpSentTimestamp: 0,
+      isStage2FollowUpSent: false,
+      stage2SentTimestamp: 0
+    };
+    this.data.leads.push(newLead);
+    this.save();
+    return newLead;
+  }
+
+  markLeadConfirmed(customerPhone, businessId = null) {
+    if (!this.data.leads) return;
+    const cleanPhone = (customerPhone || '').replace(/\D/g, '');
+    let modified = false;
+    this.data.leads.forEach(l => {
+      const lPhone = (l.customerPhone || '').replace(/\D/g, '');
+      if (lPhone === cleanPhone && (!businessId || l.businessId === businessId)) {
+        l.isConfirmed = true;
+        modified = true;
+      }
+    });
+    if (modified) this.save();
+  }
+
+  getFollowUpCandidates(businessId = null) {
+    const list = this.data.leads || [];
+    const bId = businessId || this.getActiveBusiness().id;
+    return list
+      .filter(l => l.businessId === bId && !l.isConfirmed)
+      .sort((a, b) => b.lastInquiryTimestamp - a.lastInquiryTimestamp);
+  }
+
+  markFollowUpSent(leadId, stage = 1) {
+    const lead = (this.data.leads || []).find(l => l.id === leadId);
+    if (lead) {
+      if (stage === 1) {
+        lead.isFollowUpSent = true;
+        lead.followUpSentTimestamp = Date.now();
+      } else if (stage === 2) {
+        lead.isStage2FollowUpSent = true;
+        lead.stage2SentTimestamp = Date.now();
+      }
+      this.save();
+      return lead;
+    }
+    return null;
+  }
+
+  getDueFollowUps(businessId = null) {
+    const bId = businessId || this.getActiveBusiness().id;
+    const settings = this.getTenantSettings(bId) || this.getSettings();
+    if (!settings.isFollowUpEnabled) return [];
+
+    const now = Date.now();
+    const stage1DelayMs = (settings.followUpDelayHours || 2) * 60 * 60 * 1000;
+    const stage2DelayMs = (settings.followUpStage2DelayHours || 24) * 60 * 60 * 1000;
+
+    return (this.data.leads || []).filter(lead => {
+      if (lead.businessId !== bId || lead.isConfirmed) return false;
+      const chat = (this.data.chats || []).find(c => c.businessId === bId && (c.customerPhone || '').replace(/\D/g, '') === lead.customerPhone);
+      if (chat && chat.aiMuted && chat.aiMuteUntil > now) return false;
+
+      if (!lead.isFollowUpSent) {
+        return (now - lead.lastInquiryTimestamp >= stage1DelayMs);
+      }
+      if (settings.isFollowUpStage2Enabled && !lead.isStage2FollowUpSent) {
+        const base = lead.followUpSentTimestamp || (lead.lastInquiryTimestamp + stage1DelayMs);
+        return (now - base >= stage2DelayMs);
+      }
+      return false;
+    });
   }
 
   getAnalytics(businessId) {

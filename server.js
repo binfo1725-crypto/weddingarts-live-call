@@ -11,6 +11,7 @@ const path = require('path');
 const crypto = require('crypto');
 const db = require('./db.js');
 const waEngine = require('./whatsapp.js');
+const categoryProfiles = require('./categoryProfiles.js');
 const pdfParse = require('pdf-parse');
 const {
   CustomerArchetypeEngine,
@@ -569,6 +570,8 @@ app.post('/api/orders/create', (req, res) => {
     businessId: bId,
     source: 'Manual Dashboard'
   });
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+  notifyOwnerOfNewOrder(order, biz);
   res.json({ ok: true, order });
 });
 
@@ -576,6 +579,179 @@ app.post('/api/orders/delete', (req, res) => {
   const { id } = req.body;
   db.deleteOrder(id);
   res.json({ ok: true });
+});
+
+// ─── 🧾 Invoice Dispatch via WhatsApp ─────────────────────────────────────────
+app.post('/api/orders/send-invoice', async (req, res) => {
+  try {
+    const { orderId, customNote } = req.body;
+    if (!orderId) return res.status(400).json({ ok: false, error: 'orderId is required' });
+    const bId = resolveReqBusinessId(req);
+    const orders = db.getOrders(bId);
+    const ord = orders.find(o => o.id === orderId);
+    if (!ord) return res.status(404).json({ ok: false, error: 'Order not found' });
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+    const customerPhone = ord.customerPhone;
+    if (!customerPhone) return res.status(400).json({ ok: false, error: 'Customer phone missing on order' });
+
+    const invoiceText = `🧾 *OFFICIAL INVOICE / RECEIPT*\n` +
+      `🏪 *${biz.name}*\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `📄 *Invoice No:* #${ord.id}\n` +
+      `📅 *Date:* ${new Date(ord.createdAt || Date.now()).toLocaleDateString()}\n` +
+      `👤 *Customer:* ${ord.customerName}\n` +
+      `📍 *Address:* ${ord.address || 'Standard Delivery'}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `📦 *Item:* ${ord.item}\n` +
+      `💰 *Total Amount:* Rs. ${parseFloat(String(ord.amount).replace(/[^0-9.]/g, '') || 0).toLocaleString()}\n` +
+      `💳 *Status:* ${ord.status.toUpperCase()}\n` +
+      (ord.trackingNumber ? `🚚 *Tracking No:* ${ord.trackingNumber}\n` : '') +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      (biz.bankDetails ? `🏦 *Bank Info:*\n${biz.bankDetails}\n━━━━━━━━━━━━━━━━━━\n` : '') +
+      (customNote ? `${customNote}\n\n` : '') +
+      `_Thank you for your business!_ 🙏✨`;
+
+    let targetAccId = null;
+    if (req.tenantBusinessId) targetAccId = 'wa_' + req.tenantBusinessId;
+
+    const result = await waEngine.sendTextMessage(customerPhone, invoiceText, targetAccId);
+    if (result.ok) {
+      db.addChatMessage(customerPhone, 'agent', `🧾 [Sent Official Invoice #${ord.id}]`, 'Agent', customerPhone, bId);
+    }
+    res.json(result);
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── 📥 Export Orders & Contacts to CSV (Excel / Courier format) ─────────────
+app.get('/api/export/orders.csv', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const orders = db.getOrders(bId);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+  const headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Item', 'Amount (LKR)', 'Status', 'Address', 'Tracking Number', 'Source'];
+  const rows = orders.map(o => [
+    `"${(o.id || '').replace(/"/g, '""')}"`,
+    `"${new Date(o.createdAt || Date.now()).toISOString().split('T')[0]}"`,
+    `"${(o.customerName || '').replace(/"/g, '""')}"`,
+    `"${(o.customerPhone || '').replace(/"/g, '""')}"`,
+    `"${(o.item || '').replace(/"/g, '""')}"`,
+    `"${(o.amount || '0').replace(/"/g, '""')}"`,
+    `"${(o.status || '').replace(/"/g, '""')}"`,
+    `"${(o.address || '').replace(/"/g, '""')}"`,
+    `"${(o.trackingNumber || '').replace(/"/g, '""')}"`,
+    `"${(o.source || '').replace(/"/g, '""')}"`
+  ]);
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  const filename = `${(biz.name || 'Store').replace(/[^a-zA-Z0-9]/g, '_')}_Orders_${new Date().toISOString().split('T')[0]}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csvContent);
+});
+
+app.get('/api/export/contacts.csv', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const chats = db.getChats(bId);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+  const headers = ['Customer Name', 'Phone Number', 'Last Active Date', 'Total Messages', 'Archetype'];
+  const rows = chats.map(c => [
+    `"${(c.customerName || 'Customer').replace(/"/g, '""')}"`,
+    `"${(c.customerPhone || c.id || '').replace(/"/g, '""')}"`,
+    `"${new Date(c.lastTime || Date.now()).toISOString().split('T')[0]}"`,
+    `"${(c.messages || []).length}"`,
+    `"${c.archetype || 'GENERAL'}"`
+  ]);
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  const filename = `${(biz.name || 'Store').replace(/[^a-zA-Z0-9]/g, '_')}_Contacts_${new Date().toISOString().split('T')[0]}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csvContent);
+});
+
+// ─── 🏪 17 Pre-Built Business Category Templates ─────────────────────────────
+app.get('/api/categories', (req, res) => {
+  res.json({ ok: true, categories: categoryProfiles.getAllCategories() });
+});
+
+app.get('/api/categories/:id', (req, res) => {
+  const cat = categoryProfiles.getCategoryById(req.params.id);
+  res.json({ ok: true, category: cat });
+});
+
+app.post('/api/categories/apply', (req, res) => {
+  const { categoryId, loadProducts } = req.body;
+  const cat = categoryProfiles.getCategoryById(categoryId);
+  if (!cat) return res.status(404).json({ ok: false, error: 'Category not found' });
+
+  const bId = resolveReqBusinessId(req);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+  // Update business dataset and category
+  biz.category = cat.name;
+  biz.dataset = cat.starterDataset;
+  db.saveBusiness(biz);
+
+  // Seed starter products if requested
+  if (loadProducts && cat.starterProducts && cat.starterProducts.length > 0) {
+    cat.starterProducts.forEach(p => {
+      db.addProduct({
+        ...p,
+        businessId: bId
+      });
+    });
+  }
+
+  res.json({
+    ok: true,
+    message: `✨ ${cat.emoji} ${cat.name} (${cat.sinhalaName}) template applied successfully!`,
+    category: cat,
+    business: biz
+  });
+});
+
+// ─── ⏰ Automated Follow-Up Engine APIs ───────────────────────────────────────
+app.get('/api/leads/candidates', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, candidates: db.getFollowUpCandidates(bId) });
+});
+
+app.post('/api/leads/follow-up', async (req, res) => {
+  try {
+    const { leadId, customMessage } = req.body;
+    if (!leadId) return res.status(400).json({ ok: false, error: 'leadId is required' });
+    const bId = resolveReqBusinessId(req);
+    const candidates = db.getFollowUpCandidates(bId);
+    const lead = candidates.find(l => l.id === leadId);
+    if (!lead) return res.status(404).json({ ok: false, error: 'Lead not found or already confirmed' });
+
+    const settings = db.getTenantSettings(bId) || db.getSettings();
+    const store = db.getBusiness(bId) || db.getActiveBusiness();
+
+    let text = customMessage;
+    if (!text) {
+      const template = lead.isFollowUpSent ? (settings.followUpStage2Message || settings.followUpMessage) : settings.followUpMessage;
+      text = template
+        .replace(/{customer}/gi, lead.customerName || 'Customer')
+        .replace(/{name}/gi, lead.customerName || 'Customer')
+        .replace(/{store}/gi, store.name || 'Store')
+        .replace(/{inquiry}/gi, (lead.lastInquiryText || '').slice(0, 50));
+    }
+
+    let targetAccId = req.tenantBusinessId ? ('wa_' + req.tenantBusinessId) : null;
+    const result = await waEngine.sendTextMessage(lead.customerPhone, text, targetAccId);
+    if (result.ok) {
+      db.markFollowUpSent(lead.id, lead.isFollowUpSent ? 2 : 1);
+      db.addChatMessage(lead.customerPhone, 'ai', text, lead.customerName, lead.customerPhone, bId);
+    }
+    res.json(result);
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────
@@ -1604,6 +1780,7 @@ function checkForOrderTag(text, sess, sessionId) {
   });
 
   safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields, orderId: newOrder.id }));
+  notifyOwnerOfNewOrder(newOrder, activeBiz);
 
   const token = WHATSAPP_TOKEN || sess.whatsappToken;
   const phoneId = WHATSAPP_PHONE_NUMBER_ID || sess.whatsappPhoneId;
@@ -1685,6 +1862,69 @@ async function transcribeAudioBuffer(audioBuffer, mimeType = 'audio/ogg; codecs=
 }
 
 // ─── Attach Handlers to WhatsApp Multi-Device Engine ────────────────────────
+// ─── 🔔 Store Owner Instant WhatsApp Alert ─────────────────────────────────────
+async function notifyOwnerOfNewOrder(order, biz) {
+  try {
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const ownerPhone = (settings.ownerAlertPhone || '').replace(/\D/g, '');
+    if (!settings.isOwnerAlertEnabled || !ownerPhone || ownerPhone.length < 9) return;
+
+    const alertMsg = `🚨 *NEW ORDER NOTIFICATION!*\n\n` +
+      `🏪 *Store:* ${biz.name}\n` +
+      `📦 *Item:* ${order.item}\n` +
+      `💰 *Amount:* Rs. ${parseFloat(String(order.amount).replace(/[^0-9.]/g, '') || 0).toLocaleString()}\n` +
+      `👤 *Customer:* ${order.customerName} (${order.customerPhone || 'N/A'})\n` +
+      `📍 *Address:* ${order.address || 'Standard Delivery'}\n` +
+      `💳 *Status:* ${order.status}\n` +
+      `⏰ *Time:* ${new Date().toLocaleTimeString()}\n\n` +
+      `_Check your OmniSix Dashboard to review and dispatch._ 📱`;
+
+    let targetAccId = null;
+    const accounts = waEngine.getAccounts(biz.id);
+    if (accounts.length > 0 && accounts[0].connected) targetAccId = accounts[0].id;
+
+    await waEngine.sendTextMessage(ownerPhone, alertMsg, targetAccId);
+    console.log(`[owner-alert] Sent order alert for #${order.id} to owner ${ownerPhone}`);
+  } catch(e) {
+    console.error('[owner-alert] Failed to notify owner:', e.message);
+  }
+}
+
+// ─── ⏰ Automated Follow-Up Background Engine (Runs every 5 minutes) ────────────
+setInterval(async () => {
+  try {
+    const businesses = db.getAllBusinesses();
+    for (const biz of businesses) {
+      const dueLeads = db.getDueFollowUps(biz.id);
+      if (!dueLeads || dueLeads.length === 0) continue;
+
+      const settings = db.getTenantSettings(biz.id) || db.getSettings();
+      for (const lead of dueLeads.slice(0, 3)) { // send max 3 per cycle to prevent bursts
+        const isStage2 = lead.isFollowUpSent;
+        const template = isStage2 ? (settings.followUpStage2Message || settings.followUpMessage) : settings.followUpMessage;
+        const msg = template
+          .replace(/{customer}/gi, lead.customerName || 'Customer')
+          .replace(/{name}/gi, lead.customerName || 'Customer')
+          .replace(/{store}/gi, biz.name || 'Store')
+          .replace(/{inquiry}/gi, (lead.lastInquiryText || '').slice(0, 50));
+
+        let targetAccId = null;
+        const accounts = waEngine.getAccounts(biz.id);
+        if (accounts.length > 0 && accounts[0].connected) targetAccId = accounts[0].id;
+
+        const res = await waEngine.sendTextMessage(lead.customerPhone, msg, targetAccId);
+        if (res.ok) {
+          db.markFollowUpSent(lead.id, isStage2 ? 2 : 1);
+          db.addChatMessage(lead.customerPhone, 'ai', msg, lead.customerName, lead.customerPhone, biz.id);
+          console.log(`[followup-engine] Automated Stage ${isStage2 ? 2 : 1} follow-up sent to ${lead.customerPhone} for ${biz.name}`);
+        }
+      }
+    }
+  } catch(e) {
+    console.error('[followup-engine] Loop error:', e.message);
+  }
+}, 5 * 60 * 1000);
+
 waEngine.setHandlers({
   aiReplyHandler: async (text, sess) => {
     return await getGeminiReply(text, sess);

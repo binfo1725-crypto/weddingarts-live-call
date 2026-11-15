@@ -885,10 +885,18 @@
 
     <!-- 2. INBOX TAB (Omnichannel Live Chat) -->
     <section id="tab-inbox" class="glass-card hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div>
           <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Omnichannel Live Inbox</h2>
           <p style="font-size:0.84rem;color:var(--text-secondary);">WhatsApp සහ Voice Call පාරිභෝගික සංවාද සජීවීව බලාගන්න සහ මැදිහත් වන්න (Human Takeover)</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-secondary" onclick="openFollowUpsModal()" style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;padding:7px 12px;">
+            ⏰ Follow-Up Leads
+          </button>
+          <a href="/api/export/contacts.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;padding:7px 12px;" download>
+            📥 Export Contacts (CSV)
+          </a>
         </div>
       </div>
 
@@ -934,9 +942,9 @@
           <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Orders & Slips Pipeline</h2>
           <p style="font-size:0.84rem;color:var(--text-secondary);">පාරිභෝගික ඇණවුම්, බැංකු රිසිට්පත් (Slips) සහ Delivery Dispatch කළමනාකරණය</p>
         </div>
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn-primary" onclick="openAddOrderModal()">➕ Add New Order</button>
-          <button class="btn-secondary" onclick="exportOrdersToSheets()">📊 Export to CSV / Sheets</button>
+          <a href="/api/export/orders.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download>📥 Export Orders (CSV)</a>
         </div>
       </div>
 
@@ -1065,6 +1073,56 @@
       <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
         ව්‍යාපාරයේ නම, දුරකථන අංක, බැංකු ගිණුම් විස්තර සහ Master Dataset එක මෙතැනින් සංස්කරණය කරන්න.
       </p>
+
+      <!-- 17 Pre-Built Business Category Templates (Feature 3) -->
+      <div style="background:linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.06));border:1.5px solid #bfdbfe;border-radius:16px;padding:20px;margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h3 style="font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#1e40af;margin:0;">
+              <span>⚡</span> 17 Pre-Built Business Category Templates (ක්ෂණික Templates)
+            </h3>
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:2px;">
+              ඔබගේ ව්‍යාපාර ක්ෂේත්‍රය තෝරා 1-Click එකෙන් Sinhala/English Master Knowledge Base සහ Starter Products Catalog ලබාගන්න.
+            </p>
+          </div>
+          <span style="font-size:0.75rem;padding:4px 10px;border-radius:20px;background:#eff6ff;color:#1d4ed8;font-weight:700;border:1px solid #bfdbfe;">
+            1-Click Instant Setup
+          </span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-weight:700;color:#1e3a8a;">Select Business Industry Template:</label>
+            <select id="category-template-select" class="form-select" onchange="previewCategoryTemplate(this.value)">
+              <option value="">-- Choose from 17 Business Categories --</option>
+            </select>
+          </div>
+          <button type="button" class="btn-primary" onclick="applySelectedCategoryTemplate()" style="padding:10px 18px;display:flex;align-items:center;gap:6px;font-weight:700;">
+            <span>⚡</span> Apply Template
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:18px;font-size:0.8rem;background:#ffffff;padding:8px 14px;border-radius:10px;border:1px solid #e2e8f0;flex-wrap:wrap;">
+          <span style="font-weight:700;color:#475569;">Apply Options:</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="cat-apply-mode" value="replace" checked style="accent-color:#2563eb;">
+            <span>Replace Existing Dataset</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="cat-apply-mode" value="append" style="accent-color:#2563eb;">
+            <span>Append to Existing</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:auto;">
+            <input type="checkbox" id="cat-seed-products" checked style="accent-color:#10b981;">
+            <span>Include Starter Catalog Products</span>
+          </label>
+        </div>
+        <div id="category-preview-box" class="hidden" style="margin-top:12px;background:#ffffff;padding:12px 16px;border-radius:10px;border:1px solid #e2e8f0;font-size:0.8rem;color:#334155;">
+          <div style="font-weight:700;color:#1e40af;margin-bottom:4px;" id="cat-preview-title">Category Preview</div>
+          <div id="cat-preview-desc" style="color:#64748b;margin-bottom:6px;"></div>
+          <div style="font-size:0.75rem;color:#059669;font-weight:600;" id="cat-preview-meta"></div>
+        </div>
+      </div>
 
       <form id="business-form" onsubmit="saveBusinessProfile(event)">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -1219,7 +1277,65 @@
           <textarea id="setting-closed-msg" class="form-textarea" style="min-height:90px;"></textarea>
         </div>
 
-        <button type="submit" class="btn-primary" style="margin-top:10px;">💾 Save AI Settings</button>
+        <!-- Feature 4: Owner Instant WhatsApp Alert -->
+        <div style="background:#f8fafc;border:1px solid var(--card-border);border-radius:14px;padding:18px;margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin:0;">
+              <span>🚨</span> Owner Instant WhatsApp Alert (නව ඇණවුම් දැනුම්දීම්)
+            </h4>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="setting-owner-alert-enabled" style="accent-color:var(--accent-emerald);width:16px;height:16px;">
+              <span style="font-size:0.78rem;font-weight:700;color:#047857;">ENABLE</span>
+            </label>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+            පාරිභෝගිකයෙකු නව ඇණවුමක් තැබූ විට හෝ බැංකු ස්ලිප් පතක් එවූ විගස ව්‍යාපාර හිමිකරුගේ WhatsApp අංකයට සජීවී විස්තර සහිත Alert පණිවිඩයක් යවන්න.
+          </p>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Owner WhatsApp Alert Phone (e.g. 0762107801 or +9477...)</label>
+            <input type="text" id="setting-owner-alert-phone" class="form-input" placeholder="076 210 7801">
+          </div>
+        </div>
+
+        <!-- Feature 2: Automated Follow-Up Engine Configuration -->
+        <div style="background:#f8fafc;border:1px solid var(--card-border);border-radius:14px;padding:18px;margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin:0;">
+              <span>⏰</span> Automated Follow-Up Reminders (පැය 24 පසු ස්වයංක්‍රීය මතක් කිරීම්)
+            </h4>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="setting-followup-enabled" style="accent-color:var(--accent-emerald);width:16px;height:16px;">
+              <span style="font-size:0.78rem;font-weight:700;color:#047857;">ENABLE</span>
+            </label>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;">
+            විස්තර විමසා මෙතෙක් Order එක තහවුරු නොකළ පාරිභෝගිකයින්ට ස්වයංක්‍රීයව background engine එක මගින් WhatsApp Follow-Up messages යවන්න.
+          </p>
+
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Stage 1 Delay (Hours)</label>
+              <input type="number" id="setting-followup-delay" class="form-input" value="2" min="1" max="72">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Stage 1 Message Template</label>
+              <input type="text" id="setting-followup-msg" class="form-input" placeholder="හෙලෝ! ඔබට අවශ්‍ය නිර්මාණය පිළිබඳ වැඩිදුර විස්තර හෝ වෙනත් උදව්වක් අවශ්‍යද?">
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Stage 2 Delay (Hours)</label>
+              <input type="number" id="setting-followup-s2-delay" class="form-input" value="24" min="2" max="168">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Stage 2 Message Template (Urgency / Discount)</label>
+              <input type="text" id="setting-followup-s2-msg" class="form-input" placeholder="ඔබගේ ඇණවුම අදම තහවුරු කළහොත් දිවයින පුරා බෙදාහැරීම නොමිලේ ලබාගත හැක.">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top:16px;">💾 Save AI Settings</button>
       </form>
     </section>
 
@@ -1558,6 +1674,138 @@
     <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
       <button type="button" class="btn-secondary" onclick="closeSendPhotoModal()">Cancel</button>
       <button type="button" class="btn-primary" onclick="confirmSendProductPhoto()">Send Photo Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Digital Printable Invoice (Feature 1) -->
+<div id="modal-invoice" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:650px;width:100%;padding:0;overflow:hidden;border-radius:18px;">
+    <!-- Printable Invoice Paper -->
+    <div id="invoice-printable-area" style="background:#ffffff;padding:32px 30px;color:#0f172a;font-family:'Plus Jakarta Sans',sans-serif;">
+      <!-- Invoice Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #f1f5f9;padding-bottom:18px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="/app-icon.png" style="width:48px;height:48px;border-radius:12px;object-fit:cover;border:1px solid #e2e8f0;">
+          <div>
+            <h2 id="inv-store-name" style="font-size:1.25rem;font-weight:800;color:#0f172a;margin:0;">WEDDING ARTS</h2>
+            <div id="inv-store-phone" style="font-size:0.8rem;color:#64748b;margin-top:2px;">Official Commercial Invoice</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'JetBrains Mono';font-size:1.15rem;font-weight:800;color:#2563eb;" id="inv-number">INV-1001</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:4px;" id="inv-date">2026-11-15</div>
+          <div id="inv-status-badge" style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:800;margin-top:6px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;">CONFIRMED</div>
+        </div>
+      </div>
+
+      <!-- Bill To & Delivery Info -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;font-size:0.85rem;background:#f8fafc;padding:14px 18px;border-radius:12px;border:1px solid #e2e8f0;">
+        <div>
+          <div style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Customer Details:</div>
+          <div style="font-weight:800;color:#0f172a;font-size:0.95rem;" id="inv-cust-name">Customer Name</div>
+          <div style="color:#475569;margin-top:2px;font-family:'JetBrains Mono';" id="inv-cust-phone">+94 77 123 4567</div>
+        </div>
+        <div>
+          <div style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Delivery Address / Tracking:</div>
+          <div style="color:#0f172a;font-weight:600;" id="inv-cust-address">Delivery Address</div>
+          <div style="color:#2563eb;font-weight:700;font-size:0.78rem;margin-top:2px;" id="inv-cust-tracking">Tracking: Pending</div>
+        </div>
+      </div>
+
+      <!-- Item Table -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.86rem;">
+        <thead>
+          <tr style="background:#f1f5f9;text-align:left;border-bottom:1px solid #cbd5e1;">
+            <th style="padding:10px 12px;font-weight:700;color:#334155;">Item Description</th>
+            <th style="padding:10px 12px;font-weight:700;color:#334155;text-align:center;">Qty</th>
+            <th style="padding:10px 12px;font-weight:700;color:#334155;text-align:right;">Unit Price</th>
+            <th style="padding:10px 12px;font-weight:700;color:#334155;text-align:right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:12px;font-weight:700;color:#0f172a;" id="inv-item-name">Custom Order</td>
+            <td style="padding:12px;text-align:center;color:#475569;">1</td>
+            <td style="padding:12px;text-align:right;color:#475569;" id="inv-item-unit">Rs. 0</td>
+            <td style="padding:12px;text-align:right;font-weight:700;color:#059669;" id="inv-item-total">Rs. 0</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Totals & Bank Account Details -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:16px;">
+        <div style="flex:1;background:#eff6ff;padding:12px 16px;border-radius:10px;border:1px solid #bfdbfe;font-size:0.8rem;">
+          <div style="font-weight:800;color:#1e40af;margin-bottom:4px;">🏦 Bank Transfer Info:</div>
+          <div id="inv-bank-details" style="color:#1e3a8a;white-space:pre-line;line-height:1.4;">Bank details...</div>
+        </div>
+        <div style="min-width:200px;text-align:right;">
+          <div style="display:flex;justify-content:space-between;font-size:0.84rem;color:#64748b;margin-bottom:6px;">
+            <span>Subtotal:</span>
+            <span id="inv-subtotal" style="font-weight:700;color:#0f172a;">Rs. 0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.84rem;color:#64748b;margin-bottom:8px;">
+            <span>Delivery:</span>
+            <span style="font-weight:700;color:#059669;">FREE / Included</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:800;color:#0f172a;border-top:2px solid #0f172a;padding-top:8px;">
+            <span>Grand Total:</span>
+            <span id="inv-grand-total" style="color:#059669;">Rs. 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Note -->
+      <div style="text-align:center;font-size:0.75rem;color:#94a3b8;border-top:1px dashed #cbd5e1;padding-top:12px;margin-top:16px;">
+        This is an official computer-generated digital invoice from OmniSix AI Cloud.
+      </div>
+    </div>
+
+    <!-- Modal Action Buttons Bar -->
+    <div style="background:#f8fafc;border-top:1px solid var(--card-border);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <button type="button" class="btn-secondary" onclick="closeInvoiceModal()">✕ Close</button>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-secondary" onclick="printInvoice()" style="display:flex;align-items:center;gap:6px;">
+          🖨️ Print / Save PDF
+        </button>
+        <button type="button" class="btn-primary" onclick="dispatchInvoiceToWhatsApp()" style="display:flex;align-items:center;gap:6px;">
+          📲 Send to WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Follow-Up Candidates (Feature 2) -->
+<div id="modal-followups" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:700px;width:100%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:1.15rem;font-weight:700;display:flex;align-items:center;gap:8px;">
+        <span>⏰</span> Automated Follow-Up Leads & Reminders
+      </h3>
+      <button class="btn-secondary" onclick="closeFollowUpsModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:14px;">
+      විස්තර විමසා මෙතෙක් Order එක තහවුරු නොකළ පාරිභෝගිකයින් (Unconfirmed Leads). 1-Click එකෙන් ඔවුන්ට සුහද මතක් කිරීම් යවා අහිමි වන Sales නැවත ලබාගන්න.
+    </p>
+    <div class="table-responsive" style="max-height:360px;overflow-y:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Inquiry Preview</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="followups-tbody">
+          <!-- Injected via JS -->
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+      <button type="button" class="btn-secondary" onclick="closeFollowUpsModal()">Close</button>
     </div>
   </div>
 </div>
@@ -2119,6 +2367,7 @@ function renderOrdersFull(orders) {
         </select>
       </td>
       <td>
+        <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="openInvoiceModal('${escapeHtml(o.id)}')">🧾 Invoice</button>
         <button class="btn-danger" onclick="deleteOrder('${escapeHtml(o.id)}')">Delete</button>
       </td>
     `;
@@ -2666,6 +2915,208 @@ async function sendBroadcastCampaign(e) {
   } catch(e) { alert('Broadcast error: ' + e.message); }
 }
 
+// ─── Digital Invoice Modal (Feature 1) ───────────────────────────────────────
+let activeInvoiceOrderId = null;
+
+function openInvoiceModal(orderId) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+  activeInvoiceOrderId = orderId;
+
+  const invNum = 'INV-' + (o.id.toString().replace(/[^0-9]/g, '').slice(-4) || '1001');
+  const invDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString() : new Date().toLocaleDateString();
+  const bizName = activeBiz ? activeBiz.name : 'WEDDING ARTS & ENTERPRISES';
+  const bizPhone = activeBiz ? activeBiz.phone : '';
+  const bankInfo = (activeBiz && activeBiz.bankDetails) ? activeBiz.bankDetails : 'Contact store for bank details';
+
+  document.getElementById('inv-store-name').textContent = bizName;
+  document.getElementById('inv-store-phone').textContent = bizPhone ? ('Tel: ' + bizPhone) : 'Official Commercial Invoice';
+  document.getElementById('inv-number').textContent = invNum;
+  document.getElementById('inv-date').textContent = invDate;
+  document.getElementById('inv-status-badge').textContent = (o.status || 'CONFIRMED').toUpperCase();
+
+  document.getElementById('inv-cust-name').textContent = o.customerName || 'Customer';
+  document.getElementById('inv-cust-phone').textContent = o.customerPhone ? ('+' + o.customerPhone.replace(/\D/g, '')) : '-';
+  document.getElementById('inv-cust-address').textContent = o.address || 'Address on file';
+  document.getElementById('inv-cust-tracking').textContent = o.trackingNumber ? ('Tracking: ' + o.trackingNumber) : 'Tracking: Pending';
+
+  document.getElementById('inv-item-name').textContent = o.item || 'Order Items';
+  const amtFormatted = typeof o.amount === 'number' ? ('Rs. ' + o.amount.toLocaleString()) : ('Rs. ' + o.amount);
+  document.getElementById('inv-item-unit').textContent = amtFormatted;
+  document.getElementById('inv-item-total').textContent = amtFormatted;
+  document.getElementById('inv-subtotal').textContent = amtFormatted;
+  document.getElementById('inv-grand-total').textContent = amtFormatted;
+  document.getElementById('inv-bank-details').textContent = bankInfo;
+
+  document.getElementById('modal-invoice').classList.remove('hidden');
+}
+
+function closeInvoiceModal() {
+  document.getElementById('modal-invoice').classList.add('hidden');
+  activeInvoiceOrderId = null;
+}
+
+function printInvoice() {
+  window.print();
+}
+
+async function dispatchInvoiceToWhatsApp() {
+  if (!activeInvoiceOrderId) return;
+  try {
+    const res = await fetch('/api/orders/send-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: activeInvoiceOrderId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`📲 Digital Invoice dispatched directly to customer (${data.customerPhone}) via WhatsApp!`);
+    } else {
+      alert('Invoice send error: ' + (data.error || 'Failed'));
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ─── Automated Follow-Up Engine (Feature 2) ──────────────────────────────────
+function openFollowUpsModal() {
+  document.getElementById('modal-followups').classList.remove('hidden');
+  fetchFollowUpCandidates();
+}
+
+function closeFollowUpsModal() {
+  document.getElementById('modal-followups').classList.add('hidden');
+}
+
+async function fetchFollowUpCandidates() {
+  const tbody = document.getElementById('followups-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:18px;color:#64748b;">Checking follow-up candidates...</td></tr>';
+
+  try {
+    const res = await fetch('/api/leads/candidates');
+    const data = await res.json();
+    if (!data.ok || !data.candidates || data.candidates.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#64748b;">🎉 All customer inquiries are active or converted! No pending follow-ups right now.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.candidates.map(lead => {
+      const hoursAgo = Math.round((Date.now() - new Date(lead.lastActivityAt || lead.createdAt).getTime()) / (1000 * 3600));
+      const statusBadge = lead.followUpStage === 2 
+        ? '<span style="background:#fee2e2;color:#b91c1c;padding:3px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;">Stage 2 (Urgent)</span>'
+        : (lead.followUpStage === 1 
+          ? '<span style="background:#fef3c7;color:#b45309;padding:3px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;">Stage 1 Sent</span>'
+          : '<span style="background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;">Due Follow-Up</span>');
+
+      return `
+        <tr>
+          <td style="font-weight:700;">${escapeHtml(lead.customerName || 'Inquirer')}</td>
+          <td style="font-family:'JetBrains Mono';font-size:0.8rem;">+${escapeHtml(lead.customerPhone || '')}</td>
+          <td style="font-size:0.78rem;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${escapeHtml(lead.inquirySummary || 'Customer inquiry')} (${hoursAgo}h ago)
+          </td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn-primary" style="padding:4px 10px;font-size:0.75rem;" onclick="dispatchManualFollowUp('${escapeHtml(lead.id)}')">
+              ⚡ Send Reminder
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#b91c1c;padding:14px;">Error: ${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function dispatchManualFollowUp(leadId) {
+  try {
+    const res = await fetch('/api/leads/follow-up', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert('📲 Follow-Up reminder sent successfully over WhatsApp!');
+      fetchFollowUpCandidates();
+    } else {
+      alert('Error: ' + (data.error || 'Failed'));
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ─── 17 Pre-Built Business Categories (Feature 3) ─────────────────────────────
+let loadedCategories = [];
+
+async function loadCategoryTemplates() {
+  const sel = document.getElementById('category-template-select');
+  if (!sel || sel.children.length > 2) return;
+
+  try {
+    const res = await fetch('/api/categories');
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.categories)) {
+      loadedCategories = data.categories;
+      sel.innerHTML = '<option value="">-- Choose from 17 Business Categories --</option>' +
+        data.categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.nameSi)})</option>`).join('');
+    }
+  } catch(e) { console.error('loadCategoryTemplates error:', e); }
+}
+
+function previewCategoryTemplate(catId) {
+  const box = document.getElementById('category-preview-box');
+  if (!box) return;
+  if (!catId) { box.classList.add('hidden'); return; }
+
+  const cat = loadedCategories.find(c => c.id === catId);
+  if (!cat) return;
+
+  document.getElementById('cat-preview-title').textContent = `${cat.name} (${cat.nameSi})`;
+  document.getElementById('cat-preview-desc').textContent = `${cat.description || ''} • Delivery Policy: ${cat.deliveryPolicy || ''}`;
+  document.getElementById('cat-preview-meta').textContent = `Includes ${cat.starterProductsCount || 0} Starter Catalog Products & Comprehensive Bilingual Dataset.`;
+  box.classList.remove('hidden');
+}
+
+async function applySelectedCategoryTemplate() {
+  const sel = document.getElementById('category-template-select');
+  const catId = sel ? sel.value : null;
+  if (!catId) {
+    alert('Please select a business category template first.');
+    return;
+  }
+
+  const mode = document.querySelector('input[name="cat-apply-mode"]:checked')?.value || 'replace';
+  const seedProducts = document.getElementById('cat-seed-products')?.checked !== false;
+
+  if (!confirm(`Apply the selected category template in "${mode.toUpperCase()}" mode?`)) return;
+
+  try {
+    const res = await fetch('/api/categories/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId: catId, mode, seedProducts })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`✨ Successfully applied category: ${data.appliedCategory.name}!\n\nProducts loaded: ${data.productsCount}`);
+      if (data.business) {
+        activeBiz = data.business;
+        loadBusinessForm();
+        fetchProducts();
+      }
+    } else {
+      alert('Error: ' + (data.error || 'Failed'));
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
 // ─── Business Form ────────────────────────────────────────────────────────────
 function loadBusinessForm() {
   if (!activeBiz) return;
@@ -2675,6 +3126,7 @@ function loadBusinessForm() {
   document.getElementById('form-biz-bank').value = activeBiz.bankDetails || '';
   document.getElementById('form-biz-delivery').value = activeBiz.deliveryPolicy || '';
   document.getElementById('form-biz-dataset').value = activeBiz.dataset || '';
+  loadCategoryTemplates();
 }
 
 async function saveBusinessProfile(e) {
@@ -2718,6 +3170,24 @@ async function loadSettingsForm() {
       if (voiceModeEl) voiceModeEl.value = s.voiceReplyMode || 'auto';
       document.getElementById('setting-mute-duration').value = s.humanTakeoverDurationMinutes || 30;
       document.getElementById('setting-closed-msg').value = s.closedMessage || '';
+
+      // Feature 4: Owner Alert
+      const alertPhoneEl = document.getElementById('setting-owner-alert-phone');
+      if (alertPhoneEl) alertPhoneEl.value = s.ownerAlertPhone || '';
+      const alertEnEl = document.getElementById('setting-owner-alert-enabled');
+      if (alertEnEl) alertEnEl.checked = !!s.isOwnerAlertEnabled;
+
+      // Feature 2: Follow-Up Engine
+      const fuEnEl = document.getElementById('setting-followup-enabled');
+      if (fuEnEl) fuEnEl.checked = s.isFollowUpEnabled !== false;
+      const fuDelayEl = document.getElementById('setting-followup-delay');
+      if (fuDelayEl) fuDelayEl.value = s.followUpDelayHours || 2;
+      const fuMsgEl = document.getElementById('setting-followup-msg');
+      if (fuMsgEl) fuMsgEl.value = s.followUpMessage || '';
+      const fuS2DelayEl = document.getElementById('setting-followup-s2-delay');
+      if (fuS2DelayEl) fuS2DelayEl.value = s.followUpStage2DelayHours || 24;
+      const fuS2MsgEl = document.getElementById('setting-followup-s2-msg');
+      if (fuS2MsgEl) fuS2MsgEl.value = s.followUpStage2Message || '';
     }
   } catch(e){}
 }
@@ -2730,7 +3200,15 @@ async function saveSettings(e) {
     voiceProfile: document.getElementById('setting-voice-profile').value,
     voiceReplyMode: document.getElementById('setting-voice-reply-mode')?.value || 'auto',
     humanTakeoverDurationMinutes: parseInt(document.getElementById('setting-mute-duration').value) || 30,
-    closedMessage: document.getElementById('setting-closed-msg').value
+    closedMessage: document.getElementById('setting-closed-msg').value,
+    ownerAlertPhone: document.getElementById('setting-owner-alert-phone')?.value || '',
+    isOwnerAlertEnabled: document.getElementById('setting-owner-alert-enabled')?.checked || false,
+    isFollowUpEnabled: document.getElementById('setting-followup-enabled')?.checked || false,
+    followUpDelayHours: parseFloat(document.getElementById('setting-followup-delay')?.value) || 2,
+    followUpMessage: document.getElementById('setting-followup-msg')?.value || '',
+    isFollowUpStage2Enabled: document.getElementById('setting-followup-enabled')?.checked || false,
+    followUpStage2DelayHours: parseFloat(document.getElementById('setting-followup-s2-delay')?.value) || 24,
+    followUpStage2Message: document.getElementById('setting-followup-s2-msg')?.value || ''
   };
 
   try {
