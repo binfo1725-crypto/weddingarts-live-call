@@ -24,9 +24,9 @@ const GEMINI_TEXT_MODELS = [
   'gemini-3.8-flash'
 ];
 const GEMINI_TTS_MODELS = [
-  'gemini-3.8-flash-lite-tts',
   'gemini-3.8-flash-tts',
   'gemini-3.1-flash-tts-preview',
+  'gemini-3.8-flash-lite-tts',
   'gemini-2.5-flash-preview-tts'
 ];
 const VOICE_NAME = 'Aoede'; // In-app Cleo warm natural female voice profile
@@ -304,8 +304,13 @@ async function synthesizeGeminiAudio(text, apiKey) {
         body: JSON.stringify(payload)
       });
       const data = await res.json();
+      if (data.error) {
+        console.warn(`[Gemini TTS ${model}] Quota or Error:`, data.error.message?.slice(0, 80));
+        continue; // Try next TTS model!
+      }
       const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (audioData) {
+        console.log(`[Gemini TTS] Audio generated successfully via ${model}`);
         return audioData;
       }
     } catch (err) {
@@ -313,6 +318,7 @@ async function synthesizeGeminiAudio(text, apiKey) {
     }
   }
 
+  console.warn('[Gemini TTS] All TTS models failed for text:', speechText.slice(0, 50));
   return null;
 }
 

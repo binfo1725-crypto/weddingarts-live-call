@@ -388,7 +388,11 @@ function connectWs(url) {
             onAiSpeechFinished();
           });
         } else {
-          onAiSpeechFinished();
+          // 🛡️ Fallback: If TTS server audio had a momentary delay, use browser speech synthesis so voice NEVER fails!
+          console.log('[Voice Fallback] Using local browser speech synthesis for audio.');
+          speakBrowserVoice(data.speechText || data.text, () => {
+            onAiSpeechFinished();
+          });
         }
       } else if (data.type === 'ai_thinking') {
         pauseListening();
@@ -428,6 +432,21 @@ function onAiSpeechFinished() {
       resumeListening();
     }
   }, 400);
+}
+
+function speakBrowserVoice(text, onEnd) {
+  if (!window.speechSynthesis) {
+    if (onEnd) onEnd();
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/[*#_~`\[\]\(\)]/g, '').trim();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = 'si-LK';
+  u.rate = 1.0;
+  u.onend = () => { if (onEnd) onEnd(); };
+  u.onerror = () => { if (onEnd) onEnd(); };
+  window.speechSynthesis.speak(u);
 }
 
 // ─── Audio Playback ───────────────────────────────────────────────────────────
@@ -576,7 +595,11 @@ function sendUserMessage(text) {
             onAiSpeechFinished();
           });
         } else {
-          onAiSpeechFinished();
+          // 🛡️ Fallback: If TTS server audio had a momentary delay, use browser speech synthesis so voice NEVER fails!
+          console.log('[Voice Fallback] Using local browser speech synthesis for audio.');
+          speakBrowserVoice(data.speechText || data.text, () => {
+            onAiSpeechFinished();
+          });
         }
       }
     })
