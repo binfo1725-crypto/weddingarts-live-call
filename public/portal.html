@@ -693,6 +693,21 @@
   </div>
 
   <div class="nav-right">
+    <!-- Language Switcher (Tri-Language: Sinhala, English, Tamil) -->
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:4px 10px;">
+      <span style="font-size:14px;">🌐</span>
+      <select id="ui-lang-switcher" onchange="changeUILanguage(this.value)" style="background:transparent;color:#ffffff;border:none;font-weight:700;font-size:13px;cursor:pointer;outline:none;">
+        <option value="si" style="background:#0f172a;color:#fff;">සිංහල</option>
+        <option value="en" style="background:#0f172a;color:#fff;">English</option>
+        <option value="ta" style="background:#0f172a;color:#fff;">தமிழ்</option>
+      </select>
+    </div>
+
+    <!-- User Guide Button -->
+    <button type="button" onclick="openUserGuideModal(1)" style="background:linear-gradient(135deg, rgba(37,99,235,0.2), rgba(16,185,129,0.2));border:1px solid rgba(59,130,246,0.4);color:#93c5fd;padding:6px 12px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" title="Setup Tour & Walkthrough">
+      <span>📖</span> <span data-i18n="userGuide">User Guide</span>
+    </button>
+
     <div class="status-pill" id="portal-plan-badge" style="background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.3);color:#34d399;">
       <span style="font-size:13px;">⚡</span>
       <span id="portal-plan-text" style="font-weight:700;">Loading Plan...</span>
@@ -721,39 +736,39 @@
   <aside class="sidebar">
     <button class="tab-btn active" onclick="showTab('overview')">
       <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-      Overview
+      <span data-i18n="navOverview">Overview</span>
     </button>
     <button class="tab-btn" onclick="showTab('inbox')">
       <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-      Live Chat Inbox
+      <span data-i18n="navInbox">Live Chat Inbox</span>
     </button>
     <button class="tab-btn" onclick="showTab('orders')">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-      Orders & Slips
+      <span data-i18n="navOrders">Orders & Slips</span>
     </button>
     <button class="tab-btn" onclick="showTab('products')">
       <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z M3 13.5h18v7H3z"/></svg>
-      Products Catalog
+      <span data-i18n="navProducts">Products Catalog</span>
     </button>
     <button class="tab-btn" onclick="showTab('flows')">
       <svg viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
-      Custom Flows
+      <span data-i18n="navFlows">Custom Flows</span>
     </button>
     <button class="tab-btn" onclick="showTab('broadcast')">
       <svg viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4z"/></svg>
-      Broadcast Marketing
+      <span data-i18n="navBroadcast">Broadcast Marketing</span>
     </button>
     <button class="tab-btn" onclick="showTab('business')">
       <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-      Business & Dataset
+      <span data-i18n="navBusiness">Business & Dataset</span>
     </button>
     <button class="tab-btn" onclick="showTab('settings')">
       <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-      AI Settings & Persona
+      <span data-i18n="navSettings">AI Settings & Persona</span>
     </button>
     <button class="tab-btn" onclick="showTab('whatsapp')">
       <svg viewBox="0 0 24 24"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.99-1.38-.99-2.63 0-1.25.61-1.86.82-2.11.21-.25.46-.31.62-.31.15 0 .31.01.44.02.14.01.32-.05.5.39.19.46.65 1.67.71 1.79.06.12.1.26.02.42-.08.16-.12.26-.24.4-.12.14-.25.31-.36.42-.12.12-.24.25-.1.5.14.25.64 1.08 1.37 1.75.94.86 1.73 1.12 1.98 1.25.25.12.39.11.54-.06.15-.17.65-.76.82-1.02.17-.26.34-.22.58-.13zM12 2a10 10 0 0 0-10 10c0 1.77.46 3.45 1.28 4.92L2 22l5.25-1.25A9.97 9.97 0 0 0 12 22a10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>
-      WhatsApp Web Hub
+      <span data-i18n="navWhatsapp">WhatsApp Web Hub</span>
     </button>
     
   </aside>
@@ -1168,10 +1183,39 @@
 
     <!-- 8. AI SETTINGS & PERSONA TAB (From APK) -->
     <section id="tab-settings" class="glass-card hidden">
-      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;">AI Personality & Operations Settings</h2>
-      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;" data-i18n="settingsTitle">AI Personality & Operations Settings</h2>
+      <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:20px;" data-i18n="settingsDesc">
         OmniSix AI හඬ, ආමන්ත්‍රණ විලාසය (Persona), සහ කාර්යාල වේලාවන් සකසන්න.
       </p>
+
+      <!-- Feature: Customer Self-Service Gemini API Key -->
+      <div style="background:linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.06));border:1.5px solid #bfdbfe;border-radius:14px;padding:20px;margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
+          <h4 style="font-size:0.98rem;font-weight:700;color:#1e40af;display:flex;align-items:center;gap:8px;margin:0;">
+            <span>🔑</span> <span data-i18n="geminiKeyTitle">Google Gemini AI API Key (Customer Self-Service)</span>
+          </h4>
+          <span id="gemini-key-status-badge" style="font-size:0.75rem;padding:4px 10px;border-radius:20px;background:#eff6ff;color:#1d4ed8;font-weight:700;border:1px solid #bfdbfe;">
+            Cloud Key Active
+          </span>
+        </div>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;" data-i18n="geminiKeyDesc">
+          ඔබගේම Google Gemini API Key එක ඇතුළත් කර සෘජුව සම්බන්ධ කරන්න. Google AI Studio මගින් 100% නොමිලේ ලබාගත හැක.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;">
+          <div style="position:relative;flex:1;">
+            <input type="password" id="setting-gemini-api-key" class="form-input" placeholder="AIzaSy..." style="padding-right:40px;font-family:'JetBrains Mono';font-size:0.85rem;">
+            <button type="button" onclick="toggleApiKeyVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:1rem;" title="Show/Hide">👁️</button>
+          </div>
+          <button type="button" class="btn-primary" onclick="verifyAndSaveGeminiKey()" style="padding:9px 16px;display:flex;align-items:center;gap:6px;font-weight:700;">
+            <span>⚡</span> <span data-i18n="btnVerifyKey">Verify & Save</span>
+          </button>
+          <a href="https://aistudio.google.com/apikey" target="_blank" class="btn-secondary" style="text-decoration:none;padding:9px 14px;display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;white-space:nowrap;">
+            <span>🔗</span> <span data-i18n="getFreeKey">Get Free Key</span>
+          </a>
+        </div>
+        <div id="gemini-key-alert-msg" class="hidden" style="margin-top:10px;padding:10px 14px;border-radius:8px;font-size:0.82rem;"></div>
+      </div>
 
       <form id="settings-form" onsubmit="saveSettings(event)">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -1407,6 +1451,135 @@
     
 
   </main>
+</div>
+
+<!-- Modal: Interactive 5-Step First-Time User Guide & Setup Tour -->
+<div id="modal-user-guide" class="modal-overlay hidden" style="backdrop-filter:blur(8px);z-index:99999;">
+  <div class="modal-card" style="max-width:680px;width:100%;padding:0;overflow:hidden;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+    <!-- Tour Header with Gradient -->
+    <div style="background:linear-gradient(135deg, #1e3a8a, #2563eb, #059669);padding:22px 28px;color:#ffffff;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="/app-icon.png" style="width:42px;height:42px;border-radius:10px;object-fit:cover;border:2px solid rgba(255,255,255,0.4);">
+        <div>
+          <h3 style="margin:0;font-size:1.2rem;font-weight:800;color:#ffffff;" data-i18n="guideModalTitle">OmniSix AI — Quick Setup & User Guide</h3>
+          <p style="margin:2px 0 0;font-size:0.78rem;color:rgba(255,255,255,0.85);" data-i18n="guideModalSubtitle">පියවරෙන් පියවර ඔබගේ 24/7 AI Sales Assistant සක්‍රිය කරගන්න</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeUserGuideModal()" style="background:rgba(255,255,255,0.15);border:none;color:#ffffff;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <!-- Step Progress Bar -->
+    <div style="background:#f8fafc;padding:12px 28px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;">
+      <div style="font-weight:700;color:#2563eb;" id="guide-step-indicator">Step 1 of 5</div>
+      <div style="display:flex;gap:8px;" id="guide-dots-container">
+        <span class="guide-dot" id="g-dot-1" style="width:10px;height:10px;border-radius:50%;background:#2563eb;display:inline-block;"></span>
+        <span class="guide-dot" id="g-dot-2" style="width:10px;height:10px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span>
+        <span class="guide-dot" id="g-dot-3" style="width:10px;height:10px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span>
+        <span class="guide-dot" id="g-dot-4" style="width:10px;height:10px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span>
+        <span class="guide-dot" id="g-dot-5" style="width:10px;height:10px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span>
+      </div>
+    </div>
+
+    <!-- Slides Content Area -->
+    <div style="padding:26px 28px;min-height:290px;background:#ffffff;color:#1e293b;">
+      <!-- Slide 1: Welcome -->
+      <div id="guide-slide-1" class="guide-slide">
+        <div style="font-size:2.2rem;margin-bottom:8px;">🌟</div>
+        <h4 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:8px;" data-i18n="step1Title">Welcome to OmniSix AI Cloud!</h4>
+        <p style="font-size:0.86rem;color:#475569;line-height:1.6;margin-bottom:14px;" data-i18n="step1Desc">
+          OmniSix AI යනු ශ්‍රී ලංකාවේ ව්‍යාපාර සඳහා නිර්මාණය කළ ප්‍රබලතම 24/7 AI විකුණුම් සහායකයා වේ. පරිගණකය ක්‍රියාවිරහිත වුවද ඔබගේ WhatsApp එකට ලැබෙන පණිවිඩවලට පිළිතුරු දීම, හඬ පණිවිඩ යැවීම, සජීවී දුරකථන ඇමතුම් ලබා ගැනීම, සහ බිල්පත් නිකුත් කිරීම ස්වයංක්‍රීයව සිදු වේ.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f1f5f9;padding:12px 14px;border-radius:12px;font-size:0.8rem;color:#334155;">
+          <div>✅ <strong>Cloud 24/7:</strong> Phone-Off වුවද සක්‍රියයි</div>
+          <div>✅ <strong>4-Language:</strong> සිංහල, Singlish, English, தமிழ்</div>
+          <div>✅ <strong>Voice Notes:</strong> ස්වභාවික හඬින් පිළිතුරු</div>
+          <div>✅ <strong>Digital Invoices:</strong> 1-Click WhatsApp බිල්පත්</div>
+        </div>
+      </div>
+
+      <!-- Slide 2: Gemini API Key -->
+      <div id="guide-slide-2" class="guide-slide hidden">
+        <div style="font-size:2.2rem;margin-bottom:8px;">🔑</div>
+        <h4 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:8px;" data-i18n="step2Title">Step 2: Connect Your Google Gemini AI Key</h4>
+        <p style="font-size:0.86rem;color:#475569;line-height:1.6;margin-bottom:12px;" data-i18n="step2Desc">
+          ඔබගේම Google Gemini API Key එක මෙතැනට ඇතුළත් කරගන්න. ඔබට තවමත් Key එකක් නොමැති නම් Google AI Studio වෙතින් නොමිලේ විනාඩියකින් ලබාගත හැක.
+        </p>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px;margin-bottom:12px;">
+          <label style="font-size:0.8rem;font-weight:700;color:#1e40af;display:block;margin-bottom:6px;">Paste Google Gemini API Key:</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="guide-gemini-key-input" class="form-input" placeholder="AIzaSy..." style="font-family:'JetBrains Mono';font-size:0.84rem;">
+            <button type="button" class="btn-primary" onclick="verifyGuideGeminiKey()" style="white-space:nowrap;padding:8px 14px;font-size:0.8rem;">
+              ⚡ Verify & Save
+            </button>
+          </div>
+          <div id="guide-gemini-status" style="margin-top:6px;font-size:0.8rem;font-weight:600;"></div>
+        </div>
+        <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#2563eb;font-size:0.8rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          <span>🔗 Click here to get a 100% Free Gemini API Key from Google</span>
+        </a>
+      </div>
+
+      <!-- Slide 3: WhatsApp Linking -->
+      <div id="guide-slide-3" class="guide-slide hidden">
+        <div style="font-size:2.2rem;margin-bottom:8px;">📱</div>
+        <h4 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:8px;" data-i18n="step3Title">Step 3: Link Your WhatsApp Business Account</h4>
+        <p style="font-size:0.86rem;color:#475569;line-height:1.6;margin-bottom:12px;" data-i18n="step3Desc">
+          ඔබගේ ව්‍යාපාරික WhatsApp අංකය පහසුවෙන්ම සම්බන්ධ කරගන්න:
+        </p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;line-height:1.6;font-size:0.82rem;color:#334155;margin-bottom:10px;">
+          1. දුරකථනයේ <strong>WhatsApp</strong> විවෘත කර <strong>Settings (හෝ තිත් 3)</strong> වෙත යන්න.<br>
+          2. <strong>Linked Devices ➜ Link a Device</strong> ඔබන්න.<br>
+          3. <strong>WhatsApp Web Hub</strong> ටැබ් එකේ ඇති <strong>QR Code එක Scan කරන්න</strong> (හෝ Pairing Code ලබාගන්න).
+        </div>
+        <p style="font-size:0.78rem;color:#059669;font-weight:600;margin:0;">
+          💡 සම්බන්ධ වූ පසු දුරකථනය Off වුවද, Data නොමැති වුවද Cloud Bot සක්‍රියව පවතී!
+        </p>
+      </div>
+
+      <!-- Slide 4: Business Datasets & Products -->
+      <div id="guide-slide-4" class="guide-slide hidden">
+        <div style="font-size:2.2rem;margin-bottom:8px;">⚡</div>
+        <h4 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:8px;" data-i18n="step4Title">Step 4: Load 17 Business Templates or Products</h4>
+        <p style="font-size:0.86rem;color:#475569;line-height:1.6;margin-bottom:12px;" data-i18n="step4Desc">
+          <strong>Business & Dataset</strong> ටැබ් එකට ගොස් ඔබගේ ක්ෂේත්‍රය (Boutique, Studio, Bakery, Mobile, Salon, Restaurant...) තෝරා <strong>Apply Template</strong> ඔබන්න:
+        </p>
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:12px 14px;font-size:0.82rem;color:#065f46;line-height:1.6;">
+          • ක්ෂණිකව සම්පූර්ණ Sinhala & English Master Dataset එකක් පූරණය වේ.<br>
+          • නියැදි භාණ්ඩ (Products) මිල ගණන් සමඟ Catalog එකට එක් වේ.<br>
+          • ඔබගේ භාණ්ඩවල Photos Upload කළ විට පාරිභෝගිකයා ඉල්ලන සැණින් Photos ස්වයංක්‍රීයව WhatsApp එකට යැවේ!
+        </div>
+      </div>
+
+      <!-- Slide 5: Ready to Sell -->
+      <div id="guide-slide-5" class="guide-slide hidden">
+        <div style="font-size:2.2rem;margin-bottom:8px;">🚀</div>
+        <h4 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:8px;" data-i18n="step5Title">Step 5: You are Ready to Automate 24/7!</h4>
+        <p style="font-size:0.86rem;color:#475569;line-height:1.6;margin-bottom:12px;" data-i18n="step5Desc">
+          ඔබගේ OmniSix AI Cloud පද්ධතිය දැන් සූදානම්! පහත පරීක්ෂණ සිදු කර බලන්න:
+        </p>
+        <div style="background:#f1f5f9;padding:12px 14px;border-radius:12px;font-size:0.82rem;line-height:1.6;color:#334155;margin-bottom:12px;">
+          📞 <strong>Live Voice Call:</strong> ඉහළ Navbar එකේ ඇති "Live Voice Call පරීක්ෂා කරන්න" ක්ලික් කර AI සමඟ සජීවීව කතා කරන්න.<br>
+          💬 <strong>WhatsApp Test:</strong> වෙනත් දුරකථනයකින් ඔබගේ WhatsApp අංකයට "Hi" හෝ Voice Note එකක් එවන්න.<br>
+          🧾 <strong>Orders & Invoices:</strong> පාරිභෝගිකයා මිලදී ගත් විට 1-Click Invoice බිල්පතක් යවන්න.
+        </div>
+      </div>
+    </div>
+
+    <!-- Tour Footer Controls -->
+    <div style="background:#f8fafc;padding:14px 28px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <button type="button" class="btn-secondary" id="guide-btn-prev" onclick="navigateUserGuide(-1)" style="visibility:hidden;">
+        ⬅️ Back
+      </button>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-secondary" onclick="skipUserGuide()">
+          Skip Tour
+        </button>
+        <button type="button" class="btn-primary" id="guide-btn-next" onclick="navigateUserGuide(1)">
+          Next Step ➡️
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal: Digital Printable Invoice (Feature 1) -->
@@ -2753,6 +2926,18 @@ async function loadSettingsForm() {
       document.getElementById('setting-mute-duration').value = s.humanTakeoverDurationMinutes || 30;
       document.getElementById('setting-closed-msg').value = s.closedMessage || '';
 
+      // Customer Gemini API Key
+      const keyInput = document.getElementById('setting-gemini-api-key');
+      const keyBadge = document.getElementById('gemini-key-status-badge');
+      if (keyInput && s.geminiApiKey) {
+        keyInput.value = s.geminiApiKey;
+        if (keyBadge) {
+          keyBadge.textContent = 'Verified & Configured';
+          keyBadge.style.background = '#ecfdf5';
+          keyBadge.style.color = '#059669';
+        }
+      }
+
       // Feature 7 & 8: Quad-Language & Interactive Buttons
       const langModeEl = document.getElementById('setting-lang-mode');
       if (langModeEl) langModeEl.value = s.languageReplyMode || 'smart_match';
@@ -2783,6 +2968,7 @@ async function loadSettingsForm() {
 async function saveSettings(e) {
   e.preventDefault();
   const settings = {
+    geminiApiKey: document.getElementById('setting-gemini-api-key')?.value?.trim() || '',
     aiName: document.getElementById('setting-ai-name').value,
     aiPersona: document.getElementById('setting-ai-persona').value,
     voiceProfile: document.getElementById('setting-voice-profile').value,
@@ -3149,6 +3335,320 @@ async function processDatasetFile(file) {
 }
 
 // Super admin keygen omitted for portal
+
+// ─── Feature: Tri-Language UI Switcher (සිංහල, English, தமிழ்) ─────────────────
+const I18N_DICT = {
+  en: {
+    navOverview: "Overview",
+    navInbox: "Live Chat Inbox",
+    navOrders: "Orders & Slips",
+    navProducts: "Products Catalog",
+    navFlows: "Custom Flows",
+    navBroadcast: "Broadcast Marketing",
+    navBusiness: "Business & Dataset",
+    navSettings: "AI Settings & Persona",
+    navWhatsapp: "WhatsApp Web Hub",
+    userGuideBtn: "📖 User Guide",
+    liveCallBtn: "📞 Test Live Voice Call",
+    guideModalTitle: "OmniSix AI — Quick Setup & User Guide",
+    guideModalSubtitle: "Step-by-step setup to activate your 24/7 AI Sales Assistant",
+    step1Title: "Welcome to OmniSix AI Cloud!",
+    step1Desc: "OmniSix AI is Sri Lanka's leading 24/7 autonomous AI sales assistant. Even when your PC or phone is turned off, your cloud assistant responds to WhatsApp messages, speaks via natural voice notes, takes live calls, and issues digital invoices automatically.",
+    step2Title: "Step 2: Connect Your Google Gemini AI Key",
+    step2Desc: "Enter your own Google Gemini API Key here for unlimited, private AI responses. If you do not have one, you can get a 100% free key from Google AI Studio in 60 seconds.",
+    step3Title: "Step 3: Link Your WhatsApp Business Account",
+    step3Desc: "Easily pair your WhatsApp Business or personal number:",
+    step4Title: "Step 4: Load 17 Business Templates or Products",
+    step4Desc: "Navigate to the Business & Dataset tab, choose your industry (Boutique, Cake, Studio, Mobile Shop, Salon, etc.), and click Apply Template:",
+    step5Title: "Step 5: You are Ready to Automate 24/7!",
+    step5Desc: "Your OmniSix AI Cloud instance is fully prepared. Try these simple tests right now:",
+    btnBack: "⬅️ Back",
+    btnNext: "Next Step ➡️",
+    btnSkip: "Skip Tour",
+    btnFinish: "Finish & Launch 🚀",
+    settingGeminiTitle: "Google Gemini AI API Key (Customer Self-Service)",
+    settingGeminiDesc: "Configure your personal Gemini API Key. Every customer/tenant can supply their own key for dedicated quota and private processing.",
+    btnVerifySave: "⚡ Verify & Save Key",
+    stepOf: "Step {step} of {total}"
+  },
+  si: {
+    navOverview: "දළ විශ්ලේෂණය (Overview)",
+    navInbox: "සජීවී Chat Inbox",
+    navOrders: "ඇණවුම් සහ බිල්පත් (Orders)",
+    navProducts: "භාණ්ඩ නාමාවලිය (Catalog)",
+    navFlows: "ස්වයංක්‍රීය Flows",
+    navBroadcast: "පණිවිඩ ප්‍රචාරණය (Broadcast)",
+    navBusiness: "ව්‍යාපාරික දත්ත (Dataset)",
+    navSettings: "AI සැකසුම් (Settings)",
+    navWhatsapp: "WhatsApp Web Hub",
+    userGuideBtn: "📖 භාවිත මාර්ගෝපදේශය",
+    liveCallBtn: "📞 Live Voice Call පරීක්ෂා කරන්න",
+    guideModalTitle: "OmniSix AI — මූලික සැකසුම් සහ භාවිත මාර්ගෝපදේශය",
+    guideModalSubtitle: "පියවරෙන් පියවර ඔබගේ 24/7 AI Sales Assistant සක්‍රිය කරගන්න",
+    step1Title: "OmniSix AI Cloud වෙත සාදරයෙන් පිළිගනිමු!",
+    step1Desc: "OmniSix AI යනු ශ්‍රී ලංකාවේ ව්‍යාපාර සඳහා නිර්මාණය කළ ප්‍රබලතම 24/7 AI විකුණුම් සහායකයා වේ. පරිගණකය ක්‍රියාවිරහිත වුවද ඔබගේ WhatsApp එකට ලැබෙන පණිවිඩවලට පිළිතුරු දීම, හඬ පණිවිඩ යැවීම, සජීවී දුරකථන ඇමතුම් ලබා ගැනීම, සහ බිල්පත් නිකුත් කිරීම ස්වයංක්‍රීයව සිදු වේ.",
+    step2Title: "පියවර 2: Google Gemini AI Key එක සම්බන්ධ කරගන්න",
+    step2Desc: "ඔබගේම Google Gemini API Key එක මෙතැනට ඇතුළත් කරගන්න. ඔබට තවමත් Key එකක් නොමැති නම් Google AI Studio වෙතින් නොමිලේ විනාඩියකින් ලබාගත හැක.",
+    step3Title: "පියවර 3: ඔබගේ WhatsApp ගිණුම සම්බන්ධ කරගන්න",
+    step3Desc: "ඔබගේ ව්‍යාපාරික WhatsApp අංකය පහසුවෙන්ම සම්බන්ධ කරගන්න:",
+    step4Title: "පියවර 4: ව්‍යාපාරික Templates 17 න් එකක් හෝ භාණ්ඩ එක් කරන්න",
+    step4Desc: "Business & Dataset ටැබ් එකට ගොස් ඔබගේ ක්ෂේත්‍රය (Boutique, Studio, Bakery, Mobile, Salon, Restaurant...) තෝරා Apply Template ඔබන්න:",
+    step5Title: "පියවර 5: ඔබ 24/7 ස්වයංක්‍රීයකරණයට සූදානම්!",
+    step5Desc: "ඔබගේ OmniSix AI Cloud පද්ධතිය දැන් සූදානම්! පහත පරීක්ෂණ සිදු කර බලන්න:",
+    btnBack: "⬅️ ආපසු",
+    btnNext: "මීළඟ පියවර ➡️",
+    btnSkip: "මඟහරින්න",
+    btnFinish: "අවසන් කර අරඹන්න 🚀",
+    settingGeminiTitle: "Google Gemini AI API Key (පාරිභෝගික ස්වයං සේවාව)",
+    settingGeminiDesc: "ඔබගේ පෞද්ගලික Gemini API Key එක මෙතැනින් ඇතුළත් කර සුරකින්න. සෑම පාරිභෝගිකයෙකුටම තමන්ගේම Key එකක් භාවිත කළ හැක.",
+    btnVerifySave: "⚡ පරීක්ෂා කර සුරකින්න",
+    stepOf: "පියවර {step} / {total}"
+  },
+  ta: {
+    navOverview: "மேலோட்டம் (Overview)",
+    navInbox: "நேரலை அரட்டை (Inbox)",
+    navOrders: "ஆர்டர்கள் மற்றும் ரசீதுகள் (Orders)",
+    navProducts: "பொருட்கள் பட்டியல் (Catalog)",
+    navFlows: "தானியங்கி ஓட்டங்கள் (Flows)",
+    navBroadcast: "அறிவிப்பு சந்தைப்படுத்தல்",
+    navBusiness: "வணிகத் தரவு (Dataset)",
+    navSettings: "AI அமைப்புகள் (Settings)",
+    navWhatsapp: "WhatsApp வலை மையம்",
+    userGuideBtn: "📖 பயனர் வழிகாட்டி",
+    liveCallBtn: "📞 நேரலை குரல் அழைப்பு சோதனை",
+    guideModalTitle: "OmniSix AI — விரைவு அமைப்பு & பயனர் வழிகாட்டி",
+    guideModalSubtitle: "உங்கள் 24/7 AI விற்பனை உதவியாளரை செயல்படுத்த படிப்படியான வழிகாட்டி",
+    step1Title: "OmniSix AI Cloud இற்கு அன்புடன் வரவேற்கிறோம்!",
+    step1Desc: "OmniSix AI என்பது இலங்கையின் வணிகங்களுக்கான முன்னணி 24/7 AI விற்பனை உதவியாளர் ஆகும். கணினி அல்லது தொலைபேசி அணைக்கப்பட்டிருந்தாலும், உங்கள் WhatsApp செய்திகளுக்கு பதிலளிக்கவும், குரல் குறிப்புகளை அனுப்பவும், இன்வாய்ஸ்களை உருவாக்கவும் தானாக செயல்படும்.",
+    step2Title: "படி 2: உங்கள் Google Gemini AI விசையை இணைக்கவும்",
+    step2Desc: "உங்கள் தனிப்பட்ட Google Gemini API விசையை இங்கே உள்ளிடவும். உங்களிடம் விசை இல்லையெனில், Google AI Studio இலிருந்து 1 நிமிடத்தில் இலவசமாகப் பெறலாம்.",
+    step3Title: "படி 3: உங்கள் WhatsApp கணக்கை இணைக்கவும்",
+    step3Desc: "உங்கள் வணிக WhatsApp எண்ணை எளிதாக இணைக்கவும்:",
+    step4Title: "படி 4: 17 வணிக மாதிரிகள் அல்லது தயாரிப்புகளை ஏற்றவும்",
+    step4Desc: "Business & Dataset பகுதிக்குச் சென்று உங்கள் துறையைத் தேர்ந்தெடுத்து Apply Template ஐக் கிளிக் செய்யவும்:",
+    step5Title: "படி 5: நீங்கள் 24/7 ஆட்டோமேஷனுக்கு தயார்!",
+    step5Desc: "உங்கள் OmniSix AI Cloud தளம் இப்போது தயாராக உள்ளது! இந்த எளிய சோதனைகளை இப்போது முயற்சிக்கவும்:",
+    btnBack: "⬅️ பின்னே",
+    btnNext: "அடுத்த படி ➡️",
+    btnSkip: "தவிர்",
+    btnFinish: "முடித்து தொடங்கவும் 🚀",
+    settingGeminiTitle: "Google Gemini AI API சாவி (சுய சேவை)",
+    settingGeminiDesc: "உங்கள் பிரத்யேக Gemini API Key ஐ உள்ளிட்டு சரிபார்க்கவும்.",
+    btnVerifySave: "⚡ சரிபார்த்து சேமிக்கவும்",
+    stepOf: "படி {step} / {total}"
+  }
+};
+
+function changeUILanguage(lang) {
+  if (!I18N_DICT[lang]) lang = 'si';
+  localStorage.setItem('omnisix_ui_lang', lang);
+  const switcher = document.getElementById('ui-lang-switcher');
+  if (switcher && switcher.value !== lang) switcher.value = lang;
+
+  const dict = I18N_DICT[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) {
+      el.textContent = dict[key];
+    }
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key]) {
+      el.setAttribute('placeholder', dict[key]);
+    }
+  });
+
+  updateGuideStepView(currentGuideStep);
+}
+
+// ─── Feature: Interactive 5-Step First-Time User Guide ─────────────────────────
+let currentGuideStep = 1;
+const TOTAL_GUIDE_STEPS = 5;
+
+function openUserGuideModal(step = 1) {
+  currentGuideStep = Math.max(1, Math.min(step, TOTAL_GUIDE_STEPS));
+  const modal = document.getElementById('modal-user-guide');
+  if (modal) {
+    modal.classList.remove('hidden');
+    updateGuideStepView(currentGuideStep);
+  }
+}
+
+function closeUserGuideModal() {
+  const modal = document.getElementById('modal-user-guide');
+  if (modal) modal.classList.add('hidden');
+}
+
+function skipUserGuide() {
+  localStorage.setItem('omnisix_tour_completed', 'true');
+  closeUserGuideModal();
+}
+
+function navigateUserGuide(delta) {
+  const nextStep = currentGuideStep + delta;
+  if (nextStep > TOTAL_GUIDE_STEPS) {
+    localStorage.setItem('omnisix_tour_completed', 'true');
+    closeUserGuideModal();
+    return;
+  }
+  if (nextStep < 1) return;
+  currentGuideStep = nextStep;
+  updateGuideStepView(currentGuideStep);
+}
+
+function updateGuideStepView(step) {
+  const lang = localStorage.getItem('omnisix_ui_lang') || 'si';
+  const dict = I18N_DICT[lang] || I18N_DICT['en'];
+
+  for (let i = 1; i <= TOTAL_GUIDE_STEPS; i++) {
+    const slide = document.getElementById(`guide-slide-${i}`);
+    const dot = document.getElementById(`g-dot-${i}`);
+    if (slide) {
+      if (i === step) slide.classList.remove('hidden');
+      else slide.classList.add('hidden');
+    }
+    if (dot) {
+      dot.style.background = (i === step) ? '#2563eb' : (i < step ? '#10b981' : '#cbd5e1');
+    }
+  }
+
+  const indicator = document.getElementById('guide-step-indicator');
+  if (indicator) {
+    indicator.textContent = (dict.stepOf || 'Step {step} of {total}').replace('{step}', step).replace('{total}', TOTAL_GUIDE_STEPS);
+  }
+
+  const prevBtn = document.getElementById('guide-btn-prev');
+  if (prevBtn) {
+    prevBtn.style.visibility = (step === 1) ? 'hidden' : 'visible';
+    prevBtn.textContent = dict.btnBack || '⬅️ Back';
+  }
+
+  const nextBtn = document.getElementById('guide-btn-next');
+  if (nextBtn) {
+    if (step === TOTAL_GUIDE_STEPS) {
+      nextBtn.textContent = dict.btnFinish || 'Finish & Launch 🚀';
+    } else {
+      nextBtn.textContent = dict.btnNext || 'Next Step ➡️';
+    }
+  }
+}
+
+async function verifyGuideGeminiKey() {
+  const input = document.getElementById('guide-gemini-key-input');
+  const statusEl = document.getElementById('guide-gemini-status');
+  if (!input || !statusEl) return;
+  const apiKey = input.value.trim();
+  if (!apiKey) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = '❌ Please enter a valid Gemini API Key.';
+    return;
+  }
+
+  statusEl.style.color = '#2563eb';
+  statusEl.textContent = '⏳ Testing connection with Google AI Studio...';
+
+  try {
+    const res = await fetch('/api/gemini/verify-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      statusEl.style.color = '#059669';
+      statusEl.innerHTML = `✅ ${data.message} (${data.model})`;
+      const settingInput = document.getElementById('setting-gemini-api-key');
+      if (settingInput) settingInput.value = apiKey;
+      const keyBadge = document.getElementById('gemini-key-status-badge');
+      if (keyBadge) {
+        keyBadge.textContent = 'Verified & Configured';
+        keyBadge.style.background = '#ecfdf5';
+        keyBadge.style.color = '#059669';
+      }
+    } else {
+      statusEl.style.color = '#dc2626';
+      statusEl.textContent = '❌ ' + (data.error || 'Invalid API Key');
+    }
+  } catch (err) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = '❌ Verification error: ' + err.message;
+  }
+}
+
+// ─── Feature: Customer Self-Service Gemini API Key Verification ────────────────
+async function verifyAndSaveGeminiKey() {
+  const input = document.getElementById('setting-gemini-api-key');
+  const alertEl = document.getElementById('gemini-key-alert-msg');
+  const badgeEl = document.getElementById('gemini-key-status-badge');
+  if (!input) return;
+  const apiKey = input.value.trim();
+  if (!apiKey) {
+    alert('Please enter a Google Gemini API Key first.');
+    return;
+  }
+
+  if (alertEl) {
+    alertEl.style.display = 'block';
+    alertEl.style.background = 'rgba(37,99,235,0.1)';
+    alertEl.style.color = '#2563eb';
+    alertEl.textContent = '⏳ Contacting Google Gemini 2.5 Flash API...';
+  }
+
+  try {
+    const res = await fetch('/api/gemini/verify-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (alertEl) {
+        alertEl.style.background = 'rgba(16,185,129,0.15)';
+        alertEl.style.color = '#059669';
+        alertEl.textContent = `✅ Success: Key verified & saved! Model active: ${data.model}`;
+      }
+      if (badgeEl) {
+        badgeEl.textContent = 'Verified & Active';
+        badgeEl.style.background = '#ecfdf5';
+        badgeEl.style.color = '#059669';
+      }
+      alert('✨ Gemini API Key verified & linked successfully!');
+    } else {
+      if (alertEl) {
+        alertEl.style.background = 'rgba(239,68,68,0.15)';
+        alertEl.style.color = '#dc2626';
+        alertEl.textContent = '❌ Verification failed: ' + (data.error || 'Invalid Key');
+      }
+      if (badgeEl) {
+        badgeEl.textContent = 'Invalid Key';
+        badgeEl.style.background = '#fef2f2';
+        badgeEl.style.color = '#dc2626';
+      }
+    }
+  } catch (err) {
+    if (alertEl) {
+      alertEl.style.display = 'block';
+      alertEl.style.color = '#dc2626';
+      alertEl.textContent = '❌ Network error: ' + err.message;
+    }
+  }
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById('setting-gemini-api-key');
+  if (!input) return;
+  input.type = (input.type === 'password') ? 'text' : 'password';
+}
+
+// ─── Initial Page Load: Language & Tour Activation ────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const savedLang = localStorage.getItem('omnisix_ui_lang') || 'si';
+  changeUILanguage(savedLang);
+  if (!localStorage.getItem('omnisix_tour_completed')) {
+    setTimeout(() => { openUserGuideModal(1); }, 600);
+  }
+});
 </script>
 </body>
 </html>

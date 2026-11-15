@@ -351,7 +351,8 @@ class WhatsAppAccountSession {
               if (shouldReplyVoice && this.manager.voiceSynthesizeHandler) {
                 try {
                   const preferredVoice = settings.voiceProfile || activeBiz.voice || 'Leda';
-                  const voiceRes = await this.manager.voiceSynthesizeHandler(aiReply, preferredVoice);
+                  const customKey = settings.geminiApiKey || activeBiz.geminiApiKey;
+                  const voiceRes = await this.manager.voiceSynthesizeHandler(aiReply, preferredVoice, customKey);
                   if (voiceRes && voiceRes.audioBase64) {
                     voiceAudioBase64 = voiceRes.audioBase64;
                   }

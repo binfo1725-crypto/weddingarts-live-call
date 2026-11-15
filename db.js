@@ -89,7 +89,9 @@ const DEFAULT_SETTINGS = {
   // Quad-Language Smart Detection (සිංහල, Singlish, English, தமிழ்)
   languageReplyMode: 'smart_match', // 'smart_match', 'sinhala_script_only', 'english_only', 'tamil_only'
   // Interactive WhatsApp Buttons & Quick Action Menus
-  isInteractiveButtonsEnabled: true
+  isInteractiveButtonsEnabled: true,
+  // Customer Self-Service Gemini API Key
+  geminiApiKey: ''
 };
 
 // ─── Database Class ───────────────────────────────────────────────────────────

@@ -850,6 +850,45 @@ app.post('/api/settings', (req, res) => {
   res.json({ ok: true, settings });
 });
 
+// Customer Self-Service Gemini API Key Verification
+app.post('/api/gemini/verify-key', async (req, res) => {
+  const { apiKey } = req.body || {};
+  const keyToTest = (apiKey || '').trim();
+  if (!keyToTest || keyToTest.length < 15) {
+    return res.status(400).json({ ok: false, error: 'Please enter a valid Gemini API key (starts with AIza...)' });
+  }
+
+  try {
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keyToTest}`;
+    const testRes = await fetch(testUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'Respond with "OK"' }] }],
+        generationConfig: { maxOutputTokens: 5 }
+      })
+    });
+
+    const data = await testRes.json();
+    if (!testRes.ok || data.error) {
+      const errMsg = data.error?.message || `HTTP ${testRes.status}: Invalid key`;
+      return res.status(400).json({ ok: false, error: errMsg });
+    }
+
+    // Key is verified and has live quota!
+    const bId = resolveReqBusinessId(req);
+    if (bId) {
+      db.updateTenantSettings(bId, { geminiApiKey: keyToTest });
+    } else {
+      db.updateSettings({ geminiApiKey: keyToTest });
+    }
+
+    res.json({ ok: true, message: 'Google Gemini API Key verified successfully!', keyPrefix: keyToTest.slice(0, 8) + '...' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'Connection error while verifying key: ' + err.message });
+  }
+});
+
 // Live Chat Inbox & Human Takeover (Strict Multi-Tenant Scoped)
 app.get('/api/chats', (req, res) => {
   const bId = resolveReqBusinessId(req);
@@ -1383,7 +1422,11 @@ wss.on('connection', (browserWs, req) => {
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess, userLang) {
   const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
+  const settings = (sess && sess.businessId && db.getTenantSettings(sess.businessId)) || db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
+  if (!sess.apiKey && (settings.geminiApiKey || activeBiz.geminiApiKey)) {
+    sess.apiKey = settings.geminiApiKey || activeBiz.geminiApiKey;
+  }
 
   // Detect customer's actual contextual language with history memory
   const detectedLang = (userLang === 'en-US')
