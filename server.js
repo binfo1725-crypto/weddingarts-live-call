@@ -789,13 +789,14 @@ app.get('/api/whatsapp/accounts', async (req, res) => {
     const bizName = biz ? biz.name : 'Store';
 
     // Auto-provision tenant WhatsApp account if not already created
-    await waEngine.getOrCreateTenantAccount(bId, bizName);
+    const tenantSession = await waEngine.getOrCreateTenantAccount(bId, bizName);
     const tenantAccounts = waEngine.getAccounts(bId);
+    const finalAccounts = (tenantAccounts.length > 0) ? tenantAccounts : [tenantSession.getStatus()];
 
     return res.json({
       ok: true,
       isTenant: true,
-      accounts: tenantAccounts
+      accounts: finalAccounts.filter(a => a.id !== 'default')
     });
   }
 

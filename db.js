@@ -202,6 +202,11 @@ class Database {
     return this.data.businesses;
   }
 
+  getBusiness(id) {
+    if (!id) return this.getActiveBusiness();
+    return (this.data.businesses || []).find(b => b.id === id) || null;
+  }
+
   setActiveBusiness(id) {
     this.data.businesses.forEach(b => {
       b.isActive = (b.id === id);
@@ -577,14 +582,14 @@ class Database {
           phoneNumber: this.data.whatsapp?.phoneNumber || '94724558042',
           connected: !!this.data.whatsapp?.connected,
           botActive: true,
-          businessId: this.getActiveBusiness().id,
+          businessId: 'admin_primary',
           createdAt: this.data.whatsapp?.pairedAt || new Date().toISOString()
         }
       ];
       this.save();
     }
     if (businessId) {
-      return this.data.whatsappAccounts.filter(a => a.businessId === businessId);
+      return this.data.whatsappAccounts.filter(a => a.id !== 'default' && a.businessId === businessId);
     }
     return this.data.whatsappAccounts;
   }

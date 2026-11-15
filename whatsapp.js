@@ -528,7 +528,8 @@ class MultiAccountWhatsAppManager {
         createdAt: new Date().toISOString()
       });
 
-      await session.start();
+      // Start socket session in background without blocking API call
+      session.start().catch(err => console.error(`[whatsapp-acc:${tenantAccId}] Start error:`, err.message));
     }
     return session;
   }
@@ -537,7 +538,8 @@ class MultiAccountWhatsAppManager {
     const list = [];
     for (const [, session] of this.sessions.entries()) {
       if (businessId) {
-        if (session.businessId === businessId) {
+        // Strict SaaS Tenant check: NEVER include 'default' (Super Admin line) in tenant accounts!
+        if (session.id !== 'default' && session.businessId === businessId) {
           list.push(session.getStatus());
         }
       } else {
