@@ -8,7 +8,8 @@ const {
   DisconnectReason,
   fetchLatestBaileysVersion,
   delay,
-  Browsers
+  Browsers,
+  downloadMediaMessage
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
@@ -150,10 +151,39 @@ class WhatsAppAccountSession {
             const remoteJid = msg.key.remoteJid;
             if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') continue;
 
-            const text = msg.message?.conversation ||
+            const audioMsg = msg.message?.audioMessage;
+            const isVoiceNote = !!audioMsg;
+
+            let text = msg.message?.conversation ||
                          msg.message?.extendedTextMessage?.text ||
                          msg.message?.imageMessage?.caption ||
                          '';
+
+            // Download and transcribe audio if voice note received
+            if (isVoiceNote) {
+              console.log(`[whatsapp-acc:${this.id}] 🎙️ Received WhatsApp Voice Note (${audioMsg.seconds || 0}s) from ${remoteJid}`);
+              try {
+                const buffer = await downloadMediaMessage(
+                  msg,
+                  'buffer',
+                  {},
+                  { logger: pino({ level: 'silent' }), reuploadRequest: this.sock.updateMediaMessage }
+                );
+                if (buffer && this.manager.audioTranscribeHandler) {
+                  const transcribed = await this.manager.audioTranscribeHandler(buffer, audioMsg.mimetype || 'audio/ogg; codecs=opus');
+                  if (transcribed && transcribed.trim().length > 0) {
+                    text = transcribed.trim();
+                    console.log(`[whatsapp-acc:${this.id}] 📝 Transcribed Voice Note: "${text}"`);
+                  }
+                }
+              } catch (audioErr) {
+                console.error(`[whatsapp-acc:${this.id}] Voice note transcribe error:`, audioErr.message);
+              }
+
+              if (!text || text.trim().length === 0) {
+                text = 'හෙලෝ (Customer Voice Message)';
+              }
+            }
 
             if (!text || text.trim().length === 0) continue;
 
@@ -161,10 +191,11 @@ class WhatsAppAccountSession {
             const senderName = msg.pushName || 'Customer';
             const accountTag = this.phoneNumber ? `Line: +${this.phoneNumber}` : this.label;
 
-            console.log(`[whatsapp-acc:${this.id}] 📩 Incoming from ${senderPhone} (${senderName}) on ${accountTag}: "${text}"`);
+            console.log(`[whatsapp-acc:${this.id}] 📩 Incoming from ${senderPhone} (${senderName}) [${isVoiceNote ? 'Voice Note' : 'Text'}]: "${text}"`);
 
             // Store message in unified database with receiving account tag
-            db.addChatMessage(senderPhone, 'customer', text.trim(), senderName, senderPhone);
+            const storedText = isVoiceNote ? `🎤 ${text.trim()}` : text.trim();
+            db.addChatMessage(senderPhone, 'customer', storedText, senderName, senderPhone);
 
             // Check if AI Bot is disabled for this specific account
             if (!this.botActive) {
@@ -181,6 +212,7 @@ class WhatsAppAccountSession {
 
             // Generate AI reply using active business dataset
             const activeBiz = db.getActiveBusiness();
+            const settings = db.getSettings();
             let aiReply = '';
 
             if (this.manager.aiReplyHandler) {
@@ -205,14 +237,53 @@ class WhatsAppAccountSession {
             }
 
             if (aiReply) {
-              await this.sock.sendPresenceUpdate('composing', remoteJid);
-              await delay(1200);
-              await this.sock.sendPresenceUpdate('paused', remoteJid);
+              const voiceMode = settings.voiceReplyMode || 'auto';
+              const shouldReplyVoice = (voiceMode === 'always') ||
+                                       (voiceMode === 'both') ||
+                                       (voiceMode === 'auto' && isVoiceNote);
 
-              await this.sock.sendMessage(remoteJid, { text: aiReply });
-              console.log(`[whatsapp-acc:${this.id}] 🤖 Replied to ${senderPhone}: "${aiReply}"`);
+              let voiceAudioBase64 = null;
+              if (shouldReplyVoice && this.manager.voiceSynthesizeHandler) {
+                try {
+                  const preferredVoice = settings.voiceProfile || activeBiz.voice || 'Leda';
+                  const voiceRes = await this.manager.voiceSynthesizeHandler(aiReply, preferredVoice);
+                  if (voiceRes && voiceRes.audioBase64) {
+                    voiceAudioBase64 = voiceRes.audioBase64;
+                  }
+                } catch (ttsErr) {
+                  console.warn(`[whatsapp-acc:${this.id}] Voice synthesis error:`, ttsErr.message);
+                }
+              }
 
-              db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone);
+              if (voiceAudioBase64) {
+                await this.sock.sendPresenceUpdate('recording', remoteJid);
+                await delay(1500);
+                await this.sock.sendPresenceUpdate('paused', remoteJid);
+
+                const voiceBuf = Buffer.from(voiceAudioBase64, 'base64');
+                await this.sock.sendMessage(remoteJid, {
+                  audio: voiceBuf,
+                  mimetype: 'audio/mp4',
+                  ptt: true
+                });
+                console.log(`[whatsapp-acc:${this.id}] 🎙️ Sent Gemini Voice Note to ${senderPhone}!`);
+
+                if (voiceMode === 'both' || !isVoiceNote) {
+                  await delay(800);
+                  await this.sock.sendMessage(remoteJid, { text: aiReply });
+                }
+
+                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone);
+              } else {
+                await this.sock.sendPresenceUpdate('composing', remoteJid);
+                await delay(1200);
+                await this.sock.sendPresenceUpdate('paused', remoteJid);
+
+                await this.sock.sendMessage(remoteJid, { text: aiReply });
+                console.log(`[whatsapp-acc:${this.id}] 🤖 Replied text to ${senderPhone}: "${aiReply}"`);
+
+                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone);
+              }
             }
           } catch (msgErr) {
             console.error(`[whatsapp-acc:${this.id}] Message handling error:`, msgErr.message);
@@ -263,6 +334,32 @@ class WhatsAppAccountSession {
       return { ok: true };
     } catch (e) {
       console.error(`[whatsapp-acc:${this.id}] Send failed to ${clean}:`, e.message);
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async sendVoiceMessage(toPhone, audioBuffer, ptt = true) {
+    if (!this.sock || !this.connected) {
+      return { ok: false, error: `Account ${this.id} not connected` };
+    }
+    const clean = toPhone.replace(/\D/g, '');
+    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
+
+    try {
+      await this.sock.sendPresenceUpdate('recording', jid);
+      await delay(1200);
+      await this.sock.sendPresenceUpdate('paused', jid);
+
+      const buf = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer, 'base64');
+      await this.sock.sendMessage(jid, {
+        audio: buf,
+        mimetype: 'audio/mp4',
+        ptt: !!ptt
+      });
+      console.log(`[whatsapp-acc:${this.id}] Sent voice message to ${clean}`);
+      return { ok: true };
+    } catch (e) {
+      console.error(`[whatsapp-acc:${this.id}] Send voice failed to ${clean}:`, e.message);
       return { ok: false, error: e.message };
     }
   }
@@ -344,11 +441,15 @@ class MultiAccountWhatsAppManager {
     this.sessions = new Map();
     this.aiReplyHandler = null;
     this.orderCheckHandler = null;
+    this.audioTranscribeHandler = null;
+    this.voiceSynthesizeHandler = null;
   }
 
-  setHandlers({ aiReplyHandler, orderCheckHandler }) {
+  setHandlers({ aiReplyHandler, orderCheckHandler, audioTranscribeHandler, voiceSynthesizeHandler }) {
     this.aiReplyHandler = aiReplyHandler;
     this.orderCheckHandler = orderCheckHandler;
+    this.audioTranscribeHandler = audioTranscribeHandler;
+    this.voiceSynthesizeHandler = voiceSynthesizeHandler;
   }
 
   async start() {
@@ -432,6 +533,23 @@ class MultiAccountWhatsAppManager {
       return { ok: false, error: 'No connected WhatsApp account available' };
     }
     return await session.sendTextMessage(toPhone, text);
+  }
+
+  // Send voice message (with optional accountId target or round-robin)
+  async sendVoiceMessage(toPhone, audioBuffer, accountId, ptt = true) {
+    let session = accountId ? this.sessions.get(accountId) : null;
+    if (!session) {
+      for (const [, s] of this.sessions.entries()) {
+        if (s.connected) {
+          session = s;
+          break;
+        }
+      }
+    }
+    if (!session || !session.connected) {
+      return { ok: false, error: 'No connected WhatsApp account available' };
+    }
+    return await session.sendVoiceMessage(toPhone, audioBuffer, ptt);
   }
 
   async toggleBot(accountId, botActive) {

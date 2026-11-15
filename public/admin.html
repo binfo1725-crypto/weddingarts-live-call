@@ -1175,7 +1175,7 @@
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div class="form-group">
-            <label class="form-label">Voice Profile</label>
+            <label class="form-label">Voice Profile (Gemini Voice)</label>
             <select id="setting-voice-profile" class="form-select">
               <option value="Leda">Google Gemini Leda HD (Warm Female)</option>
               <option value="Aoede">Google Gemini Aoede (Breezy Professional)</option>
@@ -1183,6 +1183,18 @@
               <option value="Puck">Google Gemini Puck (Youthful & Energetic)</option>
             </select>
           </div>
+          <div class="form-group">
+            <label class="form-label">🎙️ WhatsApp Voice Note Mode (හඬ පණිවිඩ)</label>
+            <select id="setting-voice-reply-mode" class="form-select">
+              <option value="auto">Auto (Voice Note එකක් එවූ විට Voice Note එකකින් පිළිතුරු)</option>
+              <option value="both">Both (Voice Note + Text දෙකම යවන්න)</option>
+              <option value="always">Always Voice (සෑමවිටම Voice Note එකකින්)</option>
+              <option value="text">Text Only (Voice Note අක්‍රිය කරන්න - Text පමණි)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
           <div class="form-group">
             <label class="form-label">Human Takeover AI Mute Duration</label>
             <select id="setting-mute-duration" class="form-select">
@@ -2370,7 +2382,16 @@ function selectChat(chatId) {
   (chat.messages || []).forEach(m => {
     const bubble = document.createElement('div');
     bubble.className = `msg-bubble ${m.sender}`;
-    const formattedText = escapeHtml(m.text || '').replace(/\n/g, '<br>');
+    let formattedText = escapeHtml(m.text || '').replace(/\n/g, '<br>');
+    if (m.text && (m.text.startsWith('🎤') || m.text.startsWith('🎙️'))) {
+      const isIncoming = m.text.startsWith('🎤');
+      formattedText = `
+        <div style="display:inline-flex;align-items:center;gap:6px;background:${isIncoming ? '#dcfce7' : '#e0f2fe'};color:${isIncoming ? '#166534' : '#0369a1'};padding:3px 8px;border-radius:12px;font-size:0.75rem;font-weight:700;margin-bottom:6px;">
+          <span>${isIncoming ? '🎤 Voice Note (Transcribed)' : '🎙️ Gemini Voice Note (PTT)'}</span>
+        </div>
+        <div>${formattedText}</div>
+      `;
+    }
     bubble.innerHTML = `
       <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;">
         ${m.sender === 'customer' ? 'Customer' : (m.sender === 'ai' ? 'OmniSix AI' : 'Live Agent')}
@@ -2486,6 +2507,8 @@ async function loadSettingsForm() {
       document.getElementById('setting-ai-name').value = s.aiName || 'Nethmi';
       document.getElementById('setting-ai-persona').value = s.aiPersona || 'FRIENDLY_CUSTOMER_CARE';
       document.getElementById('setting-voice-profile').value = s.voiceProfile || 'Leda';
+      const voiceModeEl = document.getElementById('setting-voice-reply-mode');
+      if (voiceModeEl) voiceModeEl.value = s.voiceReplyMode || 'auto';
       document.getElementById('setting-mute-duration').value = s.humanTakeoverDurationMinutes || 30;
       document.getElementById('setting-closed-msg').value = s.closedMessage || '';
     }
@@ -2498,6 +2521,7 @@ async function saveSettings(e) {
     aiName: document.getElementById('setting-ai-name').value,
     aiPersona: document.getElementById('setting-ai-persona').value,
     voiceProfile: document.getElementById('setting-voice-profile').value,
+    voiceReplyMode: document.getElementById('setting-voice-reply-mode')?.value || 'auto',
     humanTakeoverDurationMinutes: parseInt(document.getElementById('setting-mute-duration').value) || 30,
     closedMessage: document.getElementById('setting-closed-msg').value
   };

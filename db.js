@@ -64,6 +64,7 @@ const DEFAULT_SETTINGS = {
   aiName: 'Nethmi (OmniSix AI)',
   assistantTitle: 'Senior Customer Support Agent',
   voiceProfile: 'Leda',
+  voiceReplyMode: 'auto', // 'auto' (replies with voice note if customer sent voice), 'both', 'always', 'text'
   typingDelaySeconds: 1.5,
   isWorkingHoursEnabled: false,
   openTime: '08:30',

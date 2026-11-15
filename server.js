@@ -1481,6 +1481,46 @@ function safeSend(ws, data) {
   } catch {}
 }
 
+// ─── Gemini Audio Transcription for Incoming WhatsApp Voice Notes ───────────
+async function transcribeAudioBuffer(audioBuffer, mimeType = 'audio/ogg; codecs=opus') {
+  if (!audioBuffer || audioBuffer.length < 50) return '';
+  const audioBase64 = audioBuffer.toString('base64');
+  const cleanMime = (mimeType || 'audio/ogg').split(';')[0].trim();
+  const keysToTry = getOrderedKeys();
+
+  for (const model of GEMINI_TEXT_MODELS) {
+    for (const key of keysToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      const payload = {
+        contents: [{
+          parts: [
+            { text: "Accurately transcribe this WhatsApp voice note sent by a Sri Lankan customer in Sinhala (සිංහල), Singlish, or English. Return ONLY the transcribed text, nothing else. If there is speech in Sinhala, transcribe it in natural Sinhala script." },
+            { inlineData: { mimeType: cleanMime, data: audioBase64 } }
+          ]
+        }]
+      };
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) {
+          console.log(`[voice-transcribe] 🎙️ Gemini (${model}) transcribed voice note: "${text}"`);
+          return text;
+        }
+      } catch (err) {
+        console.warn(`[voice-transcribe] ${model} attempt error:`, err.message);
+      }
+    }
+  }
+  return '';
+}
+
 // ─── Attach Handlers to WhatsApp Multi-Device Engine ────────────────────────
 waEngine.setHandlers({
   aiReplyHandler: async (text, sess) => {
@@ -1488,6 +1528,12 @@ waEngine.setHandlers({
   },
   orderCheckHandler: (text, sess, id) => {
     checkForOrderTag(text, sess, id);
+  },
+  audioTranscribeHandler: async (audioBuffer, mimeType) => {
+    return await transcribeAudioBuffer(audioBuffer, mimeType);
+  },
+  voiceSynthesizeHandler: async (text, preferredVoice) => {
+    return await synthesizeVoiceAudio(text, preferredVoice);
   }
 });
 
