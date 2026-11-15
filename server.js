@@ -18,10 +18,12 @@ const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}
 
 const GEMINI_TEXT_MODELS = [
   'gemini-3.1-flash-lite',
-  'gemini-3.5-flash-lite'
+  'gemini-3.5-flash-lite',
+  'gemini-3.8-flash'
 ];
 const GEMINI_TTS_MODELS = [
-  'gemini-3.8-flash-tts'
+  'gemini-3.8-flash-tts',
+  'gemini-3.8-flash-lite-tts'
 ];
 const VOICE_NAME = 'Leda'; // Exact soft, youthful, warm female voice profile from the app
 
@@ -240,10 +242,20 @@ wss.on('connection', (browserWs, req) => {
         }));
       }
     } catch (err) {
-      console.error(`[ws] Message processing error:`, err.message);
+      console.error(`[ws] Message processing error:`, err);
+      // Soft conversational recovery in polite spoken Sinhala
+      const softReply = 'සමාවෙන්න, මට පැහැදිලි වුණේ නෑ. ඔබට අවශ්‍ය දේ නැවත කියන්න පුළුවන්ද?';
+      let audioResult = { audioBase64: null, mimeType: 'audio/wav', isGemini: false };
+      try {
+        audioResult = await synthesizeVoiceAudio(softReply, sess ? sess.voice : VOICE_NAME, sess ? sess.apiKey : null);
+      } catch (audioErr) {}
+
       safeSend(browserWs, JSON.stringify({
-        type: 'error',
-        message: 'දෝෂයක් සිදුවිය. කරුණාකර නැවත උත්සාහ කරන්න.'
+        type: 'ai_speech',
+        text: softReply,
+        audioBase64: audioResult.audioBase64,
+        mimeType: audioResult.mimeType,
+        isGeminiVoice: audioResult.isGemini
       }));
     }
   });
@@ -258,12 +270,25 @@ async function getGeminiReply(userMessage, sess) {
   const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : BUILTIN_DATASET;
   const systemInstruction = buildSystemPrompt(sess, datasetContext);
 
-  sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
+  if (!Array.isArray(sess.history)) sess.history = [];
+
+  // Build clean alternating conversation history to prevent Gemini API 400 bad request errors
+  const cleanHistory = [];
+  let expectedRole = 'user';
+  for (const item of sess.history.slice(-8)) {
+    if (item.role === expectedRole && item.parts?.[0]?.text) {
+      cleanHistory.push(item);
+      expectedRole = expectedRole === 'user' ? 'model' : 'user';
+    }
+  }
+
+  // Ensure current user message is appended cleanly
+  cleanHistory.push({ role: 'user', parts: [{ text: userMessage }] });
 
   const contents = [
     { role: 'user', parts: [{ text: `[OFFICIAL MASTER DATASET & SYSTEM INSTRUCTIONS]\n${systemInstruction}\n[END SYSTEM INSTRUCTIONS]` }] },
     { role: 'model', parts: [{ text: `තේරුණා. මම ${sess.storeName || 'WEDDING ARTS'} වෙනුවෙන් නිල Dataset එකේ ඇති නිවැරදිම මිල ගණන් සහ විස්තර මත පමණක් පදනම්ව, කිසිවක් මගනොහැර ස්වභාවික සිංහලෙන් පැහැදිලිව කතා කරන්නම්.` }] },
-    ...sess.history.slice(-8)
+    ...cleanHistory
   ];
 
   const keysToTry = getOrderedKeys(sess.apiKey);
@@ -294,6 +319,7 @@ async function getGeminiReply(userMessage, sess) {
 
         const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (replyText) {
+          sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
           sess.history.push({ role: 'model', parts: [{ text: replyText }] });
           console.log(`[Gemini Text] Success using model: ${model}`);
           return replyText;
@@ -308,6 +334,7 @@ async function getGeminiReply(userMessage, sess) {
   console.warn('[Gemini Text] All text models hit quota or failed. Using smart dataset fallback.');
   const store = sess.storeName || 'Wedding Arts';
   const fallbackReply = `ස්තූතියි! ${store} වෙතින් ෆොටෝ එඩිටිං, 12x18 UV Frames (රු. 4800) සහ 16x24 UV Frames (රු. 7800 නොමිලේ ඩිලිවරි සහිතව) ලබාගත හැක. ඔබට අවශ්‍ය විස්තරය හෝ ඇණවුම ලබා දෙන්න.`;
+  sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
   sess.history.push({ role: 'model', parts: [{ text: fallbackReply }] });
   return fallbackReply;
 }
