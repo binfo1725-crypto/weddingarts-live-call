@@ -49,122 +49,6 @@ DELIVERY & PAYMENT:
 - 16x24 and above: 100% Free Island-wide Courier Delivery
 - Payment: Bank of Ceylon (BOC) Account 92949122 D T Rajapaksha. Advance payment required to begin editing & printing.`,
     isActive: true
-  },
-  {
-    id: 'urbanstyle',
-    name: 'URBAN STYLE FASHION',
-    category: 'fashion',
-    ownerName: 'Kasun Perera',
-    phone: '077 123 4567',
-    whatsappPhone: '94771234567',
-    bankDetails: 'Commercial Bank | Account: 8001234567 | Name: Urban Style PVT LTD',
-    deliveryPolicy: 'Cash on Delivery (COD) islandwide Rs. 350. Free delivery for orders over Rs. 6,000. 2-4 days delivery.',
-    currency: 'Rs.',
-    welcomeMessage: 'Hi! Urban Style Fashion වෙත සාදරයෙන් පිළිගන්නවා. අලුත්ම ඇඳුම් විලාසිතා ගැන විස්තර දැනගන්න පුළුවන්.',
-    dataset: `Store: URBAN STYLE FASHION
-Owner: Kasun Perera
-Commercial Bank Account: 8001234567
-Contact / WhatsApp: 077 123 4567
-
-COLLECTION & PRICES:
-- Linen Floral Maxi Dress: Rs. 3,850 (Sizes: S, M, L, XL | Colors: Maroon, Teal, Beige)
-- Men's Premium Casual Slim Shirt: Rs. 2,950 (Sizes: M, L, XL | Colors: Navy, White, Olive)
-- Crop Top & High-Waist Wide Pants Set: Rs. 4,200 (Sizes: Free Size fits S-L | Colors: Black, Sage Green)
-- Oversized Unisex Graphic Tees: Rs. 1,850 (Sizes: M, L, XL, XXL | 100% Cotton)
-- Casual Denim Jumpsuit: Rs. 4,500 (Sizes: S, M, L)
-
-DELIVERY & RETURNS:
-- Islandwide Cash on Delivery (COD): Rs. 350
-- Orders over Rs. 6,000: Free Delivery
-- Exchange policy: 7 days size exchange available.`,
-    isActive: false
-  },
-  {
-    id: 'royalcakes',
-    name: 'ROYAL CAKES & BAKES',
-    category: 'food',
-    ownerName: 'Nimasha Fernando',
-    phone: '071 987 6543',
-    whatsappPhone: '94719876543',
-    bankDetails: 'Sampath Bank | Account: 1009876543 | Name: Royal Cakes',
-    deliveryPolicy: 'Delivery across Colombo & suburbs within 24 hours. Custom cakes require 24 hours prior booking.',
-    currency: 'Rs.',
-    welcomeMessage: 'ආයුබෝවන්! Royal Cakes වෙත සාදරයෙන් පිළිගන්නවා. ඔබට අවශ්‍ය රසවත් කේක් හෝ බේකරි නිෂ්පාදන ඇණවුම් කරන්න පුළුවන්.',
-    dataset: `Store: ROYAL CAKES & BAKES
-Owner: Nimasha Fernando
-Sampath Bank Account: 1009876543
-Contact / WhatsApp: 071 987 6543
-
-CAKES & PRICES:
-- Signature Ribbon Birthday Cake (1kg): Rs. 3,200 | (2kg): Rs. 5,800
-- Belgian Chocolate Fudge Drip Cake (1.5kg): Rs. 4,800
-- Classic Black Forest Gateau (1kg): Rs. 3,900
-- Red Velvet Cream Cheese Heart Cake (1kg): Rs. 4,500
-- Box of 6 Decorated Cupcakes: Rs. 1,500
-- Box of 12 Éclairs / Brownies: Rs. 2,400
-
-CUSTOMIZATION & DELIVERY:
-- Free personalized icing message on all cakes!
-- Advance notice: At least 24 hours required for custom birthday/wedding cakes.
-- Delivery: Colombo 1-15 (Rs. 300), Suburbs (Rs. 450). Free pickup available.`,
-    isActive: false
-  },
-  {
-    id: 'techzone',
-    name: 'TECHZONE GADGETS',
-    category: 'electronics',
-    ownerName: 'Malik Jayawardena',
-    phone: '075 555 8899',
-    whatsappPhone: '94755558899',
-    bankDetails: 'Hatton National Bank (HNB) | Account: 0300123499 | Name: TechZone Electronics',
-    deliveryPolicy: 'Prompt 1-2 days delivery. 6-Month One-to-One replacement warranty on all electronics.',
-    currency: 'Rs.',
-    welcomeMessage: 'Welcome to TechZone! How can we assist you with mobile accessories and gadgets today?',
-    dataset: `Store: TECHZONE GADGETS
-Owner: Malik Jayawardena
-HNB Bank Account: 0300123499
-Contact / WhatsApp: 075 555 8899
-
-PRODUCTS & PRICES:
-- 20W PD Fast Charger (iPhone & Type-C): Rs. 2,450 (6 Months Warranty)
-- TWS Wireless Bluetooth Gaming Earbuds: Rs. 3,950 (Low Latency, 24h Playtime)
-- 10,000mAh Ultra-Slim Fast Power Bank: Rs. 4,800 (Dual Output)
-- 9D Edge-to-Edge Tempered Glass: Rs. 1,200
-- MagSafe Magnetic Wireless Car Mount: Rs. 2,800
-- Braided Heavy Duty 60W Type-C Cable: Rs. 950
-
-DELIVERY & WARRANTY:
-- Islandwide Courier: Rs. 350 | Cash on Delivery available.
-- All electronics covered with 6-month replacement warranty.`,
-    isActive: false
-  },
-  {
-    id: 'glamour_salon',
-    name: 'GLAMOUR SALON & SPA',
-    category: 'salon',
-    ownerName: 'Dr. Senuri Wickramasinghe',
-    phone: '070 333 4455',
-    whatsappPhone: '94703334455',
-    bankDetails: 'Nations Trust Bank | Account: 0200888999 | Name: Glamour Beauty Studio',
-    deliveryPolicy: 'Appointment-based service. Open Tuesday to Sunday, 9:00 AM - 7:00 PM.',
-    currency: 'Rs.',
-    welcomeMessage: 'ආයුබෝවන්! Glamour Salon වෙත සාදරයෙන් පිළිගන්නවා. ඔබට Hair, Skin හෝ Bridal සේවාවක් වෙන්කරවා ගැනීමට අවශ්‍යද?',
-    dataset: `Store: GLAMOUR SALON & SPA
-Owner: Dr. Senuri Wickramasinghe
-Contact / WhatsApp: 070 333 4455
-
-SERVICES & CHARGES:
-- Hair Keratin Protein Treatment: Rs. 8,500 (Short) | Rs. 14,000 (Medium) | Rs. 18,000 (Long)
-- Full Face Clean-up & 24K Gold Glow Facial: Rs. 4,500
-- Spa Manicure & Gel Pedicure with Nail Art: Rs. 3,500
-- Professional Hair Color & Highlights: Rs. 6,500 - Rs. 12,000
-- Complete Party Hair Styling & Make-up: Rs. 6,000
-- Bridal Dressing Consultation & Trial: Rs. 5,000
-
-BOOKINGS & HOURS:
-- Open Tuesday to Sunday: 9:00 AM - 7:00 PM (Closed on Mondays)
-- Prior reservation required to avoid waiting time. Send name & preferred time.`,
-    isActive: false
   }
 ];
 
@@ -360,7 +244,15 @@ class Database {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         if (parsed.businesses && parsed.businesses.length > 0) {
-          this.data.businesses = parsed.businesses;
+          // Remove mock demo stores: urbanstyle, royalcakes, techzone, glamour_salon
+          const demoIds = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon'];
+          this.data.businesses = parsed.businesses.filter(b => !demoIds.includes(b.id));
+          if (this.data.businesses.length === 0) {
+            this.data.businesses = [...DEFAULT_BUSINESSES];
+          }
+          if (!this.data.businesses.some(b => b.isActive)) {
+            this.data.businesses[0].isActive = true;
+          }
           this.data.products = parsed.products || DEFAULT_PRODUCTS;
           this.data.customFlows = parsed.customFlows || DEFAULT_FLOWS;
           this.data.settings = parsed.settings || DEFAULT_SETTINGS;
@@ -414,6 +306,41 @@ class Database {
     }
     this.save();
     return biz;
+  }
+
+  createBusiness(biz) {
+    const slug = (biz.name || 'store').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').slice(0, 20);
+    const id = slug ? `${slug}_${Date.now().toString().slice(-4)}` : `store_${Date.now()}`;
+    const newBiz = {
+      id,
+      name: (biz.name || 'New Store').trim(),
+      category: (biz.category || 'general').trim(),
+      ownerName: (biz.ownerName || '').trim(),
+      phone: (biz.phone || '').trim(),
+      whatsappPhone: (biz.whatsappPhone || (biz.phone || '').replace(/[^0-9]/g, '')).trim(),
+      bankDetails: (biz.bankDetails || '').trim(),
+      deliveryPolicy: (biz.deliveryPolicy || '').trim(),
+      currency: (biz.currency || 'Rs.').trim(),
+      welcomeMessage: (biz.welcomeMessage || `ආයුබෝවන්! ${biz.name || 'Store'} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?`).trim(),
+      dataset: biz.dataset || `Store: ${biz.name}\nContact: ${biz.phone}\nBank: ${biz.bankDetails}`,
+      isActive: false
+    };
+    this.data.businesses.push(newBiz);
+    this.save();
+    return newBiz;
+  }
+
+  deleteBusiness(id) {
+    if (this.data.businesses.length <= 1) {
+      throw new Error('At least one store must remain. Operation not allowed.');
+    }
+    const wasActive = this.getActiveBusiness()?.id === id;
+    this.data.businesses = this.data.businesses.filter(b => b.id !== id);
+    if (wasActive && this.data.businesses.length > 0) {
+      this.data.businesses[0].isActive = true;
+    }
+    this.save();
+    return this.getActiveBusiness();
   }
 
   // ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────

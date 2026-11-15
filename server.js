@@ -155,6 +155,37 @@ app.post('/api/business/save', (req, res) => {
   res.json({ ok: true, business });
 });
 
+app.post('/api/business/create', (req, res) => {
+  try {
+    const newBiz = db.createBusiness(req.body);
+    if (req.body.setActive) {
+      db.setActiveBusiness(newBiz.id);
+    }
+    res.json({
+      ok: true,
+      business: newBiz,
+      active: db.getActiveBusiness(),
+      businesses: db.getAllBusinesses()
+    });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/business/delete', (req, res) => {
+  try {
+    const { id } = req.body;
+    const active = db.deleteBusiness(id);
+    res.json({
+      ok: true,
+      active,
+      businesses: db.getAllBusinesses()
+    });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
 // Real-time Business Analytics
 app.get('/api/analytics', (req, res) => {
   res.json({
