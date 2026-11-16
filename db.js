@@ -684,13 +684,23 @@ class Database {
 
   // ─── Multi-Account WhatsApp Sessions ────────────────────────────────────────
   getWhatsAppAccounts(businessId = null) {
+    if (this.data.whatsappAccounts) {
+      this.data.whatsappAccounts.forEach(a => {
+        if (a.label && (a.label.includes('455 8042') || a.label.includes('724558042'))) {
+          a.label = 'Primary Business Line';
+        }
+        if (a.phoneNumber === '94724558042') {
+          a.phoneNumber = null;
+        }
+      });
+    }
     if (!this.data.whatsappAccounts || this.data.whatsappAccounts.length === 0) {
       // Seed default account from existing paired WhatsApp state
       this.data.whatsappAccounts = [
         {
           id: 'default',
-          label: 'Primary Line (Account 1)',
-          phoneNumber: this.data.whatsapp?.phoneNumber || '94724558042',
+          label: 'Primary Business Line',
+          phoneNumber: this.data.whatsapp?.phoneNumber || null,
           connected: !!this.data.whatsapp?.connected,
           botActive: true,
           businessId: 'admin_primary',

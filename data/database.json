@@ -41,7 +41,7 @@
   "whatsappAccounts": [
     {
       "id": "default",
-      "label": "Primary Account (+94 72 455 8042)",
+      "label": "Primary Business Line",
       "phoneNumber": null,
       "connected": false,
       "botActive": true,

@@ -631,7 +631,7 @@ class MultiAccountWhatsAppManager {
     // 1. Primary Account (default) — Super Admin line
     if (!this.sessions.has('default')) {
       const primaryBiz = db.getActiveBusiness();
-      const primarySession = new WhatsAppAccountSession('default', 'Primary Account (+94 72 455 8042)', DEFAULT_AUTH_DIR, this, primaryBiz.id);
+      const primarySession = new WhatsAppAccountSession('default', 'Primary Business Line', DEFAULT_AUTH_DIR, this, primaryBiz.id);
       this.sessions.set('default', primarySession);
       await primarySession.start();
     }
