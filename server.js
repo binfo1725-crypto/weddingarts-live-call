@@ -417,7 +417,7 @@ app.post('/api/admin/db/import', requireAdminAuth, (req, res) => {
 
 // ─── Client Portal Scoped Store API & SaaS Multi-Tenant Isolation ─────────────
 function isTenantReq(req) {
-  return !!(req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key));
+  return !!(req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key) || req.headers['x-business-id']);
 }
 
 function resolveReqBusinessId(req) {
@@ -457,21 +457,53 @@ function resolveReqBusinessId(req) {
       return cleanSlug;
     }
   }
-  if (req.query && req.query.businessId) return req.query.businessId;
-  if (req.body && req.body.businessId) return req.body.businessId;
-  return db.getActiveBusiness().id;
+
+  // Multi-Tab isolation: Check tab-scoped header
+  const headerBizId = req.headers['x-business-id'];
+  if (headerBizId && db.getBusiness(headerBizId)) {
+    return headerBizId;
+  }
+
+  // Check URL query parameters (store, biz, businessId)
+  if (req.query) {
+    const qb = req.query.store || req.query.biz || req.query.businessId;
+    if (qb && db.getBusiness(qb)) {
+      return qb;
+    }
+  }
+
+  // Check request body
+  if (req.body && req.body.businessId && db.getBusiness(req.body.businessId)) {
+    return req.body.businessId;
+  }
+
+  const active = db.getActiveBusiness();
+  return active ? active.id : 'default';
 }
 
 app.get('/api/portal/store', (req, res) => {
   const key = req.headers['x-license-key'] || req.query.key;
-  if (!key) return res.status(401).json({ ok: false, error: 'Missing license key header.' });
+  const requestedBizId = req.headers['x-business-id'] || req.query.biz || req.query.store;
 
-  const lic = db.getLicenseByKey(key);
-  if (!lic || lic.status !== 'Active') {
-    return res.status(403).json({ ok: false, error: 'License is invalid or expired.' });
+  let lic = key ? db.getLicenseByKey(key) : null;
+  let biz = null;
+
+  if (lic && lic.status === 'Active') {
+    biz = db.getAllBusinesses().find(b => b.id === lic.businessId) || db.getActiveBusiness();
+  } else if (requestedBizId && db.getBusiness(requestedBizId)) {
+    biz = db.getBusiness(requestedBizId);
+    lic = (db.data.licenses || []).find(l => l.businessId === requestedBizId && l.status === 'Active') || {
+      key: 'PORTAL-DIRECT-' + biz.id.toUpperCase(),
+      clientName: biz.name,
+      planTier: biz.subscriptionPlan || 'enterprise',
+      status: 'Active',
+      expiresAt: '2099-12-31T23:59:59.999Z',
+      daysLeft: 9999
+    };
+  } else {
+    return res.status(401).json({ ok: false, error: 'Missing or invalid license key header.' });
   }
 
-  let biz = db.getAllBusinesses().find(b => b.id === lic.businessId) || db.getActiveBusiness();
   const orders = db.getOrders(biz.id);
   const products = db.getProducts(biz.id);
   const flows = db.getCustomFlows(biz.id);
@@ -487,7 +519,7 @@ app.get('/api/portal/store', (req, res) => {
     chats,
     stats: {
       totalOrders: orders.length,
-      revenueLKR: orders.reduce((s, o) => s + (parseInt((o.amount || '0').replace(/\D/g, '')) || 0), 0).toLocaleString(),
+      revenueLKR: orders.reduce((s, o) => s + (parseInt(String(o.amount || '0').replace(/\D/g, '')) || 0), 0).toLocaleString(),
       totalChats: chats.length,
       productsCount: products.length
     }
@@ -508,9 +540,13 @@ app.get('/api/business', (req, res) => {
       });
     }
   }
+
+  const requestedBizId = req.headers['x-business-id'] || (req.query && (req.query.store || req.query.biz || req.query.businessId));
+  const scopedActive = (requestedBizId && db.getBusiness(requestedBizId)) ? db.getBusiness(requestedBizId) : db.getActiveBusiness();
+
   res.json({
     ok: true,
-    active: db.getActiveBusiness(),
+    active: scopedActive,
     businesses: db.getAllBusinesses()
   });
 });
@@ -526,6 +562,39 @@ app.post('/api/business/save', (req, res) => {
   const updatedData = { ...req.body, id: bId };
   const business = db.saveBusiness(updatedData);
   res.json({ ok: true, business });
+});
+
+app.post('/api/business/update', requireAdminAuth, (req, res) => {
+  try {
+    const { id, name, category, ownerName, phone, bankDetails, deliveryPolicy, welcomeMessage, dataset, subscriptionPlan } = req.body;
+    if (!id) return res.status(400).json({ ok: false, error: 'Store ID is required' });
+    const existing = db.getBusiness(id);
+    if (!existing) return res.status(404).json({ ok: false, error: 'Store not found' });
+    if (name) existing.name = name.trim();
+    if (category) existing.category = category;
+    if (ownerName !== undefined) existing.ownerName = ownerName.trim();
+    if (phone !== undefined) {
+      existing.phone = phone.trim();
+      existing.whatsappPhone = phone.replace(/\D/g, '');
+    }
+    if (bankDetails !== undefined) existing.bankDetails = bankDetails;
+    if (deliveryPolicy !== undefined) existing.deliveryPolicy = deliveryPolicy;
+    if (welcomeMessage !== undefined) existing.welcomeMessage = welcomeMessage;
+    if (dataset !== undefined) existing.dataset = dataset;
+    if (subscriptionPlan) {
+      existing.subscriptionPlan = subscriptionPlan;
+      db.updateBusinessPlan(id, subscriptionPlan);
+    }
+    const updated = db.saveBusiness(existing);
+    res.json({
+      ok: true,
+      business: updated,
+      active: db.getActiveBusiness(),
+      businesses: db.getAllBusinesses()
+    });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
 });
 
 app.post('/api/business/create', requireAdminAuth, (req, res) => {

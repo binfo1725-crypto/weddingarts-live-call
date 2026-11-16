@@ -49,6 +49,14 @@
     --gradient-brand: linear-gradient(135deg, #059669 0%, #2563eb 100%);
   }
 
+  html, body {
+    overflow-x: auto;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    min-width: 320px;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
     background-color: var(--bg-page);
@@ -56,7 +64,36 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
+  }
+
+  /* Responsive Scrollable Tables */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    margin: 12px 0 18px 0;
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+  }
+  .table-responsive::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f8fafc;
+  }
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+  }
+  .table-responsive table {
+    min-width: 760px;
+    width: 100%;
+    margin: 0;
+    border: none;
   }
 
   /* Top Navigation Bar */
@@ -212,7 +249,7 @@
     gap: 20px;
   }
 
-  /* Sidebar Navigation */
+  /* Sidebar Navigation with Independent Scrolling */
   .sidebar {
     width: 250px;
     display: flex;
@@ -224,7 +261,24 @@
     border-radius: 16px;
     padding: 14px 10px;
     box-shadow: var(--shadow-sm);
-    height: fit-content;
+    position: sticky;
+    top: 76px;
+    height: calc(100vh - 96px);
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
   }
 
   .tab-btn {
@@ -380,7 +434,9 @@
   .chat-layout {
     display: grid;
     grid-template-columns: 310px 1fr;
-    height: 640px;
+    height: calc(100vh - 170px);
+    min-height: 580px;
+    max-height: 860px;
     border: 1px solid var(--card-border);
     border-radius: 16px;
     overflow: hidden;
@@ -391,6 +447,8 @@
     background: #f8fafc;
     border-right: 1px solid var(--card-border);
     overflow-y: auto;
+    height: 100%;
+    min-height: 0;
   }
   .chat-item {
     padding: 13px 16px;
@@ -428,23 +486,32 @@
     display: flex;
     flex-direction: column;
     background: #ffffff;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
   }
   .chat-header {
-    padding: 14px 20px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--card-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: #ffffff;
+    flex-shrink: 0;
+    z-index: 5;
   }
   .chat-messages {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
-    padding: 20px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     background: #f8fafc;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
   .msg-bubble {
     max-width: 75%;
@@ -484,6 +551,10 @@
     align-items: center;
     gap: 10px;
     background: #ffffff;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
   }
   .chat-input {
     flex: 1;
@@ -662,10 +733,52 @@
     color: var(--text-primary);
   }
 
-  @media (max-width: 960px) {
-    .dashboard-container { flex-direction: column; padding: 12px; }
-    .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding-bottom: 8px; }
-    .chat-layout { grid-template-columns: 1fr; height: auto; }
+  @media (max-width: 991px) {
+    .dashboard-container { flex-direction: column; padding: 12px; gap: 12px; }
+    .sidebar {
+      width: 100%;
+      height: auto;
+      max-height: none;
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      padding: 8px 10px;
+      gap: 6px;
+      border-radius: 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      width: auto;
+      flex-shrink: 0;
+      padding: 8px 14px;
+      white-space: nowrap;
+      font-size: 0.82rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .navbar { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
+    .nav-left { width: 100%; justify-content: space-between; }
+    .nav-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .chat-layout {
+      grid-template-columns: 1fr;
+      height: calc(100vh - 150px);
+      min-height: 520px;
+      max-height: none;
+    }
+    .chat-list.mobile-hidden {
+      display: none !important;
+    }
+    .chat-main.mobile-hidden {
+      display: none !important;
+    }
+    .mobile-back-to-chats {
+      display: inline-flex !important;
+    }
   }
 </style>
 </head>
@@ -944,9 +1057,12 @@
 
         <div class="chat-main">
           <div class="chat-header">
-            <div>
-              <div style="font-weight:700;font-size:0.92rem;" id="chat-active-name">Select a conversation</div>
-              <div style="font-size:0.75rem;color:var(--text-muted);" id="chat-active-phone">-</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button type="button" class="btn-secondary mobile-back-to-chats" onclick="mobileBackToChats()" style="display:none;padding:5px 12px;font-size:0.78rem;font-weight:700;border-radius:8px;">← Chats</button>
+              <div>
+                <div style="font-weight:700;font-size:0.92rem;" id="chat-active-name">Select a conversation</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);" id="chat-active-phone">-</div>
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
               <span id="chat-active-archetype" class="arch-pill hidden"></span>
@@ -2030,23 +2146,48 @@
 
 
 <script>
-  // ─── Client Portal License Verification & Fetch Interceptor ──────────────────
-  const licenseKey = localStorage.getItem('omnisix_license_key');
-  if (!licenseKey) {
+  // ─── Client Portal License Verification & Multi-Tab Interceptor ──────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlKey = urlParams.get('key') || urlParams.get('licenseKey');
+  if (urlKey) {
+    localStorage.setItem('omnisix_license_key', urlKey);
+    sessionStorage.setItem('omnisix_license_key', urlKey);
+  }
+  const urlBiz = urlParams.get('biz') || urlParams.get('store');
+  if (urlBiz) {
+    sessionStorage.setItem('omnisix_portal_biz_id', urlBiz);
+  }
+
+  let licenseKey = sessionStorage.getItem('omnisix_license_key') || localStorage.getItem('omnisix_license_key');
+  const portalBizId = sessionStorage.getItem('omnisix_portal_biz_id') || urlBiz;
+
+  if (!licenseKey && !portalBizId) {
     window.location.replace('/login');
   }
 
-  // Wrap fetch to automatically include x-license-key header on all requests
+  // Wrap fetch to automatically include x-license-key and x-business-id headers on all requests
   const _portalOriginalFetch = window.fetch;
   window.fetch = function(url, init = {}) {
     init = init || {};
     init.headers = init.headers || {};
-    if (init.headers instanceof Headers) {
-      if (!init.headers.has('x-license-key')) init.headers.set('x-license-key', licenseKey);
-    } else if (Array.isArray(init.headers)) {
-      init.headers.push(['x-license-key', licenseKey]);
-    } else {
-      if (!init.headers['x-license-key']) init.headers['x-license-key'] = licenseKey;
+    if (licenseKey) {
+      if (init.headers instanceof Headers) {
+        if (!init.headers.has('x-license-key')) init.headers.set('x-license-key', licenseKey);
+      } else if (Array.isArray(init.headers)) {
+        init.headers.push(['x-license-key', licenseKey]);
+      } else {
+        if (!init.headers['x-license-key']) init.headers['x-license-key'] = licenseKey;
+      }
+    }
+    const currentBiz = sessionStorage.getItem('omnisix_portal_biz_id');
+    if (currentBiz && typeof url === 'string' && url.startsWith('/api/')) {
+      if (init.headers instanceof Headers) {
+        if (!init.headers.has('x-business-id')) init.headers.set('x-business-id', currentBiz);
+      } else if (Array.isArray(init.headers)) {
+        init.headers.push(['x-business-id', currentBiz]);
+      } else {
+        if (!init.headers['x-business-id']) init.headers['x-business-id'] = currentBiz;
+      }
     }
     return _portalOriginalFetch(url, init);
   };
@@ -2776,10 +2917,21 @@ function renderChatList(chats) {
   });
 }
 
+function mobileBackToChats() {
+  document.querySelector('.chat-list')?.classList.remove('mobile-hidden');
+  document.querySelector('.chat-main')?.classList.add('mobile-hidden');
+}
+
 function selectChat(chatId) {
   activeChatId = chatId;
   const chat = allChats.find(c => c.id === chatId);
   if (!chat) return;
+
+  if (window.innerWidth <= 768) {
+    document.querySelector('.chat-list')?.classList.add('mobile-hidden');
+    document.querySelector('.chat-main')?.classList.remove('mobile-hidden');
+    document.querySelectorAll('.mobile-back-to-chats').forEach(b => b.style.display = 'inline-flex');
+  }
 
   document.getElementById('chat-active-name').textContent = chat.customerName || 'Customer';
   document.getElementById('chat-active-phone').textContent = chat.customerPhone ? ('+' + chat.customerPhone) : chatId;

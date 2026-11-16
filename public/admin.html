@@ -49,6 +49,14 @@
     --gradient-brand: linear-gradient(135deg, #059669 0%, #2563eb 100%);
   }
 
+  html, body {
+    overflow-x: auto;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    min-width: 320px;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
     background-color: var(--bg-page);
@@ -56,7 +64,36 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
+  }
+
+  /* Responsive Scrollable Tables */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    margin: 12px 0 18px 0;
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+  }
+  .table-responsive::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f8fafc;
+  }
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+  }
+  .table-responsive table {
+    min-width: 760px;
+    width: 100%;
+    margin: 0;
+    border: none;
   }
 
   /* Top Navigation Bar */
@@ -212,7 +249,7 @@
     gap: 20px;
   }
 
-  /* Sidebar Navigation */
+  /* Sidebar Navigation with Independent Scrolling */
   .sidebar {
     width: 250px;
     display: flex;
@@ -224,7 +261,24 @@
     border-radius: 16px;
     padding: 14px 10px;
     box-shadow: var(--shadow-sm);
-    height: fit-content;
+    position: sticky;
+    top: 76px;
+    height: calc(100vh - 96px);
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
   }
 
   .tab-btn {
@@ -380,7 +434,9 @@
   .chat-layout {
     display: grid;
     grid-template-columns: 310px 1fr;
-    height: 640px;
+    height: calc(100vh - 170px);
+    min-height: 580px;
+    max-height: 860px;
     border: 1px solid var(--card-border);
     border-radius: 16px;
     overflow: hidden;
@@ -391,6 +447,8 @@
     background: #f8fafc;
     border-right: 1px solid var(--card-border);
     overflow-y: auto;
+    height: 100%;
+    min-height: 0;
   }
   .chat-item {
     padding: 13px 16px;
@@ -428,23 +486,32 @@
     display: flex;
     flex-direction: column;
     background: #ffffff;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
   }
   .chat-header {
-    padding: 14px 20px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--card-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: #ffffff;
+    flex-shrink: 0;
+    z-index: 5;
   }
   .chat-messages {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
-    padding: 20px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     background: #f8fafc;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
   .msg-bubble {
     max-width: 75%;
@@ -484,6 +551,10 @@
     align-items: center;
     gap: 10px;
     background: #ffffff;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
   }
   .chat-input {
     flex: 1;
@@ -662,10 +733,53 @@
     color: var(--text-primary);
   }
 
-  @media (max-width: 960px) {
-    .dashboard-container { flex-direction: column; padding: 12px; }
-    .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding-bottom: 8px; }
-    .chat-layout { grid-template-columns: 1fr; height: auto; }
+  @media (max-width: 991px) {
+    .dashboard-container { flex-direction: column; padding: 12px; gap: 12px; }
+    .sidebar {
+      width: 100%;
+      height: auto;
+      max-height: none;
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      padding: 8px 10px;
+      gap: 6px;
+      border-radius: 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      width: auto;
+      flex-shrink: 0;
+      padding: 8px 14px;
+      white-space: nowrap;
+      font-size: 0.82rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .navbar { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
+    .nav-left { width: 100%; justify-content: space-between; }
+    .nav-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .biz-switcher-wrap { flex: 1; max-width: 100%; justify-content: space-between; }
+    .chat-layout {
+      grid-template-columns: 1fr;
+      height: calc(100vh - 150px);
+      min-height: 520px;
+      max-height: none;
+    }
+    .chat-list.mobile-hidden {
+      display: none !important;
+    }
+    .chat-main.mobile-hidden {
+      display: none !important;
+    }
+    .mobile-back-to-chats {
+      display: inline-flex !important;
+    }
   }
 </style>
 </head>
@@ -688,7 +802,7 @@
       <span>OMNISIX <span>AI PRO</span></span>
     </div>
 
-    <!-- Multi-Business Profile Switcher with + New Store Option -->
+    <!-- Multi-Business Profile Switcher with + New Store and Tab Hub Options -->
     <div class="biz-switcher-wrap">
       <label>Store:</label>
       <select class="biz-select" id="business-select" onchange="switchBusiness(this.value)">
@@ -696,6 +810,12 @@
       </select>
       <button type="button" class="btn-add-store" onclick="openAddStoreModal()" title="Setup & add a custom store">
         <span>➕</span> New Store
+      </button>
+      <button type="button" class="btn-add-store" onclick="showTab('stores')" title="Manage all stores in a separate tab" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;">
+        <span>🏬</span> Stores Hub
+      </button>
+      <button type="button" class="btn-add-store" onclick="openCurrentStoreInNewTab()" title="Open this store in a separate browser tab" style="background:#f8fafc;border-color:#cbd5e1;color:#475569;">
+        <span>↗</span> New Tab
       </button>
     </div>
   </div>
@@ -822,6 +942,10 @@
     <button class="tab-btn" onclick="showTab('licenses')">
       <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
       <span data-i18n="navLicenses">🔑 License KeyGen & Clients</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('stores')">
+      <svg viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg>
+      <span data-i18n="navStores">🏬 Stores Management</span>
     </button>
   </aside>
 
@@ -993,9 +1117,12 @@
 
         <div class="chat-main">
           <div class="chat-header">
-            <div>
-              <div style="font-weight:700;font-size:0.92rem;" id="chat-active-name">Select a conversation</div>
-              <div style="font-size:0.75rem;color:var(--text-muted);" id="chat-active-phone">-</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button type="button" class="btn-secondary mobile-back-to-chats" onclick="mobileBackToChats()" style="display:none;padding:5px 12px;font-size:0.78rem;font-weight:700;border-radius:8px;">← Chats</button>
+              <div>
+                <div style="font-weight:700;font-size:0.92rem;" id="chat-active-name">Select a conversation</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);" id="chat-active-phone">-</div>
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
               <span id="chat-active-archetype" class="arch-pill hidden"></span>
@@ -1694,6 +1821,73 @@
       </div>
     </section>
 
+    <!-- 11. STORES & MULTI-TENANT MANAGEMENT HUB -->
+    <section id="tab-stores" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span>🏬</span> Stores & Multi-Tenant Management Hub
+          </h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);">
+            සියලුම Client Stores වෙන වෙනම Browser Tabs වල handle කිරීම, පාලනය කිරීම, Edit කිරීම සහ Multi-Store Isolation.
+          </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button class="btn-primary" onclick="openAddStoreModal()">➕ Add New Store</button>
+          <button class="btn-secondary" onclick="renderStoresHub()">🔄 Refresh Stores</button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Strip -->
+      <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 22px;">
+        <div class="metric-card" style="padding:14px 18px;">
+          <div class="metric-title">Total Registered Stores</div>
+          <div class="metric-value" id="stores-metric-total" style="font-size:1.45rem;color:var(--accent-blue);">0</div>
+          <div class="metric-subtitle">Across multi-tenant cloud</div>
+        </div>
+        <div class="metric-card" style="padding:14px 18px;">
+          <div class="metric-title">Active Working Store (This Tab)</div>
+          <div class="metric-value" id="stores-metric-active" style="font-size:1.15rem;color:var(--accent-emerald);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div>
+          <div class="metric-subtitle">Isolated to current session</div>
+        </div>
+        <div class="metric-card" style="padding:14px 18px;">
+          <div class="metric-title">Active License Keys</div>
+          <div class="metric-value" id="stores-metric-licenses" style="font-size:1.45rem;color:var(--accent-purple);">0</div>
+          <div class="metric-subtitle">Bound client credentials</div>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:10px;flex:1;max-width:500px;min-width:250px;">
+          <input type="text" id="stores-search-input" class="form-input" placeholder="Search by store name, phone, or ID..." oninput="filterStoresTable()" style="padding:8px 14px;font-size:0.86rem;border-radius:10px;">
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted);">
+          Tip: Open any store in a separate tab with <strong style="color:var(--accent-blue);">"Open in New Tab"</strong> to manage concurrently without conflict.
+        </div>
+      </div>
+
+      <!-- Stores Table -->
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Store Name & ID</th>
+              <th>Category</th>
+              <th>Plan Tier</th>
+              <th>Owner & Contact</th>
+              <th>Active License</th>
+              <th>Orders / Stats</th>
+              <th>Tab & Management Actions</th>
+            </tr>
+          </thead>
+          <tbody id="stores-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">Loading stores...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -2265,11 +2459,82 @@
   </div>
 </div>
 
+<!-- Modal: Edit Existing Store -->
+<div id="modal-edit-store" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:620px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:1.15rem;font-weight:700;display:flex;align-items:center;gap:8px;">
+        <span>✏️</span> Edit Store Details
+      </h3>
+      <button class="btn-secondary" onclick="closeEditStoreModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <form onsubmit="submitEditStore(event)">
+      <input type="hidden" id="edit-store-id">
+      <div class="form-group">
+        <label class="form-label">Store / Business Name *</label>
+        <input type="text" id="edit-store-name" class="form-input" required placeholder="e.g. ST MOBILE">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Business Category *</label>
+          <select id="edit-store-category" class="form-select">
+            <option value="retail">Retail / Clothing</option>
+            <option value="electronics">Electronics & Mobile</option>
+            <option value="studio">Photography & Studio</option>
+            <option value="salon">Salon & Spa</option>
+            <option value="food">Restaurant & Food</option>
+            <option value="hotel">Hotel & Travel</option>
+            <option value="grocery">Grocery & Supermarket</option>
+            <option value="other">Other / Custom Services</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subscription Plan</label>
+          <select id="edit-store-plan" class="form-select">
+            <option value="starter">Starter Plan (රු. 1,900)</option>
+            <option value="pro">Pro Plan (රු. 2,900)</option>
+            <option value="enterprise">Enterprise Plan (රු. 3,500)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Owner Name</label>
+          <input type="text" id="edit-store-owner" class="form-input" placeholder="Owner or Manager Name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Contact Number</label>
+          <input type="text" id="edit-store-phone" class="form-input" placeholder="077 123 4567">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bank Account Details (For Customer Slips)</label>
+        <input type="text" id="edit-store-bank" class="form-input" placeholder="e.g. Commercial Bank 1000293849 Kamal Perera">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Delivery Policy & Pricing</label>
+        <input type="text" id="edit-store-delivery" class="form-input" placeholder="Islandwide delivery available within 2-3 days">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+        <button type="button" class="btn-secondary" onclick="closeEditStoreModal()">Cancel</button>
+        <button type="submit" class="btn-primary">💾 Save Store Details</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 // ─── Super Admin Security & Session Interceptor ─────────────────────────────
 let adminToken = sessionStorage.getItem('omnisix_admin_token') || localStorage.getItem('omnisix_admin_token');
 
-// Wrap fetch to automatically include x-admin-token
+// Multi-Tab store isolation from URL query
+const initialUrlParams = new URLSearchParams(window.location.search);
+const initialStoreParam = initialUrlParams.get('store') || initialUrlParams.get('biz');
+if (initialStoreParam) {
+  sessionStorage.setItem('omnisix_current_biz_id', initialStoreParam);
+}
+
+// Wrap fetch to automatically include x-admin-token and x-business-id
 const _adminOriginalFetch = window.fetch;
 window.fetch = function(url, init = {}) {
   init = init || {};
@@ -2281,6 +2546,16 @@ window.fetch = function(url, init = {}) {
       init.headers.push(['x-admin-token', adminToken]);
     } else {
       if (!init.headers['x-admin-token']) init.headers['x-admin-token'] = adminToken;
+    }
+  }
+  const currentTabBizId = sessionStorage.getItem('omnisix_current_biz_id');
+  if (currentTabBizId && typeof url === 'string' && url.startsWith('/api/')) {
+    if (init.headers instanceof Headers) {
+      if (!init.headers.has('x-business-id')) init.headers.set('x-business-id', currentTabBizId);
+    } else if (Array.isArray(init.headers)) {
+      init.headers.push(['x-business-id', currentTabBizId]);
+    } else {
+      if (!init.headers['x-business-id']) init.headers['x-business-id'] = currentTabBizId;
     }
   }
   return _adminOriginalFetch(url, init);
@@ -2457,6 +2732,9 @@ function showTab(tabName) {
   if (tabName === 'licenses') {
     loadLicenses();
   }
+  if (tabName === 'stores') {
+    renderStoresHub();
+  }
 
   if (tabName === 'overview') fetchOverview();
   if (tabName === 'inbox') fetchInbox();
@@ -2477,37 +2755,57 @@ function showTab(tabName) {
 document.addEventListener('DOMContentLoaded', async () => {
   const isAuth = await checkAdminAuth();
   if (isAuth) {
-    fetchBusinesses();
+    await fetchBusinesses();
     fetchOverview();
     setInterval(fetchOverview, 10000);
   }
 });
 
-// ─── Business Management ──────────────────────────────────────────────────────
+// ─── Business & Multi-Tab Store Management ────────────────────────────────────
 async function fetchBusinesses() {
   try {
     const res = await fetch('/api/business');
     const data = await res.json();
     if (data.ok) {
-      activeBiz = data.active;
-      allBusinesses = data.businesses;
+      allBusinesses = data.businesses || [];
+      
+      // Multi-tab store isolation
+      const urlStore = new URLSearchParams(window.location.search).get('store') || new URLSearchParams(window.location.search).get('biz');
+      if (urlStore && allBusinesses.some(b => b.id === urlStore)) {
+        activeBiz = allBusinesses.find(b => b.id === urlStore);
+        sessionStorage.setItem('omnisix_current_biz_id', activeBiz.id);
+      } else {
+        const storedTabBiz = sessionStorage.getItem('omnisix_current_biz_id');
+        if (storedTabBiz && allBusinesses.some(b => b.id === storedTabBiz)) {
+          activeBiz = allBusinesses.find(b => b.id === storedTabBiz);
+        } else {
+          activeBiz = data.active || allBusinesses[0];
+          if (activeBiz) sessionStorage.setItem('omnisix_current_biz_id', activeBiz.id);
+        }
+      }
+
       populateBusinessSelect();
       loadBusinessForm();
+      if (currentTab === 'stores') renderStoresHub();
     }
   } catch (e) { console.error('fetchBusinesses error:', e); }
 }
 
 function populateBusinessSelect() {
   const sel = document.getElementById('business-select');
+  if (!sel) return;
   sel.innerHTML = '';
   allBusinesses.forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.id;
     opt.textContent = `${b.name} (${(b.category || '').toUpperCase()})`;
-    if (b.id === activeBiz.id) opt.selected = true;
+    if (activeBiz && b.id === activeBiz.id) opt.selected = true;
     sel.appendChild(opt);
   });
-  document.getElementById('metric-store-name').textContent = activeBiz.name;
+  if (activeBiz) {
+    const storeLabel = document.getElementById('metric-store-name');
+    if (storeLabel) storeLabel.textContent = activeBiz.name;
+  }
 }
 
 function openAddStoreModal() {
@@ -2548,13 +2846,17 @@ async function submitNewStore(e) {
     if (data.ok) {
       alert(`✨ New Store "${name}" created successfully!`);
       closeAddStoreModal();
-      activeBiz = data.active;
       allBusinesses = data.businesses;
+      if (setActive) {
+        activeBiz = data.business;
+        sessionStorage.setItem('omnisix_current_biz_id', activeBiz.id);
+      }
       populateBusinessSelect();
       loadBusinessForm();
       fetchOverview();
       if (currentTab === 'products') fetchProducts();
       if (currentTab === 'flows') fetchFlows();
+      if (currentTab === 'stores') renderStoresHub();
     } else {
       alert('Error creating store: ' + (data.error || 'Failed'));
     }
@@ -2565,29 +2867,150 @@ async function submitNewStore(e) {
 
 async function deleteCurrentBusiness() {
   if (!activeBiz) return;
+  deleteSpecificStore(activeBiz.id);
+}
+
+async function switchBusiness(bizId) {
+  try {
+    sessionStorage.setItem('omnisix_current_biz_id', bizId);
+    const res = await fetch('/api/business/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: bizId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      activeBiz = allBusinesses.find(b => b.id === bizId) || data.active;
+      populateBusinessSelect();
+      loadBusinessForm();
+      fetchOverview();
+      if (currentTab === 'products') fetchProducts();
+      if (currentTab === 'flows') fetchFlows();
+      if (currentTab === 'orders') fetchOrders();
+      if (currentTab === 'inbox') fetchInbox();
+      if (currentTab === 'stores') renderStoresHub();
+    }
+  } catch(e) { console.error('switchBusiness error:', e); }
+}
+
+function openStoreInNewTab(storeId) {
+  window.open('/admin?store=' + encodeURIComponent(storeId), '_blank');
+}
+
+function openCurrentStoreInNewTab() {
+  const currentId = (activeBiz && activeBiz.id) || sessionStorage.getItem('omnisix_current_biz_id');
+  if (currentId) {
+    openStoreInNewTab(currentId);
+  } else {
+    alert('No active store selected to open.');
+  }
+}
+
+async function openClientPortalInNewTab(storeId) {
+  try {
+    const res = await fetch('/api/licenses');
+    const data = await res.json();
+    const lic = (data.licenses || []).find(l => l.businessId === storeId && l.status === 'Active');
+    if (lic) {
+      window.open('/portal?key=' + encodeURIComponent(lic.key) + '&biz=' + encodeURIComponent(storeId), '_blank');
+    } else {
+      window.open('/portal?biz=' + encodeURIComponent(storeId), '_blank');
+    }
+  } catch(e) {
+    window.open('/portal?biz=' + encodeURIComponent(storeId), '_blank');
+  }
+}
+
+function openEditStoreModal(storeId) {
+  const b = allBusinesses.find(x => x.id === storeId);
+  if (!b) return alert('Store not found');
+  document.getElementById('edit-store-id').value = b.id;
+  document.getElementById('edit-store-name').value = b.name || '';
+  document.getElementById('edit-store-category').value = b.category || 'other';
+  document.getElementById('edit-store-plan').value = b.subscriptionPlan || 'starter';
+  document.getElementById('edit-store-owner').value = b.ownerName || '';
+  document.getElementById('edit-store-phone').value = b.phone || b.whatsappPhone || '';
+  document.getElementById('edit-store-bank').value = b.bankDetails || '';
+  document.getElementById('edit-store-delivery').value = b.deliveryPolicy || '';
+  document.getElementById('modal-edit-store').classList.remove('hidden');
+}
+
+function closeEditStoreModal() {
+  document.getElementById('modal-edit-store').classList.add('hidden');
+}
+
+async function submitEditStore(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-store-id').value;
+  const name = document.getElementById('edit-store-name').value.trim();
+  const category = document.getElementById('edit-store-category').value;
+  const subscriptionPlan = document.getElementById('edit-store-plan').value;
+  const ownerName = document.getElementById('edit-store-owner').value.trim();
+  const phone = document.getElementById('edit-store-phone').value.trim();
+  const bankDetails = document.getElementById('edit-store-bank').value.trim();
+  const deliveryPolicy = document.getElementById('edit-store-delivery').value.trim();
+
+  try {
+    const res = await fetch('/api/business/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        name,
+        category,
+        subscriptionPlan,
+        ownerName,
+        phone,
+        bankDetails,
+        deliveryPolicy
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`✨ Store "${name}" updated successfully!`);
+      closeEditStoreModal();
+      allBusinesses = data.businesses;
+      const tabBiz = sessionStorage.getItem('omnisix_current_biz_id');
+      activeBiz = allBusinesses.find(b => b.id === (tabBiz || activeBiz.id)) || data.active;
+      populateBusinessSelect();
+      loadBusinessForm();
+      if (currentTab === 'stores') renderStoresHub();
+    } else {
+      alert('Error updating store: ' + (data.error || 'Failed'));
+    }
+  } catch(err) {
+    alert('Failed to update store: ' + err.message);
+  }
+}
+
+async function deleteSpecificStore(storeId) {
+  const b = allBusinesses.find(x => x.id === storeId);
+  if (!b) return;
   if (allBusinesses.length <= 1) {
     alert('At least one store must remain. Cannot delete the only store.');
     return;
   }
-  if (!confirm(`Are you sure you want to permanently delete store "${activeBiz.name}"?`)) {
+  if (!confirm(`Are you sure you want to permanently delete store "${b.name}"?`)) {
     return;
   }
   try {
     const res = await fetch('/api/business/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: activeBiz.id })
+      body: JSON.stringify({ id: storeId })
     });
     const data = await res.json();
     if (data.ok) {
       alert('Store deleted successfully.');
-      activeBiz = data.active;
       allBusinesses = data.businesses;
+      if (activeBiz && activeBiz.id === storeId) {
+        activeBiz = allBusinesses[0];
+        sessionStorage.setItem('omnisix_current_biz_id', activeBiz.id);
+      }
       populateBusinessSelect();
       loadBusinessForm();
       fetchOverview();
-      if (currentTab === 'products') fetchProducts();
-      if (currentTab === 'flows') fetchFlows();
+      if (currentTab === 'stores') renderStoresHub();
     } else {
       alert('Error deleting store: ' + (data.error || 'Failed'));
     }
@@ -2596,23 +3019,109 @@ async function deleteCurrentBusiness() {
   }
 }
 
-async function switchBusiness(bizId) {
+async function renderStoresHub() {
+  const tbody = document.getElementById('stores-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">Loading stores & licenses...</td></tr>';
+
   try {
-    const res = await fetch('/api/business/select', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: bizId })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      activeBiz = data.active;
-      populateBusinessSelect();
-      loadBusinessForm();
-      fetchOverview();
-      if (currentTab === 'products') fetchProducts();
-      if (currentTab === 'flows') fetchFlows();
+    const [bizRes, licRes, ordersRes] = await Promise.all([
+      fetch('/api/business'),
+      fetch('/api/licenses'),
+      fetch('/api/orders')
+    ]);
+    const bizData = await bizRes.json();
+    const licData = await licRes.json();
+    const ordersData = await ordersRes.json();
+
+    const businesses = bizData.businesses || allBusinesses;
+    const licenses = licData.licenses || [];
+    const orders = ordersData.orders || allOrders;
+
+    const totalStoresEl = document.getElementById('stores-metric-total');
+    if (totalStoresEl) totalStoresEl.textContent = businesses.length;
+    const activeStoreEl = document.getElementById('stores-metric-active');
+    if (activeStoreEl) activeStoreEl.textContent = activeBiz ? activeBiz.name : '-';
+    const activeLicsEl = document.getElementById('stores-metric-licenses');
+    if (activeLicsEl) activeLicsEl.textContent = licenses.filter(l => l.status === 'Active').length;
+
+    if (businesses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">No stores registered yet. Click "Add New Store" to setup one.</td></tr>';
+      return;
     }
-  } catch(e) { console.error('switchBusiness error:', e); }
+
+    tbody.innerHTML = '';
+    businesses.forEach(b => {
+      const isCurrent = activeBiz && activeBiz.id === b.id;
+      const lic = licenses.find(l => l.businessId === b.id && l.status === 'Active') || licenses.find(l => l.businessId === b.id);
+      const storeOrders = orders.filter(o => o.businessId === b.id || (!o.businessId && b.id === 'default'));
+      const storeRev = storeOrders.reduce((sum, o) => sum + (parseInt(String(o.amount || '0').replace(/\D/g, '')) || 0), 0);
+
+      const planTier = b.subscriptionPlan || (lic ? lic.planTier : 'starter');
+      let planBadge = '<span class="status-tag pending">Starter (Rs. 1,900)</span>';
+      if (planTier === 'pro') planBadge = '<span class="status-tag confirmed" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">Pro (Rs. 2,900)</span>';
+      if (planTier === 'enterprise') planBadge = '<span class="status-tag confirmed">Enterprise (Rs. 3,500)</span>';
+
+      const tr = document.createElement('tr');
+      if (isCurrent) tr.style.background = 'rgba(5, 150, 105, 0.05)';
+      tr.innerHTML = `
+        <td>
+          <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+            <span>${escapeHtml(b.name)}</span>
+            ${isCurrent ? '<span style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:0.68rem;padding:2px 7px;border-radius:12px;font-weight:700;">Active Here</span>' : ''}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">ID: ${escapeHtml(b.id)}</div>
+        </td>
+        <td>
+          <span style="display:inline-block;padding:3px 9px;border-radius:12px;background:#f1f5f9;border:1px solid var(--card-border);font-size:0.75rem;font-weight:700;text-transform:uppercase;">
+            ${escapeHtml(b.category || 'other')}
+          </span>
+        </td>
+        <td>${planBadge}</td>
+        <td>
+          <div style="font-weight:600;font-size:0.84rem;">${escapeHtml(b.ownerName || '-')}</div>
+          <div style="font-size:0.76rem;color:var(--text-muted);">${escapeHtml(b.phone || b.whatsappPhone || '-')}</div>
+        </td>
+        <td>
+          ${lic ? `
+            <div style="font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--accent-purple);">${escapeHtml(lic.key)}</div>
+            <div style="font-size:0.72rem;color:${lic.status === 'Active' ? '#059669' : '#dc2626'};font-weight:600;">● ${escapeHtml(lic.status)} (${lic.daysLeft || 0}d left)</div>
+          ` : '<span style="font-size:0.76rem;color:var(--text-muted);">No key issued</span>'}
+        </td>
+        <td>
+          <div style="font-weight:700;font-size:0.86rem;color:var(--accent-emerald);">Rs. ${storeRev.toLocaleString()}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">${storeOrders.length} Orders</div>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-primary" style="padding:4px 9px;font-size:0.76rem;" onclick="switchBusiness(\'${escapeHtml(b.id)}\')">🔄 Switch</button>
+            <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;background:#eff6ff;color:#1e40af;border-color:#bfdbfe;" onclick="openStoreInNewTab(\'${escapeHtml(b.id)}\')">🌐 Open in New Tab</button>
+            <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;" onclick="openClientPortalInNewTab(\'${escapeHtml(b.id)}\')">📱 Portal</button>
+            <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;" onclick="openEditStoreModal(\'${escapeHtml(b.id)}\')">✏️ Edit</button>
+            <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;color:#dc2626;border-color:#fecaca;" onclick="deleteSpecificStore(\'${escapeHtml(b.id)}\')">🗑️</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch(e) {
+    console.error('renderStoresHub error:', e);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:#dc2626;">Failed to load stores: ${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function filterStoresTable() {
+  const query = (document.getElementById('stores-search-input')?.value || '').toLowerCase();
+  const rows = document.querySelectorAll('#stores-tbody tr');
+  rows.forEach(r => {
+    const text = r.textContent.toLowerCase();
+    r.style.display = text.includes(query) ? '' : 'none';
+  });
+}
+
+function mobileBackToChats() {
+  document.querySelector('.chat-list')?.classList.remove('mobile-hidden');
+  document.querySelector('.chat-main')?.classList.add('mobile-hidden');
 }
 
 // ─── Overview & Real Analytics ────────────────────────────────────────────────
@@ -3237,6 +3746,12 @@ function selectChat(chatId) {
   activeChatId = chatId;
   const chat = allChats.find(c => c.id === chatId);
   if (!chat) return;
+
+  if (window.innerWidth <= 768) {
+    document.querySelector('.chat-list')?.classList.add('mobile-hidden');
+    document.querySelector('.chat-main')?.classList.remove('mobile-hidden');
+    document.querySelectorAll('.mobile-back-to-chats').forEach(b => b.style.display = 'inline-flex');
+  }
 
   document.getElementById('chat-active-name').textContent = chat.customerName || 'Customer';
   document.getElementById('chat-active-phone').textContent = chat.customerPhone ? ('+' + chat.customerPhone) : chatId;
@@ -4290,6 +4805,7 @@ const I18N_DICT = {
     navSettings: "AI Settings & Persona",
     navWhatsapp: "WhatsApp Web Hub",
     navLicenses: "🔑 License KeyGen & Clients",
+    navStores: "🏬 Stores Hub",
     userGuideBtn: "📖 User Guide",
     userGuide: "📖 User Guide",
     liveCallBtn: "📞 Test Live Voice Call",
@@ -4331,6 +4847,7 @@ const I18N_DICT = {
     navSettings: "AI සැකසුම් (Settings)",
     navWhatsapp: "WhatsApp Web Hub",
     navLicenses: "🔑 බලපත්‍ර පාලකය (Licenses)",
+    navStores: "🏬 වෙළඳසැල් පාලකය (Stores)",
     userGuideBtn: "📖 භාවිත මාර්ගෝපදේශය",
     userGuide: "📖 භාවිත මාර්ගෝපදේශය",
     liveCallBtn: "📞 Live Voice Call පරීක්ෂා කරන්න",
@@ -4372,6 +4889,7 @@ const I18N_DICT = {
     navSettings: "AI அமைப்புகள் (Settings)",
     navWhatsapp: "WhatsApp வலை மையம்",
     navLicenses: "🔑 உரிம மேலாளர் (Licenses)",
+    navStores: "🏬 கடைகள் மையம் (Stores)",
     userGuideBtn: "📖 பயனர் வழிகாட்டி",
     userGuide: "📖 பயனர் வழிகாட்டி",
     liveCallBtn: "📞 நேரலை குரல் அழைப்பு சோதனை",
