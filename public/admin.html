@@ -294,40 +294,50 @@
     border-radius: 4px;
   }
 
-  /* 3D Modern Navigation & Badge Icons */
-  .nav-3d-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
+  /* Professional Modern Enterprise Icon Badges */
+  .nav-pro-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
     flex-shrink: 0;
     position: relative;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -2px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
-  .tab-btn:hover .nav-3d-icon {
-    transform: translateY(-3px) scale(1.15) rotate(-5deg);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16), inset 0 1px 2px #ffffff;
+  .nav-pro-icon svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  .tab-btn.active .nav-3d-icon {
-    transform: translateY(-1px) scale(1.08);
-    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.28), inset 0 1px 2px #ffffff;
+  .tab-btn:hover .nav-pro-icon {
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.08), inset 0 1px 0 #ffffff;
+  }
+  .tab-btn:hover .nav-pro-icon svg {
+    transform: scale(1.08);
+  }
+  .tab-btn.active .nav-pro-icon {
+    transform: translateY(-1px) scale(1.06);
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.2), inset 0 1px 0 #ffffff;
+    border-color: rgba(5, 150, 105, 0.25);
   }
 
-  .icon-overview { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-  .icon-stores { background: linear-gradient(135deg, #10b981, #059669); }
-  .icon-licenses { background: linear-gradient(135deg, #f59e0b, #d97706); }
-  .icon-inbox { background: linear-gradient(135deg, #06b6d4, #0284c7); }
-  .icon-orders { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-  .icon-products { background: linear-gradient(135deg, #ec4899, #db2777); }
-  .icon-flows { background: linear-gradient(135deg, #eab308, #ca8a04); }
-  .icon-broadcast { background: linear-gradient(135deg, #a855f7, #9333ea); }
-  .icon-business { background: linear-gradient(135deg, #14b8a6, #0d9488); }
-  .icon-settings { background: linear-gradient(135deg, #64748b, #475569); }
-  .icon-whatsapp { background: linear-gradient(135deg, #22c55e, #16a34a); }
+  /* Specific Enterprise Color Palettes */
+  .icon-overview { background: #eff6ff; color: #2563eb; }
+  .icon-stores { background: #ecfdf5; color: #059669; }
+  .icon-licenses { background: #fffbeb; color: #d97706; }
+  .icon-inbox { background: #f0fdfa; color: #0d9488; }
+  .icon-orders { background: #eef2ff; color: #4f46e5; }
+  .icon-products { background: #fdf2f8; color: #db2777; }
+  .icon-flows { background: #fefce8; color: #ca8a04; }
+  .icon-broadcast { background: #faf5ff; color: #9333ea; }
+  .icon-business { background: #f0fdf4; color: #16a34a; }
+  .icon-settings { background: #f8fafc; color: #475569; }
+  .icon-whatsapp { background: #ecfdf5; color: #16a34a; }
 
   .tab-btn {
     display: flex;
@@ -910,13 +920,13 @@
         <!-- Injected via JS -->
       </select>
       <button type="button" class="btn-add-store" onclick="openAddStoreModal()" title="Setup & add a custom store">
-        <span>➕</span> New Store
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Store
       </button>
       <button type="button" class="btn-add-store" onclick="showTab('stores')" title="Manage all stores in a separate tab" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;">
-        <span>🏬</span> Stores Hub
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg> Stores Hub
       </button>
       <button type="button" class="btn-add-store" onclick="openCurrentStoreInNewTab()" title="Open this store in a separate browser tab" style="background:#f8fafc;border-color:#cbd5e1;color:#475569;">
-        <span>↗</span> New Tab
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg> New Tab
       </button>
     </div>
   </div>
@@ -924,7 +934,7 @@
   <div class="nav-right">
     <!-- Language Switcher (Tri-Language: Sinhala, English, Tamil) -->
     <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:4px 10px;">
-      <span style="font-size:14px;">🌐</span>
+      <span style="display:inline-flex;align-items:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
       <select id="ui-lang-switcher" onchange="changeUILanguage(this.value)" style="background:transparent;color:#ffffff;border:none;font-weight:700;font-size:13px;cursor:pointer;outline:none;">
         <option value="si" style="background:#0f172a;color:#fff;">සිංහල</option>
         <option value="en" style="background:#0f172a;color:#fff;">English</option>
@@ -934,7 +944,7 @@
 
     <!-- User Guide Button -->
     <button type="button" onclick="openUserGuideModal(1)" style="background:linear-gradient(135deg, rgba(37,99,235,0.2), rgba(16,185,129,0.2));border:1px solid rgba(59,130,246,0.4);color:#93c5fd;padding:6px 12px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" title="Setup Tour & Walkthrough">
-      <span>📖</span> <span data-i18n="userGuide">User Guide</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg> <span data-i18n="userGuide">User Guide</span></span>
     </button>
 
     <div class="status-pill">
@@ -947,7 +957,7 @@
       Live Voice Call පරීක්ෂා කරන්න
     </a>
     <button onclick="lockAdminSession()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:0.8rem;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.22)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'" title="Lock Admin Session">
-      🔒 Lock Admin
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Lock Admin
     </button>
   </div>
 </header>
@@ -989,12 +999,12 @@
       <div id="admin-auth-msg" style="display:none;margin-bottom:16px;padding:10px 14px;border-radius:8px;font-size:0.84rem;font-weight:600;"></div>
 
       <button type="submit" id="btn-admin-unlock" class="btn-primary" style="width:100%;padding:14px;font-size:0.98rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 8px 24px rgba(99,102,241,0.4);cursor:pointer;">
-        <span>🔓</span> Unlock Super Admin Panel
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock Super Admin Panel
       </button>
     </form>
 
     <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.75rem;color:#64748b;">
-      <span>🛡️</span> 256-Bit Cryptographic Session • Rate-Limit Protected
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 256-Bit Cryptographic Session • Rate-Limit Protected
     </div>
   </div>
 </div>
@@ -1002,50 +1012,72 @@
 <!-- Main Container -->
 <div class="dashboard-container" id="admin-dashboard-container" style="display:none;">
 
-  <!-- Sidebar Navigation Tabs with 3D Glossy Icons -->
+  <!-- Sidebar Navigation Tabs with Professional Modern Icons -->
   <aside class="sidebar">
     <button class="tab-btn active" onclick="showTab('overview')">
-      <div class="nav-3d-icon icon-overview">📊</div>
+      <div class="nav-pro-icon icon-overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1.5"/><rect width="7" height="5" x="14" y="3" rx="1.5"/><rect width="7" height="9" x="14" y="12" rx="1.5"/><rect width="7" height="5" x="3" y="16" rx="1.5"/></svg>
+      </div>
       <span data-i18n="navOverview">Overview</span>
     </button>
     <button class="tab-btn" onclick="showTab('stores')">
-      <div class="nav-3d-icon icon-stores">🏬</div>
+      <div class="nav-pro-icon icon-stores">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><circle cx="12" cy="12" r="1"/></svg>
+      </div>
       <span data-i18n="navStores">Stores Management</span>
     </button>
     <button class="tab-btn" onclick="showTab('licenses')">
-      <div class="nav-3d-icon icon-licenses">🔑</div>
+      <div class="nav-pro-icon icon-licenses">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>
+      </div>
       <span data-i18n="navLicenses">License KeyGen & Clients</span>
     </button>
     <button class="tab-btn" onclick="showTab('inbox')">
-      <div class="nav-3d-icon icon-inbox">💬</div>
+      <div class="nav-pro-icon icon-inbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+      </div>
       <span data-i18n="navInbox">Live Chat Inbox</span>
     </button>
     <button class="tab-btn" onclick="showTab('orders')">
-      <div class="nav-3d-icon icon-orders">📦</div>
+      <div class="nav-pro-icon icon-orders">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      </div>
       <span data-i18n="navOrders">Orders & Slips</span>
     </button>
     <button class="tab-btn" onclick="showTab('products')">
-      <div class="nav-3d-icon icon-products">🛍️</div>
+      <div class="nav-pro-icon icon-products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      </div>
       <span data-i18n="navProducts">Products Catalog</span>
     </button>
     <button class="tab-btn" onclick="showTab('flows')">
-      <div class="nav-3d-icon icon-flows">⚡</div>
+      <div class="nav-pro-icon icon-flows">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+      </div>
       <span data-i18n="navFlows">Custom Flows</span>
     </button>
     <button class="tab-btn" onclick="showTab('broadcast')">
-      <div class="nav-3d-icon icon-broadcast">📢</div>
+      <div class="nav-pro-icon icon-broadcast">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+      </div>
       <span data-i18n="navBroadcast">Broadcast Marketing</span>
     </button>
     <button class="tab-btn" onclick="showTab('business')">
-      <div class="nav-3d-icon icon-business">🧠</div>
+      <div class="nav-pro-icon icon-business">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+      </div>
       <span data-i18n="navBusiness">Business & Dataset</span>
     </button>
     <button class="tab-btn" onclick="showTab('settings')">
-      <div class="nav-3d-icon icon-settings">🤖</div>
+      <div class="nav-pro-icon icon-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+      </div>
       <span data-i18n="navSettings">AI Settings & Persona</span>
     </button>
     <button class="tab-btn" onclick="showTab('whatsapp')">
-      <div class="nav-3d-icon icon-whatsapp">📱</div>
+      <div class="nav-pro-icon icon-whatsapp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+      </div>
       <span data-i18n="navWhatsapp">WhatsApp Web Hub</span>
     </button>
   </aside>
@@ -1074,7 +1106,9 @@
               <div class="metric-value" style="color:var(--accent-emerald);">Rs. <span id="metric-revenue">0</span></div>
               <div class="metric-subtitle">From verified & confirmed orders</div>
             </div>
-            <div class="nav-3d-icon float-3d" style="background:linear-gradient(135deg, #10b981, #047857);font-size:1.4rem;">💰</div>
+            <div class="nav-pro-icon icon-stores float-3d" style="width:42px;height:42px;border-radius:12px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
           </div>
         </div>
         <div class="metric-card">
@@ -1084,7 +1118,9 @@
               <div class="metric-value" id="metric-orders">0</div>
               <div class="metric-subtitle">WhatsApp & Voice Call pipeline</div>
             </div>
-            <div class="nav-3d-icon float-3d" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8);font-size:1.4rem;animation-delay:0.4s;">📦</div>
+            <div class="nav-pro-icon icon-orders float-3d" style="width:42px;height:42px;border-radius:12px;animation-delay:0.4s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            </div>
           </div>
         </div>
         <div class="metric-card">
@@ -1094,7 +1130,9 @@
               <div class="metric-value" id="metric-leads">0</div>
               <div class="metric-subtitle">Active customer conversations</div>
             </div>
-            <div class="nav-3d-icon float-3d" style="background:linear-gradient(135deg, #6366f1, #4338ca);font-size:1.4rem;animation-delay:0.8s;">👥</div>
+            <div class="nav-pro-icon icon-overview float-3d" style="width:42px;height:42px;border-radius:12px;animation-delay:0.8s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
           </div>
         </div>
         <div class="metric-card">
@@ -1104,7 +1142,9 @@
               <div class="metric-value" style="color:var(--accent-purple);" id="metric-calls">0</div>
               <div class="metric-subtitle">Gemini Live Leda Voice Active</div>
             </div>
-            <div class="nav-3d-icon float-3d" style="background:linear-gradient(135deg, #a855f7, #7e22ce);font-size:1.4rem;animation-delay:1.2s;">🎙️</div>
+            <div class="nav-pro-icon icon-broadcast float-3d" style="width:42px;height:42px;border-radius:12px;animation-delay:1.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            </div>
           </div>
         </div>
       </div>
@@ -1114,7 +1154,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
           <div>
             <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:1.4rem;">📈</span>
+              <div class="nav-pro-icon icon-overview" style="width:32px;height:32px;border-radius:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
               <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:var(--text-primary);">AI Sales Conversion & ROI Proof Analytics</h3>
               <span style="background:var(--accent-emerald-light);color:var(--accent-emerald);font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--accent-emerald-border);">Live AI Verified</span>
             </div>
@@ -1126,7 +1166,7 @@
               <div id="overview-plan-badge" style="font-size:0.88rem;font-weight:800;color:#2563eb;">Enterprise Plan (රු. 3,500/මසකට)</div>
             </div>
             <button class="btn-primary" onclick="openSubscriptionModal()" style="font-size:0.8rem;padding:7px 14px;border-radius:10px;">
-              ⚡ Plans & Pricing
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Plans & Pricing
             </button>
           </div>
         </div>
@@ -1136,7 +1176,7 @@
           <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">සතිය තුළ AI කතාබස් කළ පිරිස</span>
-              <span style="font-size:1.1rem;">🗣️</span>
+              <span style="color:#2563eb;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
             </div>
             <div style="font-size:1.6rem;font-weight:800;color:#1e3a8a;" id="roi-weekly-chats">412</div>
             <div style="font-size:0.73rem;color:#059669;margin-top:4px;font-weight:600;">WhatsApp & Calls Handled 24/7</div>
@@ -1146,7 +1186,7 @@
           <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">AI සාර්ථක කළ ඇණවුම්</span>
-              <span style="font-size:1.1rem;">🎯</span>
+              <span style="color:#059669;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
             </div>
             <div style="display:flex;align-items:baseline;gap:8px;">
               <div style="font-size:1.6rem;font-weight:800;color:#0f172a;" id="roi-confirmed-orders">58</div>
@@ -1159,7 +1199,7 @@
           <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">AI මඟින් උපයා දුන් ආදායම</span>
-              <span style="font-size:1.1rem;">💰</span>
+              <span style="color:#059669;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
             </div>
             <div style="font-size:1.6rem;font-weight:800;color:#059669;">Rs. <span id="roi-revenue">248,500</span></div>
             <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">තහවුරු කළ ඇණවුම් වලින් ආදායම</div>
@@ -1169,7 +1209,7 @@
           <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">Human Agent ට ඉතිරි කළ කාලය</span>
-              <span style="font-size:1.1rem;">⏳</span>
+              <span style="color:#7c3aed;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
             </div>
             <div style="font-size:1.6rem;font-weight:800;color:#7c3aed;" id="roi-hours-saved">34.0 පැය</div>
             <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">5 mins / chat automation savings</div>
@@ -1186,7 +1226,7 @@
           <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
               <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:38px;height:38px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">📱</div>
+                <div class="nav-pro-icon icon-whatsapp" style="width:38px;height:38px;border-radius:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg></div>
                 <div>
                   <h4 style="margin:0;font-size:0.98rem;font-weight:800;color:#0f172a;">WhatsApp Cloud Engine</h4>
                   <div style="font-size:0.75rem;color:#64748b;">Primary Business Communication Line</div>
@@ -1203,7 +1243,7 @@
                 <div id="overview-wa-phone" style="font-size:1.05rem;font-weight:800;color:#0f172a;letter-spacing:0.02em;">Primary Account (+94 72 455 8042)</div>
               </div>
               <button onclick="showTab('whatsapp')" style="background:#ffffff;border:1px solid #cbd5e1;padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
-                ⚙️ Manage
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Manage
               </button>
             </div>
 
@@ -1220,40 +1260,39 @@
           <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
               <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:1.15rem;">⚡</span>
-                <h4 style="margin:0;font-size:0.98rem;font-weight:800;color:#0f172a;">Smart Quick Actions</h4>
+                <div class="nav-pro-icon icon-flows" style="width:28px;height:28px;border-radius:7px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h4 style="margin:0;font-size:0.98rem;font-weight:800;color:#0f172a;">Smart Quick Actions</h4>
               </div>
               <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">1-Click Ops</span>
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;">
               <button onclick="openAddOrderModal()" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;">
-                <span style="font-size:1.1rem;">➕</span>
+                <span style="color:#16a34a;display:inline-flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg></span>
                 <span>Record Order<br><small style="font-size:0.7rem;font-weight:500;color:#15803d;">Manual Entry</small></span>
               </button>
 
               <button onclick="showTab('products')" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;">
-                <span style="font-size:1.1rem;">🛍️</span>
+                <span style="color:#2563eb;display:inline-flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
                 <span>Products Catalog<br><small style="font-size:0.7rem;font-weight:500;color:#2563eb;">Items & Pricing</small></span>
               </button>
 
               <button onclick="showTab('broadcast')" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;background:#faf5ff;border:1px solid #e9d5ff;color:#6b21a8;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;">
-                <span style="font-size:1.1rem;">📢</span>
+                <span style="color:#9333ea;display:inline-flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
                 <span>Send Broadcast<br><small style="font-size:0.7rem;font-weight:500;color:#7e22ce;">Mass Campaign</small></span>
               </button>
 
               <button onclick="openFollowUpsModal()" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;">
-                <span style="font-size:1.1rem;">⏰</span>
+                <span style="color:#d97706;display:inline-flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
                 <span>Follow-Up Leads<br><small style="font-size:0.7rem;font-weight:500;color:#b45309;">Recover Sales</small></span>
               </button>
 
               <button onclick="showTab('flows')" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;">
-                <span style="font-size:1.1rem;">⚡</span>
-                <span>Custom Flows<br><small style="font-size:0.7rem;font-weight:500;color:#64748b;">Keyword Logic</small></span>
+                <span style="color:#ca8a04;display:inline-flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+<span>Custom Flows<br><small style="font-size:0.7rem;font-weight:500;color:#64748b;">Keyword Logic</small></span>
               </button>
 
               <a href="/api/export/contacts.csv" download style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:left;text-decoration:none;transition:all 0.15s;">
-                <span style="font-size:1.1rem;">📥</span>
+                <span style="color:#475569;display:inline-flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>
                 <span>Export Contacts<br><small style="font-size:0.7rem;font-weight:500;color:#64748b;">Download CSV</small></span>
               </a>
             </div>
@@ -1270,7 +1309,7 @@
                 <h4 style="margin:0;font-size:0.98rem;font-weight:800;color:#0f172a;">SaaS Resource Quota</h4>
               </div>
               <button onclick="openSubscriptionModal()" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:0.74rem;font-weight:700;padding:4px 10px;border-radius:8px;cursor:pointer;">
-                ⚡ Upgrade Plan
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Upgrade Plan
               </button>
             </div>
 
@@ -1366,7 +1405,7 @@
           </table>
         </div>
         <div id="overview-empty-state" class="empty-state hidden">
-          <div class="empty-state-icon">📦</div>
+          <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
           <div>No orders recorded yet.</div>
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Incoming orders from Live Voice Calls and WhatsApp will appear here automatically.</div>
         </div>
@@ -1385,7 +1424,7 @@
             ⏰ Follow-Up Leads
           </button>
           <a href="/api/export/contacts.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;padding:7px 12px;" download>
-            📥 Export Contacts (CSV)
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Export Contacts (CSV)
           </a>
         </div>
       </div>
@@ -1407,14 +1446,14 @@
             <div style="display:flex;align-items:center;gap:10px;">
               <span id="chat-active-archetype" class="arch-pill hidden"></span>
               <button id="btn-takeover-toggle" onclick="toggleHumanTakeover()" class="btn-secondary" style="font-size:0.75rem;padding:6px 12px;">
-                🛑 Human Takeover (Mute AI)
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg> Human Takeover (Mute AI)
               </button>
             </div>
           </div>
 
           <div class="chat-messages" id="chat-messages-box">
             <div class="empty-state" style="margin:auto;">
-              <div class="empty-state-icon">💬</div>
+              <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
               <div>Select a chat from the left panel to inspect messages</div>
             </div>
           </div>
@@ -1436,8 +1475,8 @@
           <p style="font-size:0.84rem;color:var(--text-secondary);">පාරිභෝගික ඇණවුම්, බැංකු රිසිට්පත් (Slips) සහ Delivery Dispatch කළමනාකරණය</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn-primary" onclick="openAddOrderModal()">➕ Add New Order</button>
-          <a href="/api/export/orders.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download>📥 Export Orders (CSV)</a>
+          <button class="btn-primary" onclick="openAddOrderModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add New Order</button>
+          <a href="/api/export/orders.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Export Orders (CSV)</a>
         </div>
       </div>
 
@@ -1462,7 +1501,7 @@
         </table>
       </div>
       <div id="orders-empty-state" class="empty-state hidden">
-        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
         <div>No orders recorded yet.</div>
         <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">When customers confirm orders on live call or WhatsApp, they will appear here in real-time.</div>
       </div>
@@ -1475,7 +1514,7 @@
           <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Products & Pricing Catalog</h2>
           <p style="font-size:0.84rem;color:var(--text-secondary);">ව්‍යාපාරයේ සියලුම භාණ්ඩ, සේවා, මිල ගණන් සහ Minimum Floor Prices</p>
         </div>
-        <button class="btn-primary" onclick="openAddProductModal()">➕ Add New Product</button>
+        <button class="btn-primary" onclick="openAddProductModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add New Product</button>
       </div>
 
       <div class="table-responsive">
@@ -1505,7 +1544,7 @@
           <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;">Automated Custom Keyword Flows</h2>
           <p style="font-size:0.84rem;color:var(--text-secondary);">පාරිභෝගිකයා යම් Keyword එකක් එවන විට (උදා: bank, delivery, location) ස්වයංක්‍රීයව ලැබෙන පිළිතුරු</p>
         </div>
-        <button class="btn-primary" onclick="openAddFlowModal()">➕ Add Custom Flow</button>
+        <button class="btn-primary" onclick="openAddFlowModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Custom Flow</button>
       </div>
 
       <div class="table-responsive">
@@ -1554,7 +1593,7 @@
         </div>
 
         <div style="display:flex;align-items:center;gap:12px;margin-top:20px;">
-          <button type="submit" class="btn-primary">🚀 Launch Safe Broadcast Campaign</button>
+          <button type="submit" class="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 9V4s3.03.55 4 2c1.08 1.62 0 5 0 5"/></svg> Launch Safe Broadcast Campaign</button>
           <span style="font-size:0.75rem;color:var(--text-muted);">🛡️ Anti-ban jittered rate limiter enabled</span>
         </div>
       </form>
@@ -1572,7 +1611,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
           <div>
             <h3 style="font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#1e40af;margin:0;">
-              <span>⚡</span> 17 Pre-Built Business Category Templates (ක්ෂණික Templates)
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 17 Pre-Built Business Category Templates (ක්ෂණික Templates)
             </h3>
             <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:2px;">
               ඔබගේ ව්‍යාපාර ක්ෂේත්‍රය තෝරා 1-Click එකෙන් Sinhala/English Master Knowledge Base සහ Starter Products Catalog ලබාගන්න.
@@ -1591,7 +1630,7 @@
             </select>
           </div>
           <button type="button" class="btn-primary" onclick="applySelectedCategoryTemplate()" style="padding:10px 18px;display:flex;align-items:center;gap:6px;font-weight:700;">
-            <span>⚡</span> Apply Template
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Apply Template
           </button>
         </div>
 
@@ -1657,7 +1696,7 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
             <div>
               <h3 style="font-size:1.02rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#065f46;">
-                <span>📄</span> Upload Master Dataset File (.TXT or .PDF)
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg> Upload Master Dataset File (.TXT or .PDF)
               </h3>
               <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
                 ඔබගේ Price List, Products Catalog, හෝ Business Profile <strong>.TXT හෝ .PDF</strong> document එක මෙතැනට Upload කරන්න.
@@ -1684,7 +1723,7 @@
 
           <div id="dataset-dropzone" style="border:2px dashed #cbd5e1;border-radius:12px;padding:26px;text-align:center;cursor:pointer;background:#ffffff;transition:all 0.2s;" onclick="document.getElementById('dataset-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent-emerald)';" ondragleave="this.style.borderColor='#cbd5e1';" ondrop="handleDatasetDrop(event)">
             <input type="file" id="dataset-file-input" accept=".txt,.pdf,.csv,.md,.json" style="display:none;" onchange="handleDatasetFileUpload(this)" />
-            <div style="font-size:2.2rem;margin-bottom:6px;">📤</div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px;color:var(--accent-blue);margin:0 auto 8px auto;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
               Click to Browse or Drag & Drop File (.TXT or .PDF)
             </div>
@@ -1719,7 +1758,7 @@
       <div style="background:linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.06));border:1.5px solid #bfdbfe;border-radius:14px;padding:20px;margin-bottom:24px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
           <h4 style="font-size:0.98rem;font-weight:700;color:#1e40af;display:flex;align-items:center;gap:8px;margin:0;">
-            <span>🔑</span> <span data-i18n="geminiKeyTitle">Google Gemini AI API Key (Customer Self-Service)</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg> <span data-i18n="geminiKeyTitle">Google Gemini AI API Key (Customer Self-Service)</span>
           </h4>
           <span id="gemini-key-status-badge" style="font-size:0.75rem;padding:4px 10px;border-radius:20px;background:#eff6ff;color:#1d4ed8;font-weight:700;border:1px solid #bfdbfe;">
             Cloud Key Active
@@ -1901,7 +1940,7 @@
             <span>➕</span> Connect New WhatsApp Account
           </button>
           <button class="btn-secondary" onclick="fetchWhatsAppStatus()" style="font-size:0.84rem;padding:9px 14px;">
-            🔄 Refresh
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Refresh
           </button>
         </div>
       </div>
@@ -1942,7 +1981,7 @@
               <img id="wa-qr-img" src="" alt="WhatsApp QR Code" class="hidden" style="width:200px;height:200px;background:#ffffff;border-radius:10px;padding:6px;box-shadow:var(--shadow-sm);" />
             </div>
             <button class="btn-secondary" onclick="restartWhatsAppSession()" style="margin-top:12px;width:100%;padding:8px;font-size:0.78rem;">
-              🔄 Refresh Barcode
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Refresh Barcode
             </button>
           </div>
 
@@ -1985,7 +2024,7 @@
             නව Clients ලා සඳහා License Keys Generate කිරීම, Plans (1M, 3M, 6M, 1Y, Free Trial) කළමනාකරණය සහ Expiry Dates පාලනය.
           </p>
         </div>
-        <button class="btn-primary" onclick="loadLicenses()">🔄 Refresh Licenses</button>
+        <button class="btn-primary" onclick="loadLicenses()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Refresh Licenses</button>
       </div>
 
       <!-- Key Generator Box -->
@@ -2109,8 +2148,8 @@
           </p>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <button class="btn-primary" onclick="openAddStoreModal()">➕ Add New Store</button>
-          <button class="btn-secondary" onclick="renderStoresHub()">🔄 Refresh Stores</button>
+          <button class="btn-primary" onclick="openAddStoreModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add New Store</button>
+          <button class="btn-secondary" onclick="renderStoresHub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Refresh Stores</button>
         </div>
       </div>
 
@@ -2922,7 +2961,7 @@ async function handleAdminLogin(e) {
       // Instant transition without artificial delay
       revealDashboard();
       btn.disabled = false;
-      btn.innerHTML = '<span>🔓</span> Unlock Super Admin Panel';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock Super Admin Panel';
       
       // Initialize dashboard data
       fetchBusinesses();
@@ -2936,7 +2975,7 @@ async function handleAdminLogin(e) {
       msg.style.border = '1px solid rgba(239,68,68,0.3)';
       msg.textContent = data.error || '❌ Incorrect Password. Access Denied.';
       btn.disabled = false;
-      btn.innerHTML = '<span>🔓</span> Unlock Super Admin Panel';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock Super Admin Panel';
       input.value = '';
       input.focus();
     }
@@ -2946,7 +2985,7 @@ async function handleAdminLogin(e) {
     msg.style.color = '#f87171';
     msg.textContent = '❌ Network error: ' + err.message;
     btn.disabled = false;
-    btn.innerHTML = '<span>🔓</span> Unlock Super Admin Panel';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock Super Admin Panel';
   }
 }
 
@@ -4091,7 +4130,7 @@ function selectChat(chatId) {
     btn.textContent = '🟢 Resume AI Auto-Reply';
     btn.style.color = '#047857';
   } else {
-    btn.textContent = '🛑 Human Takeover (Mute AI)';
+    btn.textContent = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg> Human Takeover (Mute AI)';
     btn.style.color = '#d97706';
   }
 
