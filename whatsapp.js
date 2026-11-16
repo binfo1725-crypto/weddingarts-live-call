@@ -342,10 +342,15 @@ class WhatsAppAccountSession {
                 }
               }
 
+              const planId = (activeBiz && activeBiz.subscriptionPlan) || 'enterprise';
+              const activePlanObj = (db.SUBSCRIPTION_PLANS && db.SUBSCRIPTION_PLANS[planId]) || db.SUBSCRIPTION_PLANS?.enterprise;
+              const isVoiceAllowedByPlan = !activePlanObj || (activePlanObj.limits && activePlanObj.limits.voiceNotes !== false);
+
               const voiceMode = settings.voiceReplyMode || 'auto';
-              const shouldReplyVoice = (voiceMode === 'always') ||
+              const shouldReplyVoice = isVoiceAllowedByPlan && (
+                                       (voiceMode === 'always') ||
                                        (voiceMode === 'both') ||
-                                       (voiceMode === 'auto' && isVoiceNote);
+                                       (voiceMode === 'auto' && isVoiceNote));
 
               let voiceAudioBase64 = null;
               if (shouldReplyVoice && this.manager.voiceSynthesizeHandler) {

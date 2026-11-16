@@ -756,8 +756,11 @@ class Database {
       const exp = new Date(lic.expiresAt);
       const isExpired = now > exp;
       const daysLeft = Math.max(0, Math.ceil((exp - now) / (1000 * 60 * 60 * 24)));
+      const planStr = (lic.plan || '').toUpperCase();
+      const planTier = lic.planTier || (planStr.includes('STARTER') ? 'starter' : (planStr.includes('ENT') || planStr === '1Y' || planStr === 'LIFETIME' ? 'enterprise' : 'pro'));
       return {
         ...lic,
+        planTier,
         isExpired,
         daysLeft,
         status: !lic.isActive ? 'Revoked' : (isExpired ? 'Expired' : 'Active')
@@ -774,36 +777,50 @@ class Database {
     const exp = new Date(lic.expiresAt);
     const isExpired = now > exp;
     const daysLeft = Math.max(0, Math.ceil((exp - now) / (1000 * 60 * 60 * 24)));
+    const planStr = (lic.plan || '').toUpperCase();
+    const planTier = lic.planTier || (planStr.includes('STARTER') ? 'starter' : (planStr.includes('ENT') || planStr === '1Y' || planStr === 'LIFETIME' ? 'enterprise' : 'pro'));
     return {
       ...lic,
+      planTier,
       isExpired,
       daysLeft,
       status: !lic.isActive ? 'Revoked' : (isExpired ? 'Expired' : 'Active')
     };
   }
 
-  generateLicense({ plan = '1M', clientName = '', clientPhone = '', notes = '', businessId = null }) {
+  generateLicense({ plan = '1M_STARTER', clientName = '', clientPhone = '', notes = '', businessId = null }) {
     if (!this.data.licenses) this.data.licenses = [];
     
-    const PLAN_DAYS = {
-      'TRIAL': 3,
-      '1M': 30,
-      '3M': 90,
-      '6M': 180,
-      '1Y': 365,
-      'LIFETIME': 3650
+    const PLAN_CONFIG = {
+      '1M_STARTER': { days: 30, tier: 'starter', prefix: 'START', label: 'Starter Plan (රු. 1,900/මසකට)' },
+      '1M_PRO': { days: 30, tier: 'pro', prefix: 'PRO', label: 'Pro Plan (රු. 2,900/මසකට)' },
+      '1M_ENTERPRISE': { days: 30, tier: 'enterprise', prefix: 'ENT', label: 'Enterprise Plan (රු. 3,500/මසකට)' },
+      '1M': { days: 30, tier: 'pro', prefix: 'PRO', label: 'Pro Plan (1 Month)' },
+      '3M': { days: 90, tier: 'pro', prefix: 'PRO3M', label: '3 Months Pro Plan' },
+      '3M_PRO': { days: 90, tier: 'pro', prefix: 'PRO3M', label: '3 Months Pro Plan' },
+      '6M': { days: 180, tier: 'pro', prefix: 'PRO6M', label: '6 Months Pro Plan' },
+      '6M_PRO': { days: 180, tier: 'pro', prefix: 'PRO6M', label: '6 Months Pro Plan' },
+      '1Y': { days: 365, tier: 'enterprise', prefix: 'ENT1Y', label: '1 Year Enterprise VIP' },
+      '1Y_ENTERPRISE': { days: 365, tier: 'enterprise', prefix: 'ENT1Y', label: '1 Year Enterprise VIP' },
+      'TRIAL': { days: 3, tier: 'starter', prefix: 'TRIAL', label: 'Free Trial (3 Days)' },
+      'LIFETIME': { days: 3650, tier: 'enterprise', prefix: 'LIFE', label: 'Lifetime Enterprise VIP' }
     };
 
-    const days = PLAN_DAYS[plan] || 30;
+    const cfg = PLAN_CONFIG[plan] || { days: 30, tier: 'starter', prefix: 'PLAN', label: plan };
+    const days = cfg.days;
+    const tier = cfg.tier || 'starter';
+    const planLimits = (SUBSCRIPTION_PLANS && SUBSCRIPTION_PLANS[tier]) ? SUBSCRIPTION_PLANS[tier].limits : {};
+    const planPrice = (SUBSCRIPTION_PLANS && SUBSCRIPTION_PLANS[tier]) ? SUBSCRIPTION_PLANS[tier].price : 1900;
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000)).toISOString();
     
-    // Generate secure random key: e.g. OMNI-1M-8F3A-C4B2-9E10
+    // Generate secure random key: e.g. OMNI-START-8F3A-C4B2-9E10
     const crypto = require('crypto');
     const seg1 = crypto.randomBytes(2).toString('hex').toUpperCase();
     const seg2 = crypto.randomBytes(2).toString('hex').toUpperCase();
     const seg3 = crypto.randomBytes(2).toString('hex').toUpperCase();
-    const key = `OMNI-${plan}-${seg1}-${seg2}-${seg3}`;
+    const key = `OMNI-${cfg.prefix}-${seg1}-${seg2}-${seg3}`;
 
     // Auto-create or link tenant store if clientName is provided
     let linkedBizId = businessId;
@@ -819,6 +836,7 @@ class Database {
         id: uniqueId,
         name: clientName.trim(),
         category: 'other',
+        subscriptionPlan: tier,
         ownerName: clientName.trim(),
         phone: clientPhone || '',
         whatsappPhone: clientPhone ? clientPhone.replace(/\D/g, '') : '',
@@ -831,12 +849,18 @@ class Database {
       };
       this.data.businesses.push(newBiz);
       linkedBizId = uniqueId;
+    } else if (linkedBizId) {
+      this.updateBusinessPlan(linkedBizId, tier);
     }
 
     const newLic = {
       id: 'LIC-' + Date.now(),
       key,
       plan,
+      planTier: tier,
+      planLabel: cfg.label,
+      price: planPrice,
+      limits: planLimits,
       clientName: clientName || 'New Client',
       clientPhone: clientPhone || '',
       notes: notes || '',

@@ -1590,14 +1590,23 @@
         <form onsubmit="handleGenerateKey(event)">
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:14px;">
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Subscription Plan</label>
-              <select id="keygen-plan" class="form-select">
-                <option value="1M">1 Month Pro (30 Days)</option>
-                <option value="3M">3 Months Pro (90 Days)</option>
-                <option value="6M">6 Months Pro (180 Days)</option>
-                <option value="1Y">1 Year Ultimate (365 Days)</option>
-                <option value="TRIAL">Free Trial (3 Days)</option>
-                <option value="LIFETIME">Lifetime Enterprise (10 Years)</option>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <label class="form-label" style="margin:0;">Subscription Plan</label>
+                <span id="keygen-plan-price-tag" style="font-size:0.75rem;font-weight:700;color:#0284c7;background:#e0f2fe;padding:2px 8px;border-radius:12px;border:1px solid rgba(2,132,199,0.3);">රු. 1,900 /මසකට</span>
+              </div>
+              <select id="keygen-plan" class="form-select" onchange="onKeygenPlanChange()">
+                <optgroup label="⭐ 1 Month SaaS Plans (මාසික සැලසුම්)">
+                  <option value="1M_STARTER" selected>Starter Plan — රු. 1,900 /මසකට (30 Days)</option>
+                  <option value="1M_PRO">Pro Plan — රු. 2,900 /මසකට (30 Days)</option>
+                  <option value="1M_ENTERPRISE">Enterprise Plan — රු. 3,500 /මසකට (30 Days)</option>
+                </optgroup>
+                <optgroup label="🚀 Multi-Month & Extended Plans">
+                  <option value="3M_PRO">3 Months Pro Plan — රු. 7,900 (90 Days)</option>
+                  <option value="6M_PRO">6 Months Pro Plan — රු. 14,900 (180 Days)</option>
+                  <option value="1Y_ENTERPRISE">1 Year Enterprise VIP — රු. 35,000 (365 Days)</option>
+                  <option value="TRIAL">Free Trial — 3 Days (Starter Tier)</option>
+                  <option value="LIFETIME">Lifetime Enterprise VIP — 10 Years</option>
+                </optgroup>
               </select>
             </div>
             <div class="form-group" style="margin-bottom:0;">
@@ -1609,9 +1618,15 @@
               <input type="text" id="keygen-phone" class="form-input" placeholder="e.g. 0771234567" required>
             </div>
           </div>
+
+          <!-- Dynamic Live Plan Feature Limits Indicator -->
+          <div id="keygen-plan-preview" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.78rem;color:#0369a1;display:flex;align-items:center;gap:8px;">
+            <span>🌱 <strong>Starter Plan Limits:</strong> 1 WhatsApp Line • 1,500 AI Text Replies • 20 Products Catalog • Standard Auto-Reply (❌ Voice Notes & Live Calls Disabled)</span>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Internal Notes / Payment Reference (Optional)</label>
-            <input type="text" id="keygen-notes" class="form-input" placeholder="e.g. Paid Rs. 3,500 via BOC Slip">
+            <input type="text" id="keygen-notes" class="form-input" placeholder="e.g. Paid Rs. 1,900 via BOC Slip">
           </div>
           <button type="submit" class="btn-primary" style="display:inline-flex;align-items:center;gap:8px;">
             <span>✨</span> Generate & Issue License Key
@@ -1843,7 +1858,7 @@
               <li style="color:#94a3b8;">❌ Live Calls Disabled</li>
             </ul>
           </div>
-          <button class="btn-secondary" onclick="chooseSubscriptionPlan('starter')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
+          <button id="admin-btn-plan-starter" class="btn-secondary" onclick="chooseSubscriptionPlan('starter')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
         </div>
 
         <!-- Pro Plan (Popular) -->
@@ -1863,7 +1878,7 @@
               <li>✅ Smart Order Recovery</li>
             </ul>
           </div>
-          <button class="btn-primary" onclick="chooseSubscriptionPlan('pro')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
+          <button id="admin-btn-plan-pro" class="btn-primary" onclick="chooseSubscriptionPlan('pro')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
         </div>
 
         <!-- Enterprise Plan -->
@@ -1883,7 +1898,7 @@
               <li>✅ VIP Priority Support</li>
             </ul>
           </div>
-          <button class="btn-primary" onclick="chooseSubscriptionPlan('enterprise')" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
+          <button id="admin-btn-plan-enterprise" class="btn-primary" onclick="chooseSubscriptionPlan('enterprise')" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
         </div>
       </div>
     </div>
@@ -2626,6 +2641,24 @@ async function fetchOverview() {
       const planBadge = document.getElementById('overview-plan-badge');
       if (planBadge && r.activePlan) {
         planBadge.textContent = `${r.activePlan.name} (${r.activePlan.currency} ${r.activePlan.price.toLocaleString('en-US')}/${r.activePlan.billingPeriod})`;
+        ['starter', 'pro', 'enterprise'].forEach(pid => {
+          const btn = document.getElementById(`admin-btn-plan-${pid}`);
+          if (btn) {
+            if (r.activePlan.id === pid) {
+              btn.innerHTML = '✅ Active Plan (වත්මන් සැලසුම)';
+              btn.style.opacity = '0.9';
+              btn.style.border = '2px solid #059669';
+              btn.style.background = '#ecfdf5';
+              btn.style.color = '#047857';
+            } else {
+              btn.innerHTML = `Select ${pid.charAt(0).toUpperCase() + pid.slice(1)}`;
+              btn.style.opacity = '1';
+              btn.style.border = '';
+              btn.style.background = '';
+              btn.style.color = '';
+            }
+          }
+        });
       }
     }
 
@@ -3969,6 +4002,39 @@ async function processDatasetFile(file) {
 }
 
 // ─── Super Admin License Management Scripts ──────────────────────────────────
+function onKeygenPlanChange() {
+  const plan = document.getElementById('keygen-plan').value;
+  const tag = document.getElementById('keygen-plan-price-tag');
+  const preview = document.getElementById('keygen-plan-preview');
+  if (!tag || !preview) return;
+
+  if (plan === '1M_STARTER' || plan === 'TRIAL') {
+    tag.textContent = plan === 'TRIAL' ? 'Free (3 Days)' : 'රු. 1,900 /මසකට';
+    tag.style.color = '#0284c7';
+    tag.style.background = '#e0f2fe';
+    preview.style.background = '#f0f9ff';
+    preview.style.borderColor = '#bae6fd';
+    preview.style.color = '#0369a1';
+    preview.innerHTML = '<span>🌱 <strong>Starter Plan Limits:</strong> 1 WhatsApp Line • 1,500 AI Text Replies • 20 Products Catalog • Standard Auto-Reply (❌ Voice Notes & Live Calls Disabled)</span>';
+  } else if (plan === '1M_PRO' || plan === '3M_PRO' || plan === '6M_PRO') {
+    tag.textContent = plan === '1M_PRO' ? 'රු. 2,900 /මසකට' : (plan === '3M_PRO' ? 'රු. 7,900 (3 Mos)' : 'රු. 14,900 (6 Mos)');
+    tag.style.color = '#2563eb';
+    tag.style.background = '#eff6ff';
+    preview.style.background = '#eff6ff';
+    preview.style.borderColor = '#bfdbfe';
+    preview.style.color = '#1d4ed8';
+    preview.innerHTML = '<span>⚡ <strong>Pro Plan Limits:</strong> 1 WhatsApp Line • AI Voice Notes + Text (5,000) • 100 Products Catalog • 1-Click Digital Invoices & PDF • 2-Stage Follow-Up Engine</span>';
+  } else {
+    tag.textContent = plan === '1M_ENTERPRISE' ? 'රු. 3,500 /මසකට' : (plan === '1Y_ENTERPRISE' ? 'රු. 35,000 /වසරකට' : 'VIP Lifetime');
+    tag.style.color = '#059669';
+    tag.style.background = '#ecfdf5';
+    preview.style.background = '#ecfdf5';
+    preview.style.borderColor = '#a7f3d0';
+    preview.style.color = '#047857';
+    preview.innerHTML = '<span>👑 <strong>Enterprise Plan Limits:</strong> Multi-WhatsApp Numbers Hub (2+) • Live Voice Calls Active • Dedicated Gemini Key • 1,000 Products • Full 17-Category Custom Dataset</span>';
+  }
+}
+
 async function loadLicenses() {
   const tbody = document.getElementById('licenses-tbody');
   if (!tbody) return;
@@ -3982,12 +4048,23 @@ async function loadLicenses() {
 
     tbody.innerHTML = data.licenses.map(l => {
       const statusColor = l.status === 'Active' ? '#047857' : (l.status === 'Expired' ? '#D97706' : '#DC2626');
+      const tier = l.planTier || (l.plan && l.plan.includes('STARTER') ? 'starter' : (l.plan && (l.plan.includes('ENT') || l.plan === '1Y' || l.plan === 'LIFETIME') ? 'enterprise' : 'pro'));
+      const badgeStyle = tier === 'enterprise' 
+        ? 'background:#ecfdf5;color:#047857;border:1px solid rgba(5,150,105,0.3);' 
+        : (tier === 'pro' 
+           ? 'background:#eff6ff;color:#1d4ed8;border:1px solid rgba(37,99,235,0.3);' 
+           : 'background:#f0f9ff;color:#0369a1;border:1px solid rgba(2,132,199,0.3);');
+      const tierLabel = tier === 'enterprise' ? 'Enterprise (රු. 3,500)' : (tier === 'pro' ? 'Pro (රු. 2,900)' : 'Starter (රු. 1,900)');
+
       return `
         <tr>
           <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--accent-blue);">${escapeHtml(l.key)}</td>
           <td style="font-weight:700;">${escapeHtml(l.clientName || 'N/A')}</td>
           <td>${escapeHtml(l.clientPhone || '-')}</td>
-          <td><span class="status-tag" style="background:#f1f5f9;color:var(--text-primary);border:1px solid var(--card-border);">${escapeHtml(l.plan)}</span></td>
+          <td>
+            <span class="status-tag" style="${badgeStyle};font-weight:700;padding:3px 8px;border-radius:6px;font-size:0.75rem;">${tierLabel}</span>
+            <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${escapeHtml(l.plan)}</div>
+          </td>
           <td style="font-size:0.8rem;">${new Date(l.expiresAt).toLocaleDateString()}</td>
           <td style="font-weight:700;color:${statusColor};">${l.daysLeft} Days</td>
           <td><span style="font-size:0.75rem;font-weight:700;color:${statusColor};">● ${l.status}</span></td>
@@ -4029,20 +4106,26 @@ async function handleGenerateKey(e) {
 
       keyText.textContent = lic.key;
       const loginUrl = `${window.location.origin}/login`;
+      const tierTitle = lic.planTier === 'enterprise' ? 'Enterprise Plan (රු. 3,500/මසකට)' : (lic.planTier === 'pro' ? 'Pro Plan (රු. 2,900/මසකට)' : 'Starter Plan (රු. 1,900/මසකට)');
+      const tierFeatures = lic.planTier === 'enterprise' ? 'Multi-WhatsApp Numbers Hub, Live Voice Calls Active, Dedicated Gemini Key, 1000 Products, 17-Cat Dataset' : (lic.planTier === 'pro' ? '1 WhatsApp Number, AI Voice Notes + Text (5,000), 100 Products, Digital Invoices, Follow-Up Engine' : '1 WhatsApp Number, 1,500 AI Text Replies, 20 Products Catalog, Standard Auto-Reply');
+
       inviteText.value = `🎉 *OmniSix AI WhatsApp Sales Robot - License Activated!*\n\n` +
         `🏪 *Store Name:* ${name}\n` +
         `🔑 *License Key:* ${lic.key}\n` +
-        `⏱️ *Plan:* ${plan} (Valid until: ${new Date(lic.expiresAt).toLocaleDateString()})\n\n` +
-        `🌐 *Login to your Dashboard:* ${loginUrl}\n\n` +
-        `Enter your License Key above to connect your WhatsApp and start selling 24/7! 🚀`;
+        `💎 *Subscription Plan:* ${tierTitle}\n` +
+        `⏱️ *Validity:* 30 Days (Valid until: ${new Date(lic.expiresAt).toLocaleDateString()})\n` +
+        `📦 *Active Features:* ${tierFeatures}\n\n` +
+        `🌐 *Client Login Portal:* ${loginUrl}\n` +
+        `📌 *Instructions:* Open the link above, enter your License Key (${lic.key}), and scan your WhatsApp QR code to start automated selling 24/7! 🚀`;
 
       resBox.style.display = 'block';
       loadLicenses();
-      alert(`✅ License key generated for ${name}!`);
+      alert(`✅ License key generated for ${name} [${tierTitle}]!`);
     }
   } catch (err) {
     alert('Failed to generate key: ' + err.message);
   }
+}
 }
 
 function copyWhatsAppInvite() {

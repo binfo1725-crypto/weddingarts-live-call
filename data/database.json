@@ -13,6 +13,51 @@
       "welcomeMessage": "ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
       "dataset": "Store: WEDDING ARTS\nOwner: D T Rajapaksha (Tharindu)\nBOC Bank Account: 92949122\nContact / WhatsApp: 076 210 7801\n\nPRODUCTS & SERVICES:\n- Western / Kandyan Single Photo Edit: Rs. 1,500\n- 10-Photo Shoot Retouching: Rs. 5,000\n- Army Uniform Single Photo Edit: Rs. 2,000\n- Army Uniform 10-Photo Shoot: Rs. 8,000\n- 8x12 UV Gloss Frameless: Rs. 2,300\n- 10x15 UV Gloss Frameless: Rs. 3,200\n- 12x18 UV Gloss Frameless: Rs. 4,800\n- 16x24 UV Gloss Frameless: Rs. 7,800 (FREE Island-wide Courier Delivery)\n- 20x30 UV Gloss Frameless: Rs. 11,500 (FREE Island-wide Courier Delivery)\n- 24x36 UV Gloss Frameless: Rs. 13,000 (FREE Island-wide Courier Delivery)\n- 3-Panel Wall Hanging Set: Rs. 14,000 (FREE Island-wide Courier Delivery)\n\nDELIVERY & PAYMENT:\n- 12x18 and below courier delivery fee: Rs. 450\n- 16x24 and above: 100% Free Island-wide Courier Delivery\n- Payment: Bank of Ceylon (BOC) Account 92949122 D T Rajapaksha. Advance payment required to begin editing & printing.",
       "isActive": true
+    },
+    {
+      "id": "test_starter_store",
+      "name": "Test Starter Store",
+      "category": "other",
+      "subscriptionPlan": "starter",
+      "ownerName": "Test Starter Store",
+      "phone": "0711111111",
+      "whatsappPhone": "0711111111",
+      "bankDetails": "",
+      "deliveryPolicy": "Islandwide delivery available.",
+      "currency": "Rs.",
+      "welcomeMessage": "ආයුබෝවන්! Test Starter Store වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
+      "dataset": "Store: Test Starter Store\nContact: 0711111111\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery",
+      "isActive": false
+    },
+    {
+      "id": "test_pro_store",
+      "name": "Test Pro Store",
+      "category": "other",
+      "subscriptionPlan": "pro",
+      "ownerName": "Test Pro Store",
+      "phone": "0722222222",
+      "whatsappPhone": "0722222222",
+      "bankDetails": "",
+      "deliveryPolicy": "Islandwide delivery available.",
+      "currency": "Rs.",
+      "welcomeMessage": "ආයුබෝවන්! Test Pro Store වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
+      "dataset": "Store: Test Pro Store\nContact: 0722222222\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery",
+      "isActive": false
+    },
+    {
+      "id": "test_ent_store",
+      "name": "Test Ent Store",
+      "category": "other",
+      "subscriptionPlan": "enterprise",
+      "ownerName": "Test Ent Store",
+      "phone": "0733333333",
+      "whatsappPhone": "0733333333",
+      "bankDetails": "",
+      "deliveryPolicy": "Islandwide delivery available.",
+      "currency": "Rs.",
+      "welcomeMessage": "ආයුබෝවන්! Test Ent Store වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
+      "dataset": "Store: Test Ent Store\nContact: 0733333333\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery",
+      "isActive": false
     }
   ],
   "products": [],
@@ -68,6 +113,7 @@
       "lastSeen": "2026-11-15T13:01:59.757Z"
     }
   ],
+  "leads": [],
   "whatsapp": {
     "connected": false,
     "phoneNumber": null,

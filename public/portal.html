@@ -1550,7 +1550,7 @@
               <li style="color:#94a3b8;">❌ Live Calls Disabled</li>
             </ul>
           </div>
-          <button class="btn-secondary" onclick="chooseSubscriptionPlan('starter')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
+          <button id="btn-plan-starter" class="btn-secondary" onclick="chooseSubscriptionPlan('starter')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
         </div>
 
         <!-- Pro Plan (Popular) -->
@@ -1570,7 +1570,7 @@
               <li>✅ Smart Order Recovery</li>
             </ul>
           </div>
-          <button class="btn-primary" onclick="chooseSubscriptionPlan('pro')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
+          <button id="btn-plan-pro" class="btn-primary" onclick="chooseSubscriptionPlan('pro')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
         </div>
 
         <!-- Enterprise Plan -->
@@ -1590,7 +1590,7 @@
               <li>✅ VIP Priority Support</li>
             </ul>
           </div>
-          <button class="btn-primary" onclick="chooseSubscriptionPlan('enterprise')" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
+          <button id="btn-plan-enterprise" class="btn-primary" onclick="chooseSubscriptionPlan('enterprise')" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
         </div>
       </div>
     </div>
@@ -2184,6 +2184,24 @@ async function fetchOverview() {
       const planBadge = document.getElementById('overview-plan-badge');
       if (planBadge && r.activePlan) {
         planBadge.textContent = `${r.activePlan.name} (${r.activePlan.currency} ${r.activePlan.price.toLocaleString('en-US')}/${r.activePlan.billingPeriod})`;
+        ['starter', 'pro', 'enterprise'].forEach(pid => {
+          const btn = document.getElementById(`btn-plan-${pid}`);
+          if (btn) {
+            if (r.activePlan.id === pid) {
+              btn.innerHTML = '✅ Active Plan (වත්මන් සැලසුම)';
+              btn.style.opacity = '0.9';
+              btn.style.border = '2px solid #059669';
+              btn.style.background = '#ecfdf5';
+              btn.style.color = '#047857';
+            } else {
+              btn.innerHTML = `Select ${pid.charAt(0).toUpperCase() + pid.slice(1)}`;
+              btn.style.opacity = '1';
+              btn.style.border = '';
+              btn.style.background = '';
+              btn.style.color = '';
+            }
+          }
+        });
       }
     }
 

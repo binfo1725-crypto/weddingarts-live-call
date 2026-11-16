@@ -244,6 +244,11 @@ app.post('/api/auth/license-login', licenseLoginLimiter, (req, res) => {
     biz = db.getActiveBusiness();
   }
 
+  // Ensure store subscription plan strictly adheres to license tier
+  if (biz && lic.planTier && biz.subscriptionPlan !== lic.planTier) {
+    db.updateBusinessPlan(biz.id, lic.planTier);
+  }
+
   res.json({
     ok: true,
     license: lic,
@@ -417,13 +422,21 @@ function resolveReqBusinessId(req) {
   if (key) {
     const lic = db.getLicenseByKey(key);
     if (lic) {
-      if (lic.businessId) return lic.businessId;
+      if (lic.businessId) {
+        const b = db.getBusiness(lic.businessId);
+        if (b && lic.planTier && b.subscriptionPlan !== lic.planTier) {
+          b.subscriptionPlan = lic.planTier;
+          db.save();
+        }
+        return lic.businessId;
+      }
       const bizName = lic.clientName || 'Store';
       const cleanSlug = bizName.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 20) || 'store_' + Date.now();
       const newBiz = {
         id: cleanSlug,
         name: bizName,
         category: 'other',
+        subscriptionPlan: lic.planTier || 'starter',
         ownerName: bizName,
         phone: lic.clientPhone || '',
         whatsappPhone: (lic.clientPhone || '').replace(/\D/g, ''),
@@ -793,6 +806,16 @@ app.get('/api/products', (req, res) => {
 
 app.post('/api/products', (req, res) => {
   const bId = req.body.businessId || resolveReqBusinessId(req);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+  const planId = (biz && biz.subscriptionPlan) || 'enterprise';
+  const plan = (db.SUBSCRIPTION_PLANS && db.SUBSCRIPTION_PLANS[planId]) || db.SUBSCRIPTION_PLANS?.enterprise;
+  const currentProds = db.getProducts(bId) || [];
+  if (plan && plan.limits && currentProds.length >= plan.limits.products) {
+    return res.status(403).json({
+      ok: false,
+      error: `Product catalog limit reached for ${plan.name} (Max ${plan.limits.products} products). Upgrade your subscription plan to add more products.`
+    });
+  }
   const product = db.addProduct({ ...req.body, businessId: bId });
   res.json({ ok: true, product });
 });
