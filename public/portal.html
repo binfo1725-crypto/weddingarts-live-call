@@ -1772,12 +1772,20 @@
           </h4>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">🗣️ Customer Language Response Mode</label>
-              <select id="setting-lang-mode" class="form-select">
-                <option value="smart_match" selected>Smart Quad-Match (සිංහල, Singlish, English, தமிழ் ස්වයංක්‍රීයව)</option>
-                <option value="sinhala_script_only">Always Sinhala Script (සෑමවිටම සිංහල අකුරින් පමණි)</option>
-                <option value="english_only">Always English (සෑමවිටම ඉංග්‍රීසියෙන්)</option>
+              <label class="form-label" style="display:flex;align-items:center;gap:6px;font-weight:700;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:#2563eb;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                AI Reply Language Setting (භාෂා සැකසුම)
+              </label>
+              <select id="setting-lang-mode" class="form-select" style="font-weight:600;">
+                <option value="smart_match">Smart Auto-Detect (ස්වයංක්‍රීයව: Sinhala, Singlish, English, Tamil)</option>
+                <option value="english_only">Only English (සෑමවිටම ඉංග්‍රීසියෙන් පමණි / English Only)</option>
+                <option value="sinhala_script_only">Only Sinhala (සෑමවිටම සිංහල අකුරින් පමණි / Sinhala Only)</option>
+                <option value="tamil_only">Only Tamil (සෑමවිටම දෙමළ භාෂාවෙන් පමණි / தமிழ் மட்டும் / Tamil Only)</option>
+                <option value="singlish_only">Only Singlish (සෑමවිටම Singlish වලින් පමණි / Latin Sinhala)</option>
               </select>
+              <small style="font-size:0.75rem;color:var(--text-muted);display:block;margin-top:4px;">
+                AI පාරිභෝගිකයින්ට පිළිතුරු දිය යුතු භාෂා මාදිලිය තෝරන්න (Only English, Only Sinhala, Only Tamil, හෝ Auto).
+              </small>
             </div>
             <div class="form-group" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:center;">
               <label class="form-label">🔘 WhatsApp Quick Action Buttons & Menus</label>

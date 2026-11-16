@@ -335,15 +335,21 @@ class WhatsAppAccountSession {
 
             if (aiReply) {
               const detectedL = LanguageDetectionEngine.detectLanguage(text, chat?.messages || []);
+              const langMode = settings.languageReplyMode || 'smart_match';
+              let effectiveLang = detectedL;
+              if (langMode === 'english_only') effectiveLang = 'English';
+              else if (langMode === 'sinhala_script_only') effectiveLang = 'Sinhala';
+              else if (langMode === 'tamil_only') effectiveLang = 'Tamil';
+              else if (langMode === 'singlish_only') effectiveLang = 'Singlish';
 
               // 🔘 Interactive Quick Action Buttons & Menus (Feature 8)
               if (settings.isInteractiveButtonsEnabled !== false && !isQuickActionHandled) {
                 let quickMenu = '';
-                if (detectedL === 'English') {
+                if (effectiveLang === 'English') {
                   quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Reply Number):*\n1️⃣ *View Full Catalog & Prices*\n2️⃣ *Confirm Order & Delivery*\n3️⃣ *Connect with Human Agent*';
-                } else if (detectedL === 'Tamil' || detectedL === 'Tanglish') {
+                } else if (effectiveLang === 'Tamil' || effectiveLang === 'Tanglish') {
                   quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *விரைவு தேர்வுகள் (எண்ணை அனுப்பவும்):*\n1️⃣ *தயாரிப்பு பட்டியல் & விலை*\n2️⃣ *ஆர்டரை உறுதிப்படுத்தவும்*\n3️⃣ *மனித சேவையாளருடன் பேசவும்*';
-                } else if (detectedL === 'Singlish') {
+                } else if (effectiveLang === 'Singlish') {
                   quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Number eka reply karanna):*\n1️⃣ *Catalog & Price List balanna*\n2️⃣ *Order eka Confirm karanna*\n3️⃣ *Agent kenek ekka katha karanna*';
                 } else {
                   quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *ක්ෂණික ක්‍රියාකාරකම් (අංකය එවන්න):*\n1️⃣ *භාණ්ඩ නාමාවලිය සහ මිල ගණන්*\n2️⃣ *ඇණවුම තහවුරු කිරීම (Order Now)*\n3️⃣ *පාරිභෝගික සේවා නිලධාරියෙකු ඇමතීම*';
@@ -392,7 +398,7 @@ class WhatsAppAccountSession {
 
                 if (voiceMode === 'both' || !isVoiceNote) {
                   await delay(800);
-                  await this.sendInteractiveMessage(remoteJid, aiReply, detectedL);
+                  await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 }
 
                 db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id);
@@ -401,7 +407,7 @@ class WhatsAppAccountSession {
                 await delay(1200);
                 await this.sock.sendPresenceUpdate('paused', remoteJid);
 
-                await this.sendInteractiveMessage(remoteJid, aiReply, detectedL);
+                await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 console.log(`[whatsapp-acc:${this.id}] 🤖 Replied [${detectedL}] to ${senderPhone}: "${aiReply.slice(0, 50)}..."`);
 
                 db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id);
