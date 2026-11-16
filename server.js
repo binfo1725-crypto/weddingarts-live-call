@@ -263,13 +263,16 @@ app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
   }
 
   const cleanPhone = clientPhone.replace(/\D/g, '');
-  const existing = (db.data.licenses || []).find(l => (l.clientPhone || '').replace(/\D/g, '') === cleanPhone);
+  const normPhone = cleanPhone.length >= 9 ? cleanPhone.slice(-9) : cleanPhone;
+  const existing = (db.data.licenses || []).find(l => {
+    const p = (l.clientPhone || '').replace(/\D/g, '');
+    return (p.length >= 9 ? p.slice(-9) : p) === normPhone;
+  });
   if (existing) {
-    return res.json({
-      ok: true,
-      license: existing,
+    return res.status(409).json({
+      ok: false,
       alreadyRegistered: true,
-      message: 'You already have an active account! Use this license key to login.'
+      error: 'මෙම දුරකථන අංකයෙන් දැනටමත් ගිණුමක් ලියාපදිංචි වී ඇත. කරුණාකර ඔබගේ License Key එකෙන් Login වන්න.'
     });
   }
 
@@ -421,17 +424,17 @@ function resolveReqBusinessId(req) {
   const key = req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key);
   if (key) {
     const lic = db.getLicenseByKey(key);
-    if (lic) {
+    if (lic && lic.status === 'Active') {
       if (lic.businessId) {
         const b = db.getBusiness(lic.businessId);
-        if (b && lic.planTier && b.subscriptionPlan !== lic.planTier) {
-          b.subscriptionPlan = lic.planTier;
+        if (b && b.subscriptionPlan && lic.planTier !== b.subscriptionPlan) {
+          lic.planTier = b.subscriptionPlan;
           db.save();
         }
         return lic.businessId;
       }
       const bizName = lic.clientName || 'Store';
-      const cleanSlug = bizName.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 20) || 'store_' + Date.now();
+      const cleanSlug = bizName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20) || 'store_' + Date.now();
       const newBiz = {
         id: cleanSlug,
         name: bizName,
@@ -626,15 +629,50 @@ app.post('/api/orders/delete', (req, res) => {
 });
 
 // ─── 🧾 Invoice Dispatch via WhatsApp ─────────────────────────────────────────
+app.get('/api/orders/invoice/:orderId', (req, res) => {
+  const { orderId } = req.params;
+  const bId = resolveReqBusinessId(req);
+  const order = db.getOrders(bId).find(o => o.id === orderId);
+  if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+  const parsedAmount = parseFloat(String(order.amount).replace(/[^0-9.]/g, '')) || 0;
+  const deliveryFee = order.deliveryFee !== undefined ? parseFloat(order.deliveryFee) : (parsedAmount >= 7800 ? 0 : 450);
+  const subtotal = Math.max(0, parsedAmount - deliveryFee);
+
+  res.json({
+    ok: true,
+    invoice: {
+      invoiceNumber: `INV-${String(order.id).replace(/\D/g, '').slice(-4) || '1001'}`,
+      orderId: order.id,
+      date: order.createdAt,
+      store: { name: biz.name, phone: biz.phone, bankDetails: biz.bankDetails },
+      customer: { name: order.customerName, phone: order.customerPhone, address: order.address },
+      items: [{ description: order.item, qty: 1, unitPrice: subtotal, total: subtotal }],
+      subtotal,
+      deliveryFee,
+      grandTotal: parsedAmount,
+      status: order.status,
+      trackingNumber: order.trackingNumber || null
+    }
+  });
+});
+
 app.post('/api/orders/send-invoice', async (req, res) => {
   try {
     const { orderId, customNote } = req.body;
     if (!orderId) return res.status(400).json({ ok: false, error: 'orderId is required' });
     const bId = resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+    const plan = db.SUBSCRIPTION_PLANS[biz.subscriptionPlan] || db.SUBSCRIPTION_PLANS.enterprise;
+    if (plan.limits && plan.limits.digitalInvoices === false) {
+      return res.status(403).json({ ok: false, error: 'Digital Invoices feature is only available on Pro & Enterprise plans. Please upgrade.' });
+    }
+
     const orders = db.getOrders(bId);
     const ord = orders.find(o => o.id === orderId);
     if (!ord) return res.status(404).json({ ok: false, error: 'Order not found' });
-    const biz = db.getBusiness(bId) || db.getActiveBusiness();
 
     const customerPhone = ord.customerPhone;
     if (!customerPhone) return res.status(400).json({ ok: false, error: 'Customer phone missing on order' });
@@ -656,14 +694,14 @@ app.post('/api/orders/send-invoice', async (req, res) => {
       (customNote ? `${customNote}\n\n` : '') +
       `_Thank you for your business!_ 🙏✨`;
 
-    let targetAccId = null;
-    if (req.tenantBusinessId) targetAccId = 'wa_' + req.tenantBusinessId;
+    const tenantAccounts = waEngine.getAccounts(bId);
+    let targetAccId = (tenantAccounts.find(a => a.connected) || tenantAccounts[0])?.id || null;
 
     const result = await waEngine.sendTextMessage(customerPhone, invoiceText, targetAccId);
     if (result.ok) {
       db.addChatMessage(customerPhone, 'agent', `🧾 [Sent Official Invoice #${ord.id}]`, 'Agent', customerPhone, bId);
     }
-    res.json(result);
+    res.json({ ...result, customerPhone, orderId: ord.id });
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -740,9 +778,15 @@ app.post('/api/categories/apply', (req, res) => {
   biz.dataset = cat.starterDataset;
   db.saveBusiness(biz);
 
-  // Seed starter products if requested
+  // Seed starter products if requested (respecting plan limits)
   if (loadProducts && cat.starterProducts && cat.starterProducts.length > 0) {
-    cat.starterProducts.forEach(p => {
+    const planId = (biz && biz.subscriptionPlan) || 'enterprise';
+    const plan = (db.SUBSCRIPTION_PLANS && db.SUBSCRIPTION_PLANS[planId]) || db.SUBSCRIPTION_PLANS?.enterprise;
+    const currentProds = db.getProducts(bId) || [];
+    const maxAllowed = (plan && plan.limits && plan.limits.products) || 999;
+    const availableSlots = Math.max(0, maxAllowed - currentProds.length);
+
+    cat.starterProducts.slice(0, availableSlots).forEach(p => {
       db.addProduct({
         ...p,
         businessId: bId
@@ -1305,7 +1349,12 @@ app.post('/api/dataset/upload', datasetUploadLimiter, async (req, res) => {
 
 // ─── Session Management ──────────────────────────────────────────────────────
 app.post('/api/session', (req, res) => {
-  const activeBiz = db.getActiveBusiness();
+  const bId = resolveReqBusinessId(req);
+  const activeBiz = db.getBusiness(bId) || db.getActiveBusiness();
+  const plan = db.SUBSCRIPTION_PLANS[activeBiz.subscriptionPlan] || db.SUBSCRIPTION_PLANS.enterprise;
+  if (plan.limits && plan.limits.liveCalls === false) {
+    return res.status(403).json({ ok: false, error: 'Live Voice Calls are exclusive to Enterprise Plan. Please upgrade.' });
+  }
   const { sessionId, customerName, customerPhone, storeName, geminiApiKey, dataset } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
@@ -1696,25 +1745,28 @@ function sanitizeForSpeech(text) {
   const emojiPattern = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u26FF]|[\u2700-\u27BF]|[\u2300-\u23FF]|[\u25A0-\u25FF]|[\u2B00-\u2BFF]|[\u2190-\u21FF]|[\u3030\u303D\u3297\u3299]|[•▪▫◦⁃●○★☆✦✧✓✔🤖⚠️📦👋🎙️🔊✨💬🎨🖼️🚚💳]/g;
   s = s.replace(emojiPattern, ' ');
 
-  // Spoken Sinhala Conversions (matching FemaleVoiceEngine.kt)
+  // Spoken Sinhala Conversions (Unicode boundary safe)
   if (hasSinhala) {
+    const sinhalaReplacements = [
+      [/හැකියාව ඇත|හැකියාව තියෙනවා/g, 'පුළුවන්'],
+      [/(?<=^|[\s,.:;!?])ඇත(?=$|[\s,.:;!?])/g, 'තියෙනවා'],
+      [/(?<=^|[\s,.:;!?])නැත(?=$|[\s,.:;!?])/g, 'නෑ'],
+      [/(?<=^|[\s,.:;!?])වේ(?=$|[\s,.:;!?])/g, 'වෙනවා'],
+      [/(?<=^|[\s,.:;!?])කෙරේ(?=$|[\s,.:;!?])/g, 'කරනවා'],
+      [/(?<=^|[\s,.:;!?])ලැබේ(?=$|[\s,.:;!?])/g, 'ලැබෙනවා'],
+      [/(?<=^|[\s,.:;!?])පිළිබඳව?(?=$|[\s,.:;!?])/g, 'ගැන'],
+      [/(?<=^|[\s,.:;!?])සඳහා(?=$|[\s,.:;!?])/g, 'වෙනුවෙන්'],
+      [/(?<=^|[\s,.:;!?])ඔබට(?=$|[\s,.:;!?])/g, 'ඔයාට'],
+      [/(?<=^|[\s,.:;!?])ඔබගේ|ඔබේ(?=$|[\s,.:;!?])/g, 'ඔයාගේ'],
+      [/(?<=^|[\s,.:;!?])ඔබව(?=$|[\s,.:;!?])/g, 'ඔයාව'],
+      [/(?<=^|[\s,.:;!?])ඔබ(?=$|[\s,.:;!?])/g, 'ඔයා'],
+      [/(?<=^|[\s,.:;!?])අපගේ(?=$|[\s,.:;!?])/g, 'අපේ'],
+      [/(?<=^|[\s,.:;!?])අපට(?=$|[\s,.:;!?])/g, 'අපිට']
+    ];
+    for (const [pattern, replacement] of sinhalaReplacements) {
+      s = s.replace(pattern, replacement);
+    }
     s = s
-      .replace(/\bහැකියාව ඇත\b/g, 'පුළුවන්')
-      .replace(/\bහැකියාව තියෙනවා\b/g, 'පුළුවන්')
-      .replace(/\bඇත\b/g, 'තියෙනවා')
-      .replace(/\bනැත\b/g, 'නෑ')
-      .replace(/\bවේ\b/g, 'වෙනවා')
-      .replace(/\bකෙරේ\b/g, 'කරනවා')
-      .replace(/\bලැබේ\b/g, 'ලැබෙනවා')
-      .replace(/\bපිළිබඳව?\b/g, 'ගැන')
-      .replace(/\bසඳහා\b/g, 'වෙනුවෙන්')
-      .replace(/\bඔබට\b/g, 'ඔයාට')
-      .replace(/\bඔබගේ\b/g, 'ඔයාගේ')
-      .replace(/\bඔබේ\b/g, 'ඔයාගේ')
-      .replace(/\bඔබව\b/g, 'ඔයාව')
-      .replace(/\bඔබ\b/g, 'ඔයා')
-      .replace(/\bඅපගේ\b/g, 'අපේ')
-      .replace(/\bඅපට\b/g, 'අපිට')
       .replace(/\bFrame\b/gi, 'ෆ්‍රේම්')
       .replace(/\bFrames\b/gi, 'ෆ්‍රේම්ස්')
       .replace(/\bPhoto\b/gi, 'ෆොටෝ')
@@ -1898,15 +1950,16 @@ KEY RULES FOR CONVERSATION & SALES:
 }
 
 function checkForOrderTag(text, sess, sessionId) {
-  const match = text.match(/\[\[ORDER:\s*([^\]]+)\]\]/);
-  if (!match) return;
+  let cleanText = text || '';
+  const match = cleanText.match(/\[\[(?:ORDER|CONFIRM_ORDER):\s*([^\]]+)\]\]/i);
+  if (!match) return cleanText;
 
   const rawPairs = match[1];
   const fields = {};
-  rawPairs.split('|').forEach(pair => {
+  rawPairs.split(/[|\n,;]+/).forEach(pair => {
     const eqIdx = pair.indexOf('=');
     if (eqIdx > -1) {
-      fields[pair.slice(0, eqIdx).trim()] = pair.slice(eqIdx + 1).trim();
+      fields[pair.slice(0, eqIdx).trim().toLowerCase()] = pair.slice(eqIdx + 1).trim();
     }
   });
 
@@ -1914,26 +1967,29 @@ function checkForOrderTag(text, sess, sessionId) {
 
   // Automatically record order in Multi-Business Database
   const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
+  const customerPhone = sess.customerPhone || (sessionId && !sessionId.startsWith('call_') ? sessionId : '');
   const newOrder = db.addOrder({
     businessId: activeBiz.id,
     customerName: fields.name || sess.customerName || 'Customer',
-    customerPhone: sess.customerPhone || '076 210 7801',
+    customerPhone: customerPhone,
     item: fields.item || 'Custom Order',
-    amount: fields.amount || '0',
-    source: 'Live Voice Call',
+    amount: fields.amount || fields.price || fields.total || '0',
+    source: sess.isWhatsApp ? 'WhatsApp' : 'Live Voice Call',
     status: 'Pending Payment'
   });
 
-  safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields, orderId: newOrder.id }));
+  if (sess.browserWs) {
+    safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields, orderId: newOrder.id }));
+  }
   notifyOwnerOfNewOrder(newOrder, activeBiz);
 
-  const token = WHATSAPP_TOKEN || sess.whatsappToken;
-  const phoneId = WHATSAPP_PHONE_NUMBER_ID || sess.whatsappPhoneId;
-  const customerPhone = sess.customerPhone;
-
-  if (token && phoneId && customerPhone) {
-    sendWhatsAppOrderConfirmation(token, phoneId, customerPhone, fields, activeBiz.name);
+  if (customerPhone && waEngine) {
+    const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}\n\n_Thank you! Your order has been recorded._ 🙏`;
+    waEngine.sendTextMessage(customerPhone, confirmMsg, sess.businessId ? `wa_${sess.businessId}` : null).catch(() => {});
   }
+
+  cleanText = cleanText.replace(match[0], '').replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE|SEND_IMAGE):?\s*[^\]]*\]\]/gi, '').trim();
+  return cleanText;
 }
 
 async function sendWhatsAppOrderConfirmation(token, phoneId, toPhone, order, storeName) {
@@ -2040,6 +2096,9 @@ setInterval(async () => {
   try {
     const businesses = db.getAllBusinesses();
     for (const biz of businesses) {
+      const plan = db.SUBSCRIPTION_PLANS[biz.subscriptionPlan] || db.SUBSCRIPTION_PLANS.enterprise;
+      if (plan.limits && plan.limits.followUpEngine === false) continue;
+
       const dueLeads = db.getDueFollowUps(biz.id);
       if (!dueLeads || dueLeads.length === 0) continue;
 
@@ -2075,13 +2134,13 @@ waEngine.setHandlers({
     return await getGeminiReply(text, sess);
   },
   orderCheckHandler: (text, sess, id) => {
-    checkForOrderTag(text, sess, id);
+    return checkForOrderTag(text, sess, id);
   },
   audioTranscribeHandler: async (audioBuffer, mimeType) => {
     return await transcribeAudioBuffer(audioBuffer, mimeType);
   },
-  voiceSynthesizeHandler: async (text, preferredVoice) => {
-    return await synthesizeVoiceAudio(text, preferredVoice);
+  voiceSynthesizeHandler: async (text, preferredVoice, customKey) => {
+    return await synthesizeVoiceAudio(text, preferredVoice, customKey);
   }
 });
 

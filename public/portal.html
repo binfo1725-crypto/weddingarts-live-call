@@ -647,6 +647,7 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
+    overflow-y: auto;
   }
   .modal-card {
     background: #ffffff;
@@ -654,6 +655,8 @@
     border-radius: 16px;
     width: 100%;
     max-width: 540px;
+    max-height: 90vh;
+    overflow-y: auto;
     padding: 24px;
     box-shadow: var(--shadow-lg);
     color: var(--text-primary);
@@ -3544,7 +3547,24 @@ async function processDatasetFile(file) {
   reader.readAsDataURL(file);
 }
 
-// Super admin keygen omitted for portal
+function exportCurrentDataset() {
+  const textEl = document.getElementById('form-biz-dataset');
+  const text = textEl ? textEl.value : '';
+  if (!text || !text.trim()) {
+    alert('No dataset content to export.');
+    return;
+  }
+  const storeName = (activeBiz?.name || 'store').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dataset_${storeName}_${Date.now()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 // ─── Feature: Tri-Language UI Switcher (සිංහල, English, தமிழ்) ─────────────────
 const I18N_DICT = {
@@ -3559,7 +3579,14 @@ const I18N_DICT = {
     navSettings: "AI Settings & Persona",
     navWhatsapp: "WhatsApp Web Hub",
     userGuideBtn: "📖 User Guide",
+    userGuide: "📖 User Guide",
     liveCallBtn: "📞 Test Live Voice Call",
+    settingsTitle: "AI Settings & Store Persona",
+    settingsDesc: "Fine-tune how your autonomous AI sales assistant interacts with customers across WhatsApp and Voice.",
+    geminiKeyTitle: "Google Gemini AI API Key (Customer Self-Service)",
+    geminiKeyDesc: "Configure your personal Gemini API Key. Every customer/tenant can supply their own key for dedicated quota and private processing.",
+    btnVerifyKey: "⚡ Verify & Save Key",
+    getFreeKey: "👉 Get Free API Key from Google AI Studio",
     guideModalTitle: "OmniSix AI — Quick Setup & User Guide",
     guideModalSubtitle: "Step-by-step setup to activate your 24/7 AI Sales Assistant",
     step1Title: "Welcome to OmniSix AI Cloud!",
@@ -3592,7 +3619,14 @@ const I18N_DICT = {
     navSettings: "AI සැකසුම් (Settings)",
     navWhatsapp: "WhatsApp Web Hub",
     userGuideBtn: "📖 භාවිත මාර්ගෝපදේශය",
+    userGuide: "📖 භාවිත මාර්ගෝපදේශය",
     liveCallBtn: "📞 Live Voice Call පරීක්ෂා කරන්න",
+    settingsTitle: "AI සැකසුම් සහ වෙළඳසැල් පෞරුෂය",
+    settingsDesc: "ඔබගේ ස්වයංක්‍රීය AI විකුණුම් සහායකයා WhatsApp සහ Voice හරහා පාරිභෝගිකයන් සමඟ ගනුදෙනු කරන ආකාරය සකසන්න.",
+    geminiKeyTitle: "Google Gemini AI API Key (පාරිභෝගික සේවාව)",
+    geminiKeyDesc: "ඔබගේම Gemini API Key එක මෙතැනට ඇතුළත් කරගන්න. කැපවූ Quota සහ පෞද්ගලිකත්වය සඳහා මෙය ක්‍රියාත්මක වේ.",
+    btnVerifyKey: "⚡ Key එක තහවුරු කර සුරකින්න",
+    getFreeKey: "👉 Google AI Studio වෙතින් නොමිලේ API Key එකක් ලබාගන්න",
     guideModalTitle: "OmniSix AI — මූලික සැකසුම් සහ භාවිත මාර්ගෝපදේශය",
     guideModalSubtitle: "පියවරෙන් පියවර ඔබගේ 24/7 AI Sales Assistant සක්‍රිය කරගන්න",
     step1Title: "OmniSix AI Cloud වෙත සාදරයෙන් පිළිගනිමු!",
@@ -3625,7 +3659,14 @@ const I18N_DICT = {
     navSettings: "AI அமைப்புகள் (Settings)",
     navWhatsapp: "WhatsApp வலை மையம்",
     userGuideBtn: "📖 பயனர் வழிகாட்டி",
+    userGuide: "📖 பயனர் வழிகாட்டி",
     liveCallBtn: "📞 நேரலை குரல் அழைப்பு சோதனை",
+    settingsTitle: "AI அமைப்புகள் & ஸ்டோர் ஆளுமை",
+    settingsDesc: "உங்கள் AI விற்பனை உதவியாளர் WhatsApp மற்றும் Voice இல் வாடிக்கையாளர்களுடன் எவ்வாறு தொடர்புகொள்கிறார் என்பதை உள்ளமைக்கவும்.",
+    geminiKeyTitle: "Google Gemini AI API சாவி (சுய சேவை)",
+    geminiKeyDesc: "உங்கள் பிரத்யேக Gemini API Key ஐ உள்ளிட்டு தனிப்பட்ட செயலாக்கத்தைப் பெறுங்கள்.",
+    btnVerifyKey: "⚡ சரிபார்த்து சேமிக்கவும்",
+    getFreeKey: "👉 Google AI Studio இலிருந்து இலவச API சாவியைப் பெறுங்கள்",
     guideModalTitle: "OmniSix AI — விரைவு அமைப்பு & பயனர் வழிகாட்டி",
     guideModalSubtitle: "உங்கள் 24/7 AI விற்பனை உதவியாளரை செயல்படுத்த படிப்படியான வழிகாட்டி",
     step1Title: "OmniSix AI Cloud இற்கு அன்புடன் வரவேற்கிறோம்!",
@@ -3858,8 +3899,6 @@ window.addEventListener('DOMContentLoaded', () => {
   changeUILanguage(savedLang);
   const tourDone = localStorage.getItem('omnisix_tour_completed');
   if (!tourDone) {
-    // Mark as completed immediately so any future refresh never re-triggers it
-    localStorage.setItem('omnisix_tour_completed', 'true');
     setTimeout(() => { openUserGuideModal(1); }, 600);
   }
 });

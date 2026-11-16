@@ -170,84 +170,164 @@ class Database {
   }
 
   save() {
-    try {
-      const tmpFile = DB_FILE + '.tmp';
-      fs.writeFileSync(tmpFile, JSON.stringify(this.data, null, 2), 'utf8');
-      fs.renameSync(tmpFile, DB_FILE);
-    } catch (e) {
-      console.warn('[db] Failed to save DB file atomically:', e.message);
-    }
-    // Asynchronously sync database snapshot to MongoDB Atlas and cloud storage if configured
-    this.syncToMongo().catch(() => {});
+    this.saveToDiskSync();
+    this.scheduleMongoSync();
     this.syncToCloud().catch(() => {});
+  }
+
+  saveToDiskSync() {
+    try {
+      const tmpFile = `${DB_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+      fs.writeFileSync(tmpFile, JSON.stringify(this.data, null, 2), 'utf8');
+      try {
+        fs.renameSync(tmpFile, DB_FILE);
+      } catch (e) {
+        // Windows file lock fallback: copy & unlink
+        fs.copyFileSync(tmpFile, DB_FILE);
+        try { fs.unlinkSync(tmpFile); } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[db] Failed to save DB file to disk:', e.message);
+    }
+  }
+
+  scheduleMongoSync() {
+    if (this.mongoSyncTimer) clearTimeout(this.mongoSyncTimer);
+    this.mongoSyncTimer = setTimeout(() => {
+      this.syncToMongo().catch(() => {});
+    }, 1000);
   }
 
   // ─── Native MongoDB Atlas Integration ─────────────────────────────────────────
   async initMongo() {
     if (!MongoClient || !MONGODB_URI) return;
+    if (this.isMongoConnecting) return;
+    this.isMongoConnecting = true;
+
     try {
-      try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
-      const client = new MongoClient(MONGODB_URI);
+      if (this.mongoClient) {
+        try { await this.mongoClient.close(); } catch (_) {}
+      }
+
+      const client = new MongoClient(MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        minPoolSize: 1,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        family: 4
+      });
+
+      client.on('close', () => {
+        if (this.isMongoConnected) {
+          this.isMongoConnected = false;
+          console.warn('[MongoDB Atlas] Connection closed. Reconnecting...');
+          setTimeout(() => this.initMongo().catch(() => {}), 5000);
+        }
+      });
+      client.on('error', (err) => {
+        console.warn('[MongoDB Atlas] Topology error:', err.message);
+      });
+
       await client.connect();
       this.mongoClient = client;
       this.mongoDb = client.db('omnisix');
       this.mongoStateCol = this.mongoDb.collection('app_state');
       this.mongoOrdersCol = this.mongoDb.collection('orders');
       this.mongoProductsCol = this.mongoDb.collection('products');
+      this.isMongoConnected = true;
+      this.isMongoConnecting = false;
+      this.mongoError = null;
       console.log('🍃 [MongoDB Atlas] Connected successfully to Cloud Database (omnisix)!');
 
-      // Check if state exists in MongoDB
+      // Reconcile state non-destructively (never overwrite newer local data)
       const doc = await this.mongoStateCol.findOne({ _id: 'omnisix_data' });
       if (doc && doc.data && doc.data.businesses && doc.data.businesses.length > 0) {
         const cloudData = doc.data;
-        if (Array.isArray(cloudData.orders) && cloudData.orders.length > 0) {
-          this.data.orders = cloudData.orders;
+        // Merge Orders
+        const orderMap = new Map((this.data.orders || []).map(o => [o.id, o]));
+        if (Array.isArray(cloudData.orders)) {
+          for (const co of cloudData.orders) {
+            if (!orderMap.has(co.id)) orderMap.set(co.id, co);
+          }
         }
-        if (Array.isArray(cloudData.products) && cloudData.products.length > 0) {
-          this.data.products = cloudData.products;
+        this.data.orders = Array.from(orderMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+        // Merge Licenses
+        const licMap = new Map((this.data.licenses || []).map(l => [(l.key || '').toUpperCase(), l]));
+        if (Array.isArray(cloudData.licenses)) {
+          for (const cl of cloudData.licenses) {
+            const k = (cl.key || '').toUpperCase();
+            if (!licMap.has(k)) licMap.set(k, cl);
+          }
         }
-        if (Array.isArray(cloudData.chats) && cloudData.chats.length > 0) {
-          this.data.chats = cloudData.chats;
+        this.data.licenses = Array.from(licMap.values());
+
+        // Merge Products
+        const prodMap = new Map((this.data.products || []).map(p => [p.id, p]));
+        if (Array.isArray(cloudData.products)) {
+          for (const cp of cloudData.products) {
+            if (!prodMap.has(cp.id)) prodMap.set(cp.id, cp);
+          }
         }
-        if (Array.isArray(cloudData.businesses) && cloudData.businesses.length > 0) {
-          this.data.businesses = cloudData.businesses;
+        this.data.products = Array.from(prodMap.values());
+
+        // Merge Businesses
+        const bizMap = new Map((this.data.businesses || []).map(b => [b.id, b]));
+        if (Array.isArray(cloudData.businesses)) {
+          for (const cb of cloudData.businesses) {
+            if (!bizMap.has(cb.id)) bizMap.set(cb.id, cb);
+          }
         }
+        this.data.businesses = Array.from(bizMap.values());
+
+        // Merge Settings
         if (cloudData.settings) {
-          this.data.settings = { ...this.data.settings, ...cloudData.settings };
+          this.data.settings = { ...DEFAULT_SETTINGS, ...cloudData.settings, ...this.data.settings };
         }
         if (Array.isArray(cloudData.customFlows) && cloudData.customFlows.length > 0) {
-          this.data.customFlows = cloudData.customFlows;
+          const flowMap = new Map((this.data.customFlows || []).map(f => [f.id, f]));
+          for (const cf of cloudData.customFlows) {
+            if (!flowMap.has(cf.id)) flowMap.set(cf.id, cf);
+          }
+          this.data.customFlows = Array.from(flowMap.values());
         }
-        if (Array.isArray(cloudData.licenses) && cloudData.licenses.length > 0) {
-          this.data.licenses = cloudData.licenses;
-        }
-        console.log(`🍃 [MongoDB Atlas] Restored state from cloud: ${(this.data.orders || []).length} orders, ${(this.data.products || []).length} products, ${(this.data.chats || []).length} chats.`);
+
+        this.saveToDiskSync();
+        console.log(`🍃 [MongoDB Atlas] Restored & reconciled state from cloud: ${(this.data.orders || []).length} orders, ${(this.data.products || []).length} products, ${(this.data.licenses || []).length} licenses.`);
       } else {
         await this.syncToMongo();
         console.log('🌱 [MongoDB Atlas] Initialized and seeded cloud database with baseline records.');
       }
-      this.isMongoConnected = true;
-      this.mongoError = null;
     } catch (err) {
       this.isMongoConnected = false;
+      this.isMongoConnecting = false;
       this.mongoError = err.message;
       console.warn('⚠️ [MongoDB Atlas] Connection warning (falling back to local storage):', err.message);
-      // Automatically retry connecting in 8 seconds if initial connection attempt was blocked
       setTimeout(() => {
         if (!this.isMongoConnected) {
           console.log('[db] 🔄 Retrying MongoDB Atlas connection...');
           this.initMongo().catch(() => {});
         }
-      }, 8000);
+      }, 10000);
     }
   }
 
   async syncToMongo() {
-    if (!this.mongoStateCol) return;
+    if (!this.mongoStateCol || !this.isMongoConnected) return;
     try {
+      // Strip ephemeral base64 QR codes before cloud upload to stay under 16MB document limit
+      const sanitized = JSON.parse(JSON.stringify(this.data));
+      if (sanitized.whatsapp) delete sanitized.whatsapp.qrData;
+      if (Array.isArray(sanitized.whatsappAccounts)) {
+        sanitized.whatsappAccounts.forEach(a => { delete a.qrDataUrl; delete a.rawQr; });
+      }
       await this.mongoStateCol.updateOne(
         { _id: 'omnisix_data' },
-        { $set: { data: this.data, lastUpdated: new Date() } },
+        { $set: { data: sanitized, lastUpdated: new Date() } },
         { upsert: true }
       );
     } catch (err) {
@@ -373,8 +453,12 @@ class Database {
 
   addProduct(prod) {
     if (!this.data.products) this.data.products = [];
+    const nextNum = (this.data.products || []).reduce((max, p) => {
+      const num = parseInt(String(p.id).replace(/\D/g, ''), 10) || 0;
+      return Math.max(max, num);
+    }, 0) + 1;
     const newProd = {
-      id: 'PROD-' + (this.data.products.length + 1),
+      id: prod.id || `PROD-${nextNum}`,
       businessId: prod.businessId || this.getActiveBusiness().id,
       name: prod.name || 'Untitled Product',
       category: prod.category || 'General',
@@ -422,8 +506,12 @@ class Database {
 
   addCustomFlow(flow) {
     if (!this.data.customFlows) this.data.customFlows = [];
+    const nextNum = (this.data.customFlows || []).reduce((max, f) => {
+      const num = parseInt(String(f.id).replace(/\D/g, ''), 10) || 0;
+      return Math.max(max, num);
+    }, 0) + 1;
     const newFlow = {
-      id: 'FLOW-' + (this.data.customFlows.length + 1),
+      id: flow.id || `FLOW-${nextNum}`,
       businessId: flow.businessId || this.getActiveBusiness().id,
       trigger: (flow.trigger || '').toLowerCase().trim(),
       matchType: flow.matchType || 'contains', // 'contains' | 'exact'
@@ -513,17 +601,18 @@ class Database {
 
   addOrder(order) {
     if (!this.data.orders) this.data.orders = [];
+    const safeAmount = String(order.amount !== undefined && order.amount !== null ? order.amount : '0').trim();
     const newOrder = {
-      id: order.id || 'ORD-' + (Math.floor(1000 + Math.random() * 9000)),
+      id: order.id || `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`,
       businessId: order.businessId || this.getActiveBusiness().id,
-      customerName: order.name || order.customerName || 'Customer',
-      customerPhone: order.phone || order.customerPhone || '',
-      item: order.item || 'Custom Order',
-      amount: order.amount || '0',
-      address: order.address || order.note || 'To be confirmed',
+      customerName: String(order.name || order.customerName || 'Customer').trim(),
+      customerPhone: String(order.phone || order.customerPhone || '').trim(),
+      item: String(order.item || 'Custom Order').trim(),
+      amount: safeAmount,
+      address: String(order.address || order.note || 'To be confirmed').trim(),
       paymentMethod: order.paymentMethod || 'Bank Transfer',
       status: order.status || 'Pending Payment',
-      trackingNumber: order.trackingNumber || '',
+      trackingNumber: String(order.trackingNumber || '').trim(),
       createdAt: new Date().toISOString(),
       source: order.source || 'Live Voice Call'
     };
@@ -536,8 +625,10 @@ class Database {
   updateOrderStatus(orderId, status, trackingNumber) {
     const ord = (this.data.orders || []).find(o => o.id === orderId);
     if (ord) {
-      ord.status = status;
-      if (trackingNumber !== undefined) ord.trackingNumber = trackingNumber;
+      if (status !== undefined && status !== null && String(status).trim() !== '') {
+        ord.status = String(status).trim();
+      }
+      if (trackingNumber !== undefined) ord.trackingNumber = String(trackingNumber).trim();
       this.save();
       return ord;
     }
@@ -1064,7 +1155,7 @@ class Database {
     const orders = this.getOrders(biz.id);
     const confirmedOrders = orders.filter(o => ['Confirmed', 'In Production', 'Dispatched', 'Delivered', 'Slip Received'].includes(o.status));
     const totalRev = confirmedOrders.reduce((sum, o) => {
-      const val = parseInt((o.amount || '0').replace(/[^0-9]/g, '')) || 0;
+      const val = parseInt(String(o.amount || '0').replace(/[^0-9]/g, '')) || 0;
       return sum + val;
     }, 0);
 
@@ -1097,15 +1188,15 @@ class Database {
     const confirmedOrders = orders.filter(o => ['Confirmed', 'In Production', 'Dispatched', 'Delivered', 'Slip Received'].includes(o.status));
 
     const totalRev = confirmedOrders.reduce((sum, o) => {
-      const val = parseInt((o.amount || '0').replace(/[^0-9]/g, '')) || 0;
+      const val = parseInt(String(o.amount || '0').replace(/[^0-9]/g, '')) || 0;
       return sum + val;
     }, 0);
 
-    // Calculate real numbers from DB, with dynamic fallback
-    const weeklyChats = chats.length > 0 ? chats.length : 412;
-    const confirmedCount = confirmedOrders.length > 0 ? confirmedOrders.length : 58;
-    const revLKR = totalRev > 0 ? totalRev.toLocaleString('en-US') : '248,500';
-    const conversionRate = weeklyChats > 0 ? ((confirmedCount / weeklyChats) * 100).toFixed(1) : '14.1';
+    // Calculate real numbers from DB (zero fallback, no fake numbers)
+    const weeklyChats = chats.length;
+    const confirmedCount = confirmedOrders.length;
+    const revLKR = totalRev.toLocaleString('en-US');
+    const conversionRate = weeklyChats > 0 ? ((confirmedCount / weeklyChats) * 100).toFixed(1) : '0.0';
     const hoursSaved = (weeklyChats * 5 / 60).toFixed(0);
 
     const planId = biz.subscriptionPlan || 'enterprise';
@@ -1116,7 +1207,7 @@ class Database {
       confirmedOrders: confirmedCount,
       conversionRate: `${conversionRate}%`,
       revenueLKR: revLKR,
-      hoursSaved: `${hoursSaved || 34} පැය`,
+      hoursSaved: `${hoursSaved} පැය`,
       activePlan: plan,
       allPlans: SUBSCRIPTION_PLANS
     };
@@ -1126,6 +1217,12 @@ class Database {
     const biz = this.getBusiness(businessId);
     if (biz && SUBSCRIPTION_PLANS[planId]) {
       biz.subscriptionPlan = planId;
+      (this.data.licenses || []).forEach(l => {
+        if (l.businessId === businessId) {
+          l.planTier = planId;
+          l.limits = SUBSCRIPTION_PLANS[planId].limits;
+        }
+      });
       this.save();
       return biz;
     }

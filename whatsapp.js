@@ -105,9 +105,18 @@ class WhatsAppAccountSession {
         if (connection === 'close') {
           this.connected = false;
           this.qrDataUrl = null;
+          if (this.isDestroyed) return;
           const statusCode = lastDisconnect?.error?.output?.statusCode;
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+          const isReplaced = statusCode === DisconnectReason.connectionReplaced;
+          const shouldReconnect = !isLoggedOut && !isReplaced;
           console.warn(`[whatsapp-acc:${this.id}] Connection closed (${statusCode}). Reconnecting: ${shouldReconnect}`);
+
+          if (isReplaced) {
+            this.statusText = 'Session replaced by another device. Scan QR to reconnect.';
+            this.syncDb();
+            return;
+          }
 
           this.statusText = shouldReconnect
             ? 'Reconnecting to WhatsApp...'
@@ -118,12 +127,14 @@ class WhatsAppAccountSession {
           if (shouldReconnect) {
             const waitMs = Math.min(10000, 2000 * Math.pow(1.5, this.reconnectAttempts++));
             setTimeout(() => {
+              if (this.isDestroyed) return;
               this.isStarting = false;
               this.start();
             }, waitMs);
           } else {
             this.clearAuth();
             setTimeout(() => {
+              if (this.isDestroyed) return;
               this.isStarting = false;
               this.start();
             }, 3000);
@@ -247,10 +258,10 @@ class WhatsAppAccountSession {
               isQuickActionHandled = true;
             } else if (cleanText === '3' || lowerText === 'action_agent' || lowerText === 'agent' || lowerText === 'human' || lowerText === 'talk to agent' || lowerText === 'මිනිසෙකු') {
               aiReply = `👤 *Human Agent Connection:*\n\nඅපගේ පාරිභෝගික සේවා නිලධාරියෙකු (Human Support Agent) සුළු මොහොතකින් ඔබ හා සෘජුව සම්බන්ධ වනු ඇත. කරුණාකර රැඳී සිටින්න. 🙏`;
-              db.setChatMute(senderPhone, true, 30);
+              db.setChatAiMute(senderPhone, true, 30);
               if (settings.isOwnerAlertEnabled && settings.ownerAlertPhone) {
                 const alertText = `🚨 *Human Agent Requested!*\n\nCustomer: *${senderName}* (+${senderPhone})\nStore: *${activeBiz.name}*\nStatus: AI Muted for 30m. Please take over this chat now.`;
-                this.manager.sendMessageToPhone(settings.ownerAlertPhone, alertText).catch(() => {});
+                this.manager.sendTextMessage(settings.ownerAlertPhone, alertText, this.id).catch(() => {});
               }
               isQuickActionHandled = true;
             }
@@ -465,7 +476,12 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
     }
-    const clean = toPhone.replace(/\D/g, '');
+    let clean = String(toPhone || '').replace(/\D/g, '');
+    if (clean.startsWith('0') && clean.length === 10) {
+      clean = '94' + clean.slice(1);
+    } else if (clean.length === 9 && !clean.startsWith('94')) {
+      clean = '94' + clean;
+    }
     const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
 
     try {
@@ -482,7 +498,12 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
     }
-    const clean = toPhone.replace(/\D/g, '');
+    let clean = String(toPhone || '').replace(/\D/g, '');
+    if (clean.startsWith('0') && clean.length === 10) {
+      clean = '94' + clean.slice(1);
+    } else if (clean.length === 9 && !clean.startsWith('94')) {
+      clean = '94' + clean;
+    }
     const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
 
     try {
@@ -508,7 +529,12 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
     }
-    const clean = toPhone.replace(/\D/g, '');
+    let clean = String(toPhone || '').replace(/\D/g, '');
+    if (clean.startsWith('0') && clean.length === 10) {
+      clean = '94' + clean.slice(1);
+    } else if (clean.length === 9 && !clean.startsWith('94')) {
+      clean = '94' + clean;
+    }
     const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
 
     try {
@@ -552,10 +578,14 @@ class WhatsAppAccountSession {
     this.phoneNumber = null;
     this.statusText = 'Logged out. Ready to connect.';
     this.syncDb();
-    setTimeout(() => {
-      this.isStarting = false;
-      this.start();
-    }, 2000);
+    if (!this.isDestroyed) {
+      setTimeout(() => {
+        if (!this.isDestroyed) {
+          this.isStarting = false;
+          this.start();
+        }
+      }, 2000);
+    }
     return { ok: true };
   }
 
@@ -809,7 +839,10 @@ class MultiAccountWhatsAppManager {
     }
     const session = this.sessions.get(accountId);
     if (session) {
-      try { await session.logout(); } catch (e) {}
+      session.isDestroyed = true;
+      try {
+        if (session.sock) await session.sock.logout();
+      } catch (e) {}
       session.clearAuth();
       this.sessions.delete(accountId);
       db.deleteWhatsAppAccount(accountId);
