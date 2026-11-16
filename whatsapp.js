@@ -73,9 +73,9 @@ class WhatsAppAccountSession {
         auth: this.state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: Browsers.ubuntu('Chrome'),
+        browser: ['OmniSix AI (' + this.id + ')', 'Chrome', '120.0.0'],
         syncFullHistory: false,
-        generateHighQualityLinkPreview: true,
+        generateHighQualityLinkPreview: false,
         connectTimeoutMs: 60000,
         keepAliveIntervalMs: 25000,
         emitOwnEvents: false
@@ -604,6 +604,31 @@ class WhatsAppAccountSession {
     } catch (e) {}
   }
 
+  async restart() {
+    console.log(`[whatsapp-acc:${this.id}] Restarting session and requesting new QR code...`);
+    try {
+      if (this.sock) {
+        this.sock.ev.removeAllListeners('connection.update');
+        this.sock.end(new Error('Manual session restart requested'));
+      }
+    } catch (e) {}
+    this.isStarting = false;
+    this.qrDataUrl = null;
+    this.rawQr = null;
+    this.pairingCode = null;
+    this.statusText = 'Generating fresh QR code...';
+    this.syncDb();
+    await delay(1000);
+    await this.start();
+
+    // Await up to 5 seconds for fresh QR code
+    for (let i = 0; i < 10; i++) {
+      if (this.qrDataUrl || this.connected) break;
+      await delay(500);
+    }
+    return { ok: true, qrDataUrl: this.qrDataUrl, statusText: this.statusText };
+  }
+
   syncDb() {
     db.saveWhatsAppAccount({
       id: this.id,
@@ -696,7 +721,7 @@ class MultiAccountWhatsAppManager {
     const accDir = path.join(MULTI_AUTH_DIR, id);
     if (!fs.existsSync(accDir)) fs.mkdirSync(accDir, { recursive: true });
 
-    const bizId = businessId || db.getActiveBusiness().id;
+    const bizId = businessId || (db.getActiveBusiness() ? db.getActiveBusiness().id : 'default');
     const session = new WhatsAppAccountSession(id, label || `WhatsApp Account`, accDir, this, bizId);
     this.sessions.set(id, session);
 
@@ -711,6 +736,13 @@ class MultiAccountWhatsAppManager {
     });
 
     await session.start();
+
+    // Await up to 5 seconds for genuine Baileys QR code generation before returning
+    for (let i = 0; i < 10; i++) {
+      if (session.qrDataUrl || session.connected) break;
+      await delay(500);
+    }
+
     return session;
   }
 
@@ -827,6 +859,14 @@ class MultiAccountWhatsAppManager {
       session.botActive = !!botActive;
       session.syncDb();
       return { ok: true, accountId, botActive: session.botActive };
+    }
+    return { ok: false, error: 'Account not found' };
+  }
+
+  async restartAccount(accountId = 'default') {
+    const session = this.sessions.get(accountId);
+    if (session) {
+      return await session.restart();
     }
     return { ok: false, error: 'Account not found' };
   }

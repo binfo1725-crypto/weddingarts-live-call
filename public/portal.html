@@ -4167,6 +4167,8 @@ async function openAddWhatsAppModal() {
       if (title) title.innerHTML = `<span>➕</span> Link: <strong>${escapeHtml(label)}</strong>`;
       if (section) section.classList.remove('hidden');
       section.scrollIntoView({ behavior: 'smooth' });
+      // Render QR code immediately if already available from Baileys
+      updatePairingModalDisplay(data.account);
       fetchWhatsAppStatus();
     } else {
       alert('Error creating new account session: ' + (data.error || 'Failed'));
@@ -4229,9 +4231,16 @@ async function restartWhatsAppSession() {
   if (qrLoading) qrLoading.classList.remove('hidden');
 
   try {
-    await fetch('/api/whatsapp/restart', { method: 'POST' });
-    setTimeout(fetchWhatsAppStatus, 2000);
-  } catch(e){}
+    const targetId = activePairingAccountId || 'store';
+    const res = await fetch(`/api/whatsapp/accounts/${encodeURIComponent(targetId)}/restart`, { method: 'POST' });
+    const data = await res.json();
+    if (data && data.qrDataUrl) {
+      updatePairingModalDisplay(data);
+    }
+    setTimeout(fetchWhatsAppStatus, 1500);
+  } catch(e) {
+    console.error('restart error:', e);
+  }
 }
 
 async function logoutAccount(accId) {

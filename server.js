@@ -416,8 +416,15 @@ app.post('/api/admin/db/import', requireAdminAuth, (req, res) => {
 });
 
 // ─── Client Portal Scoped Store API & SaaS Multi-Tenant Isolation ─────────────
+function isAdminReq(req) {
+  const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
+  const now = Date.now();
+  return !!(token && activeAdminSessions.has(token) && activeAdminSessions.get(token) > now);
+}
+
 function isTenantReq(req) {
-  return !!(req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key) || req.headers['x-business-id']);
+  if (isAdminReq(req)) return false;
+  return !!(req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key));
 }
 
 function resolveReqBusinessId(req) {
@@ -1221,42 +1228,59 @@ app.get('/api/whatsapp/accounts', async (req, res) => {
     const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
     const bizName = biz ? biz.name : 'Store';
 
-    // Auto-provision tenant WhatsApp account if not already created
-    const tenantSession = await waEngine.getOrCreateTenantAccount(bId, bizName);
+    // Auto-provision tenant WhatsApp primary account if not already created
+    await waEngine.getOrCreateTenantAccount(bId, bizName);
     const tenantAccounts = waEngine.getAccounts(bId);
-    const finalAccounts = (tenantAccounts.length > 0) ? tenantAccounts : [tenantSession.getStatus()];
 
     return res.json({
       ok: true,
       isTenant: true,
-      accounts: finalAccounts.filter(a => a.id !== 'default')
+      accounts: tenantAccounts.filter(a => a.id !== 'default')
     });
+  }
+
+  // Super Admin view:
+  const filterBizId = req.headers['x-business-id'];
+  let allAccounts = waEngine.getAccounts();
+  if (filterBizId && filterBizId !== 'all') {
+    allAccounts = allAccounts.filter(a => a.id === 'default' || a.businessId === filterBizId || !a.businessId);
   }
 
   res.json({
     ok: true,
-    accounts: waEngine.getAccounts()
+    accounts: allAccounts
   });
 });
 
 app.post('/api/whatsapp/accounts/add', async (req, res) => {
   try {
     const { label } = req.body;
+    let targetBizId = null;
+
     if (isTenantReq(req)) {
-      const bId = resolveReqBusinessId(req);
-      const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
-      const session = await waEngine.getOrCreateTenantAccount(bId, biz ? biz.name : label);
-      return res.json({
-        ok: true,
-        account: session.getStatus()
-      });
+      targetBizId = resolveReqBusinessId(req);
+      const biz = db.getBusiness(targetBizId) || db.getAllBusinesses().find(b => b.id === targetBizId);
+      const plan = (biz && biz.subscriptionPlan) || 'starter';
+      const maxLines = (plan === 'enterprise') ? 5 : ((plan === 'pro') ? 2 : 1);
+      const currentAccounts = waEngine.getAccounts(targetBizId);
+
+      if (currentAccounts.length >= maxLines) {
+        return res.status(403).json({
+          ok: false,
+          error: `Your ${plan.toUpperCase()} plan limit is ${maxLines} WhatsApp line(s). Please upgrade your subscription to add additional lines.`
+        });
+      }
+    } else {
+      targetBizId = req.headers['x-business-id'] || (db.getActiveBusiness() ? db.getActiveBusiness().id : 'default');
     }
-    const session = await waEngine.addAccount(label);
+
+    const session = await waEngine.addAccount(label, targetBizId);
     res.json({
       ok: true,
       account: session.getStatus()
     });
   } catch (err) {
+    console.error('Error adding WhatsApp account:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -1267,14 +1291,34 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', async (req, res) => {
     let targetId = req.params.id;
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
-      const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
-      await waEngine.getOrCreateTenantAccount(bId, biz ? biz.name : 'Store');
-      targetId = 'wa_' + bId;
+      const tenantAccounts = waEngine.getAccounts(bId);
+      const belongs = tenantAccounts.find(a => a.id === targetId);
+      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
+        targetId = 'wa_' + bId;
+      }
     }
     const code = await waEngine.requestPhonePairingCode(phoneNumber, targetId);
     res.json({ ok: true, pairingCode: code, accountId: targetId });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/accounts/:id/restart', async (req, res) => {
+  try {
+    let targetId = req.params.id;
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      const tenantAccounts = waEngine.getAccounts(bId);
+      const belongs = tenantAccounts.find(a => a.id === targetId);
+      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
+        targetId = 'wa_' + bId;
+      }
+    }
+    const result = await waEngine.restartAccount(targetId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -1284,7 +1328,11 @@ app.post('/api/whatsapp/accounts/:id/toggle-bot', async (req, res) => {
     let targetId = req.params.id;
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
-      targetId = 'wa_' + bId;
+      const tenantAccounts = waEngine.getAccounts(bId);
+      const belongs = tenantAccounts.find(a => a.id === targetId);
+      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
+        targetId = 'wa_' + bId;
+      }
     }
     const result = await waEngine.toggleBot(targetId, botActive);
     res.json(result);
@@ -1298,7 +1346,11 @@ app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
     let targetId = req.params.id;
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
-      targetId = 'wa_' + bId;
+      const tenantAccounts = waEngine.getAccounts(bId);
+      const belongs = tenantAccounts.find(a => a.id === targetId);
+      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
+        targetId = 'wa_' + bId;
+      }
     }
     const result = await waEngine.logout(targetId);
     res.json(result);
@@ -1309,10 +1361,17 @@ app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
 
 app.post('/api/whatsapp/accounts/:id/delete', async (req, res) => {
   try {
-    if (isTenantReq(req)) {
-      return res.status(403).json({ ok: false, error: 'Cannot delete primary store account. Use Disconnect instead.' });
+    const targetId = req.params.id;
+    if (targetId === 'default') {
+      return res.status(403).json({ ok: false, error: 'Cannot delete primary master account. Use Disconnect instead.' });
     }
-    const result = await waEngine.deleteAccount(req.params.id);
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      if (targetId === 'wa_' + bId) {
+        return res.status(403).json({ ok: false, error: 'Cannot delete primary store account. Use Disconnect instead.' });
+      }
+    }
+    const result = await waEngine.deleteAccount(targetId);
     res.json(result);
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -1347,8 +1406,17 @@ app.post('/api/whatsapp/logout', async (req, res) => {
 });
 
 app.post('/api/whatsapp/restart', async (req, res) => {
-  await waEngine.start();
-  res.json({ ok: true });
+  try {
+    const targetId = req.body && req.body.accountId;
+    if (targetId) {
+      const result = await waEngine.restartAccount(targetId);
+      return res.json(result);
+    }
+    await waEngine.start();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // ─── Master Dataset Upload (.TXT & .PDF) ─────────────────────────────────────
