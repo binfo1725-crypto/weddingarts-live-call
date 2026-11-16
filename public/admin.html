@@ -10,7 +10,7 @@
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
   *, *::before, *::after {
@@ -892,6 +892,182 @@
       display: inline-flex !important;
     }
   }
+
+  /* ========================================================================= */
+  /* GOOGLE STITCH "EXECUTIVE PRECISION" DESIGN SYSTEM UPGRADE                 */
+  /* ========================================================================= */
+  :root {
+    --bg-page: #f8fafc;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    --card-border-hover: #cbd5e1;
+    --accent-emerald: #10b981;
+    --accent-emerald-light: #ecfdf5;
+    --accent-emerald-border: #a7f3d0;
+    --accent-blue: #3b82f6;
+    --accent-blue-hover: #2563eb;
+    --accent-blue-light: #eff6ff;
+    --accent-blue-border: #bfdbfe;
+    --accent-purple: #8b5cf6;
+    --accent-purple-light: #faf5ff;
+    --accent-amber: #f59e0b;
+    --accent-amber-light: #fffbeb;
+    --accent-amber-border: #fde68a;
+    --accent-rose: #ef4444;
+    --accent-rose-light: #fef2f2;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-subtle: #94a3b8;
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+    --font-heading: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, .brand-logo, .metric-title, .metric-value {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
+
+  .metric-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+  }
+
+  /* Stitch Clean Card Elevation */
+  .glass-card, .metric-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .metric-card:hover {
+    border-color: var(--card-border-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  /* Stitch Modern Sidebar Active State */
+  .sidebar {
+    background: #ffffff;
+    border-right: 1px solid var(--card-border);
+  }
+  .tab-btn {
+    font-family: var(--font-body);
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 9px;
+    padding: 8px 12px;
+    margin-bottom: 2px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+  .tab-btn:hover {
+    background: #f1f5f9;
+    color: var(--text-primary);
+  }
+  .tab-btn.active {
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 600;
+    border-color: #bfdbfe;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  /* Stitch Audio Waveform Visualizer */
+  @keyframes stitchWave {
+    0%, 100% { height: 4px; }
+    50% { height: 20px; }
+  }
+  .waveform-bar {
+    width: 3px;
+    background: #3b82f6;
+    border-radius: 9999px;
+    animation: stitchWave 1.2s ease-in-out infinite;
+    display: inline-block;
+  }
+  .waveform-bar:nth-child(2) { animation-delay: 0.15s; height: 12px; }
+  .waveform-bar:nth-child(3) { animation-delay: 0.3s; height: 18px; }
+  .waveform-bar:nth-child(4) { animation-delay: 0.45s; height: 8px; }
+  .waveform-bar:nth-child(5) { animation-delay: 0.2s; height: 16px; }
+
+  /* Stitch Buttons & Form Inputs */
+  .btn-primary {
+    background: #2563eb;
+    border: 1px solid #1d4ed8;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.84rem;
+    padding: 8px 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.15s ease;
+  }
+  .btn-primary:hover {
+    background: #1d4ed8;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+  }
+  .btn-secondary {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.84rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+  }
+  .btn-secondary:hover {
+    background: #f8fafc;
+    border-color: var(--card-border-hover);
+  }
+  .form-input, .form-select, .form-textarea {
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: #ffffff;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    outline: none;
+  }
+
+  /* Responsive Clean Table Styling */
+  table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--card-border);
+    padding: 10px 14px;
+  }
+  table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.82rem;
+  }
+  table tr:hover td {
+    background: #f8fafc;
+  }
+
 </style>
 </head>
 <body>
