@@ -190,7 +190,7 @@ app.get('/health', (req, res) => {
   const activeBiz = db.getActiveBusiness();
   res.json({
     status: 'ok',
-    database: db.mongoClient ? 'MongoDB Atlas (Connected)' : 'Local JSON / Storage',
+    database: db.isMongoConnected ? 'MongoDB Atlas (Connected)' : (db.mongoError ? `Local JSON (Atlas Error: ${db.mongoError})` : 'MongoDB Atlas (Connecting...)'),
     activeBusiness: activeBiz.name,
     sessions: sessions.size,
     datasetChars: (activeBiz.dataset || BUILTIN_DATASET).length,

@@ -226,7 +226,11 @@ class Database {
         await this.syncToMongo();
         console.log('🌱 [MongoDB Atlas] Initialized and seeded cloud database with baseline records.');
       }
+      this.isMongoConnected = true;
+      this.mongoError = null;
     } catch (err) {
+      this.isMongoConnected = false;
+      this.mongoError = err.message;
       console.warn('⚠️ [MongoDB Atlas] Connection warning (falling back to local storage):', err.message);
     }
   }
