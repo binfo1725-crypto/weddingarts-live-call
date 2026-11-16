@@ -2223,6 +2223,10 @@ let waPollTimer = null;
 // ─── Tab Navigation ───────────────────────────────────────────────────────────
 function showTab(tabName) {
   currentTab = tabName;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  const stage = document.querySelector('.main-stage');
+  if (stage) stage.scrollTop = 0;
+
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.main-stage > section').forEach(s => s.classList.add('hidden'));
 
