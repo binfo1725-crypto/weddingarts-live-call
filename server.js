@@ -187,6 +187,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 app.get('/health', (req, res) => {
+  if (!db.isMongoConnected) {
+    db.initMongo().catch(() => {});
+  }
   const activeBiz = db.getActiveBusiness();
   res.json({
     status: 'ok',

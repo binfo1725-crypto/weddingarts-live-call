@@ -232,6 +232,13 @@ class Database {
       this.isMongoConnected = false;
       this.mongoError = err.message;
       console.warn('⚠️ [MongoDB Atlas] Connection warning (falling back to local storage):', err.message);
+      // Automatically retry connecting in 8 seconds if initial connection attempt was blocked
+      setTimeout(() => {
+        if (!this.isMongoConnected) {
+          console.log('[db] 🔄 Retrying MongoDB Atlas connection...');
+          this.initMongo().catch(() => {});
+        }
+      }, 8000);
     }
   }
 
