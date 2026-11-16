@@ -2908,8 +2908,8 @@ function openCurrentStoreInNewTab() {
 
 async function openClientPortalInNewTab(storeId) {
   try {
-    const res = await fetch('/api/licenses');
-    const data = await res.json();
+    const res = await fetch('/api/admin/licenses');
+    const data = res.ok ? await res.json() : {};
     const lic = (data.licenses || []).find(l => l.businessId === storeId && l.status === 'Active');
     if (lic) {
       window.open('/portal?key=' + encodeURIComponent(lic.key) + '&biz=' + encodeURIComponent(storeId), '_blank');
@@ -3027,12 +3027,12 @@ async function renderStoresHub() {
   try {
     const [bizRes, licRes, ordersRes] = await Promise.all([
       fetch('/api/business'),
-      fetch('/api/licenses'),
+      fetch('/api/admin/licenses'),
       fetch('/api/orders')
     ]);
-    const bizData = await bizRes.json();
-    const licData = await licRes.json();
-    const ordersData = await ordersRes.json();
+    const bizData = bizRes.ok ? await bizRes.json() : { ok: true, businesses: allBusinesses };
+    const licData = licRes.ok ? await licRes.json() : { ok: true, licenses: [] };
+    const ordersData = ordersRes.ok ? await ordersRes.json() : { ok: true, orders: allOrders };
 
     const businesses = bizData.businesses || allBusinesses;
     const licenses = licData.licenses || [];

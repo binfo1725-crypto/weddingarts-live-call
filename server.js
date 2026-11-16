@@ -339,7 +339,7 @@ app.post('/api/admin/logout', (req, res) => {
 });
 
 // ─── Super Admin License Management APIs ─────────────────────────────────────
-app.get('/api/admin/licenses', requireAdminAuth, (req, res) => {
+app.get(['/api/admin/licenses', '/api/licenses'], requireAdminAuth, (req, res) => {
   res.json({
     ok: true,
     licenses: db.getLicenses()
