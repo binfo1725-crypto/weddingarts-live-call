@@ -3476,6 +3476,7 @@ function openUserGuideModal(step = 1) {
 }
 
 function closeUserGuideModal() {
+  localStorage.setItem('omnisix_tour_completed', 'true');
   const modal = document.getElementById('modal-user-guide');
   if (modal) modal.classList.add('hidden');
 }
@@ -3645,7 +3646,10 @@ function toggleApiKeyVisibility() {
 window.addEventListener('DOMContentLoaded', () => {
   const savedLang = localStorage.getItem('omnisix_ui_lang') || 'si';
   changeUILanguage(savedLang);
-  if (!localStorage.getItem('omnisix_tour_completed')) {
+  const tourDone = localStorage.getItem('omnisix_tour_completed');
+  if (!tourDone) {
+    // Mark as completed immediately so any future refresh never re-triggers it
+    localStorage.setItem('omnisix_tour_completed', 'true');
     setTimeout(() => { openUserGuideModal(1); }, 600);
   }
 });
