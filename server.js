@@ -543,12 +543,39 @@ app.post('/api/business/delete', requireAdminAuth, (req, res) => {
   }
 });
 
-// Real-time Business Analytics
+// Real-time Business & ROI Analytics
 app.get('/api/analytics', (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
-    analytics: db.getAnalytics(bId)
+    analytics: db.getAnalytics(bId),
+    roi: db.getRoiAnalytics(bId)
+  });
+});
+
+// Tiered Subscription Plans (SaaS Pricing)
+app.get('/api/subscription/plans', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const biz = db.getBusiness(bId);
+  const currentPlanId = biz?.subscriptionPlan || 'enterprise';
+  res.json({
+    ok: true,
+    plans: db.SUBSCRIPTION_PLANS,
+    activePlan: db.SUBSCRIPTION_PLANS[currentPlanId] || db.SUBSCRIPTION_PLANS.enterprise
+  });
+});
+
+app.post('/api/subscription/select-plan', (req, res) => {
+  const { planId } = req.body || {};
+  if (!db.SUBSCRIPTION_PLANS[planId]) {
+    return res.status(400).json({ ok: false, error: 'Invalid subscription plan' });
+  }
+  const bId = resolveReqBusinessId(req);
+  db.updateBusinessPlan(bId, planId);
+  res.json({
+    ok: true,
+    message: `Plan upgraded successfully to ${db.SUBSCRIPTION_PLANS[planId].name}!`,
+    plan: db.SUBSCRIPTION_PLANS[planId]
   });
 });
 

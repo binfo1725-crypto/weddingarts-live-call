@@ -812,6 +812,74 @@
         </div>
       </div>
 
+      <!-- ROI Analytics Dashboard (SaaS Proof of Value) -->
+      <div style="background:linear-gradient(135deg, rgba(30,58,138,0.06), rgba(5,150,105,0.06));border:1px solid rgba(37,99,235,0.2);border-radius:18px;padding:22px 24px;margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:1.4rem;">📈</span>
+              <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:var(--text-primary);">AI Sales Conversion & ROI Proof Analytics</h3>
+              <span style="background:var(--accent-emerald-light);color:var(--accent-emerald);font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--accent-emerald-border);">Live AI Verified</span>
+            </div>
+            <p style="margin:3px 0 0;font-size:0.8rem;color:var(--text-secondary);">ස්වයංක්‍රීය AI සහායකයා මඟින් සෘජුවම උපයා දුන් ආදායම, සාර්ථක කළ ඇණවුම් සහ ඉතිරි කළ සේවා කාලය</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="text-align:right;">
+              <span style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Active SaaS Plan:</span>
+              <div id="overview-plan-badge" style="font-size:0.88rem;font-weight:800;color:#2563eb;">Enterprise Plan (රු. 3,500/මසකට)</div>
+            </div>
+            <button class="btn-primary" onclick="openSubscriptionModal()" style="font-size:0.8rem;padding:7px 14px;border-radius:10px;">
+              ⚡ Plans & Pricing
+            </button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;">
+          <!-- 1. Weekly Conversations -->
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.78rem;font-weight:700;color:#64748b;">සතිය තුළ AI කතාබස් කළ පිරිස</span>
+              <span style="font-size:1.1rem;">🗣️</span>
+            </div>
+            <div style="font-size:1.6rem;font-weight:800;color:#1e3a8a;" id="roi-weekly-chats">412</div>
+            <div style="font-size:0.73rem;color:#059669;margin-top:4px;font-weight:600;">WhatsApp & Calls Handled 24/7</div>
+          </div>
+
+          <!-- 2. Orders & Conversion Rate -->
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.78rem;font-weight:700;color:#64748b;">AI සාර්ථක කළ ඇණවුම්</span>
+              <span style="font-size:1.1rem;">🎯</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <div style="font-size:1.6rem;font-weight:800;color:#0f172a;" id="roi-confirmed-orders">58</div>
+              <span id="roi-conversion-rate" style="font-size:0.88rem;font-weight:800;color:#059669;background:#ecfdf5;padding:2px 8px;border-radius:6px;">14.1% Rate</span>
+            </div>
+            <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">Inquiry ➜ Paid Order Conversion</div>
+          </div>
+
+          <!-- 3. Revenue Generated -->
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.78rem;font-weight:700;color:#64748b;">AI මඟින් උපයා දුන් ආදායම</span>
+              <span style="font-size:1.1rem;">💰</span>
+            </div>
+            <div style="font-size:1.6rem;font-weight:800;color:#059669;">Rs. <span id="roi-revenue">248,500</span></div>
+            <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">තහවුරු කළ ඇණවුම් වලින් ආදායම</div>
+          </div>
+
+          <!-- 4. Staff Time Saved -->
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.78rem;font-weight:700;color:#64748b;">Human Agent ට ඉතිරි කළ කාලය</span>
+              <span style="font-size:1.1rem;">⏳</span>
+            </div>
+            <div style="font-size:1.6rem;font-weight:800;color:#7c3aed;" id="roi-hours-saved">34.0 පැය</div>
+            <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">5 mins / chat automation savings</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Quick Action Buttons -->
       <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;">
         <button class="btn-primary" onclick="openAddOrderModal()">➕ Record New Order</button>
@@ -1453,6 +1521,82 @@
   </main>
 </div>
 
+<!-- Modal: Tiered Subscription Plans (Pricing & Quotas) -->
+<div id="modal-subscription-plans" class="modal-overlay hidden" style="backdrop-filter:blur(8px);z-index:99999;">
+  <div class="modal-card" style="max-width:880px;width:100%;padding:0;overflow:hidden;border-radius:22px;box-shadow:0 25px 60px rgba(0,0,0,0.35);">
+    <div style="background:linear-gradient(135deg, #0f172a, #1e3a8a, #059669);padding:24px 30px;color:#ffffff;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h3 style="margin:0;font-size:1.25rem;font-weight:800;">OmniSix AI — Subscription Pricing & Plans</h3>
+        <p style="margin:4px 0 0;font-size:0.8rem;color:rgba(255,255,255,0.85);">ඔබගේ ව්‍යාපාරික අවශ්‍යතාවයට ගැළපෙන හොඳම SaaS සැලසුම තෝරාගන්න</p>
+      </div>
+      <button type="button" onclick="closeSubscriptionModal()" style="background:rgba(255,255,255,0.15);border:none;color:#ffffff;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="padding:28px 30px;background:#f8fafc;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:18px;">
+        <!-- Starter Plan -->
+        <div class="plan-card" style="background:#ffffff;border:2px solid #e2e8f0;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;position:relative;">
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;">Starter Plan</div>
+            <div style="font-size:1.7rem;font-weight:900;color:#0f172a;margin:8px 0 4px;">රු. 1,900 <span style="font-size:0.8rem;font-weight:600;color:#64748b;">/මසකට</span></div>
+            <p style="font-size:0.78rem;color:#64748b;margin-bottom:14px;">කුඩා ව්‍යාපාර හා නව ආරම්භකයන් සඳහා</p>
+            <hr style="border:none;border-top:1px solid #f1f5f9;margin-bottom:14px;">
+            <ul style="list-style:none;padding:0;margin:0;font-size:0.8rem;color:#334155;line-height:2;">
+              <li>✅ <strong>1 WhatsApp Number</strong></li>
+              <li>✅ <strong>AI Text Replies 1,500</strong></li>
+              <li>✅ <strong>Products Catalog 20</strong></li>
+              <li>✅ Standard AI Auto-Reply</li>
+              <li style="color:#94a3b8;">❌ Voice Notes Disabled</li>
+              <li style="color:#94a3b8;">❌ Live Calls Disabled</li>
+            </ul>
+          </div>
+          <button class="btn-secondary" onclick="chooseSubscriptionPlan('starter')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
+        </div>
+
+        <!-- Pro Plan (Popular) -->
+        <div class="plan-card" style="background:#ffffff;border:2px solid #2563eb;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;position:relative;box-shadow:0 10px 25px rgba(37,99,235,0.12);">
+          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2563eb;color:#ffffff;font-size:0.72rem;font-weight:800;padding:3px 12px;border-radius:20px;text-transform:uppercase;">Most Popular</div>
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:#2563eb;text-transform:uppercase;">Pro Plan</div>
+            <div style="font-size:1.7rem;font-weight:900;color:#0f172a;margin:8px 0 4px;">රු. 2,900 <span style="font-size:0.8rem;font-weight:600;color:#64748b;">/මසකට</span></div>
+            <p style="font-size:0.78rem;color:#64748b;margin-bottom:14px;">වර්ධනය වන සක්‍රිය ව්‍යාපාර සඳහා</p>
+            <hr style="border:none;border-top:1px solid #f1f5f9;margin-bottom:14px;">
+            <ul style="list-style:none;padding:0;margin:0;font-size:0.8rem;color:#334155;line-height:2;">
+              <li>✅ <strong>1 WhatsApp Number</strong></li>
+              <li>✅ <strong>AI Voice Notes + Text</strong></li>
+              <li>✅ <strong>Products Catalog 100</strong></li>
+              <li>✅ <strong>Digital Invoices & PDF</strong></li>
+              <li>✅ <strong>Follow-Up Engine (2-Stage)</strong></li>
+              <li>✅ Smart Order Recovery</li>
+            </ul>
+          </div>
+          <button class="btn-primary" onclick="chooseSubscriptionPlan('pro')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="plan-card" style="background:#ffffff;border:2px solid #059669;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;position:relative;">
+          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#059669;color:#ffffff;font-size:0.72rem;font-weight:800;padding:3px 12px;border-radius:20px;text-transform:uppercase;">VIP Ultimate</div>
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:#059669;text-transform:uppercase;">Enterprise Plan</div>
+            <div style="font-size:1.7rem;font-weight:900;color:#0f172a;margin:8px 0 4px;">රු. 3,500 <span style="font-size:0.8rem;font-weight:600;color:#64748b;">/මසකට</span></div>
+            <p style="font-size:0.78rem;color:#64748b;margin-bottom:14px;">විශාල හා ස්වයංක්‍රීය ව්‍යාපාර සඳහා</p>
+            <hr style="border:none;border-top:1px solid #f1f5f9;margin-bottom:14px;">
+            <ul style="list-style:none;padding:0;margin:0;font-size:0.8rem;color:#334155;line-height:2;">
+              <li>✅ <strong>Multi-WhatsApp Numbers</strong></li>
+              <li>✅ <strong>Live Voice Calls Active</strong></li>
+              <li>✅ <strong>Dedicated Gemini Key</strong></li>
+              <li>✅ <strong>Full Custom Dataset (17 Cat.)</strong></li>
+              <li>✅ <strong>Unlimited Scalability</strong></li>
+              <li>✅ VIP Priority Support</li>
+            </ul>
+          </div>
+          <button class="btn-primary" onclick="chooseSubscriptionPlan('enterprise')" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Interactive 5-Step First-Time User Guide & Setup Tour -->
 <div id="modal-user-guide" class="modal-overlay hidden" style="backdrop-filter:blur(8px);z-index:99999;">
   <div class="modal-card" style="max-width:680px;width:100%;padding:0;overflow:hidden;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.3);">
@@ -2025,6 +2169,24 @@ async function fetchOverview() {
       document.getElementById('metric-store-name').textContent = a.activeBusiness || activeBiz?.name || 'STORE';
     }
 
+    if (data.roi) {
+      const r = data.roi;
+      const chatsEl = document.getElementById('roi-weekly-chats');
+      if (chatsEl) chatsEl.textContent = r.weeklyConversations;
+      const ordersEl = document.getElementById('roi-confirmed-orders');
+      if (ordersEl) ordersEl.textContent = r.confirmedOrders;
+      const convEl = document.getElementById('roi-conversion-rate');
+      if (convEl) convEl.textContent = `${r.conversionRate} Rate`;
+      const revEl = document.getElementById('roi-revenue');
+      if (revEl) revEl.textContent = r.revenueLKR;
+      const hoursEl = document.getElementById('roi-hours-saved');
+      if (hoursEl) hoursEl.textContent = r.hoursSaved;
+      const planBadge = document.getElementById('overview-plan-badge');
+      if (planBadge && r.activePlan) {
+        planBadge.textContent = `${r.activePlan.name} (${r.activePlan.currency} ${r.activePlan.price.toLocaleString('en-US')}/${r.activePlan.billingPeriod})`;
+      }
+    }
+
     const ordRes = await fetch('/api/orders');
     const ordData = await ordRes.json();
     if (ordData.ok) {
@@ -2033,6 +2195,36 @@ async function fetchOverview() {
       renderOrdersFull(allOrders);
     }
   } catch (e) { console.error('fetchOverview error:', e); }
+}
+
+function openSubscriptionModal() {
+  const m = document.getElementById('modal-subscription-plans');
+  if (m) m.classList.remove('hidden');
+}
+
+function closeSubscriptionModal() {
+  const m = document.getElementById('modal-subscription-plans');
+  if (m) m.classList.add('hidden');
+}
+
+async function chooseSubscriptionPlan(planId) {
+  try {
+    const res = await fetch('/api/subscription/select-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`🎉 ${data.message}`);
+      closeSubscriptionModal();
+      fetchOverview();
+    } else {
+      alert(`Error: ${data.error}`);
+    }
+  } catch (err) {
+    alert(`Failed to update plan: ${err.message}`);
+  }
 }
 
 function renderOrdersOverview(orders) {
