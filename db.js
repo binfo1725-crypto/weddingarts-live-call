@@ -5,6 +5,14 @@
 
 const fs = require('fs');
 const path = require('path');
+const dns = require('dns');
+
+let MongoClient;
+try {
+  MongoClient = require('mongodb').MongoClient;
+} catch (e) {}
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://binfo1725_db_user:XaALNX0uLpyVlCGx@cluster0.lx6kica.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'));
 const DB_FILE = path.join(DATA_DIR, 'database.json');
@@ -121,6 +129,7 @@ class Database {
       }
     };
     this.load();
+    this.initMongo().catch(err => console.warn('[db] MongoDB init error:', err.message));
   }
 
   load() {
@@ -168,8 +177,71 @@ class Database {
     } catch (e) {
       console.warn('[db] Failed to save DB file atomically:', e.message);
     }
-    // Asynchronously sync database snapshot to cloud storage if configured
+    // Asynchronously sync database snapshot to MongoDB Atlas and cloud storage if configured
+    this.syncToMongo().catch(() => {});
     this.syncToCloud().catch(() => {});
+  }
+
+  // ─── Native MongoDB Atlas Integration ─────────────────────────────────────────
+  async initMongo() {
+    if (!MongoClient || !MONGODB_URI) return;
+    try {
+      try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
+      const client = new MongoClient(MONGODB_URI);
+      await client.connect();
+      this.mongoClient = client;
+      this.mongoDb = client.db('omnisix');
+      this.mongoStateCol = this.mongoDb.collection('app_state');
+      this.mongoOrdersCol = this.mongoDb.collection('orders');
+      this.mongoProductsCol = this.mongoDb.collection('products');
+      console.log('🍃 [MongoDB Atlas] Connected successfully to Cloud Database (omnisix)!');
+
+      // Check if state exists in MongoDB
+      const doc = await this.mongoStateCol.findOne({ _id: 'omnisix_data' });
+      if (doc && doc.data && doc.data.businesses && doc.data.businesses.length > 0) {
+        const cloudData = doc.data;
+        if (Array.isArray(cloudData.orders) && cloudData.orders.length > 0) {
+          this.data.orders = cloudData.orders;
+        }
+        if (Array.isArray(cloudData.products) && cloudData.products.length > 0) {
+          this.data.products = cloudData.products;
+        }
+        if (Array.isArray(cloudData.chats) && cloudData.chats.length > 0) {
+          this.data.chats = cloudData.chats;
+        }
+        if (Array.isArray(cloudData.businesses) && cloudData.businesses.length > 0) {
+          this.data.businesses = cloudData.businesses;
+        }
+        if (cloudData.settings) {
+          this.data.settings = { ...this.data.settings, ...cloudData.settings };
+        }
+        if (Array.isArray(cloudData.customFlows) && cloudData.customFlows.length > 0) {
+          this.data.customFlows = cloudData.customFlows;
+        }
+        if (Array.isArray(cloudData.licenses) && cloudData.licenses.length > 0) {
+          this.data.licenses = cloudData.licenses;
+        }
+        console.log(`🍃 [MongoDB Atlas] Restored state from cloud: ${(this.data.orders || []).length} orders, ${(this.data.products || []).length} products, ${(this.data.chats || []).length} chats.`);
+      } else {
+        await this.syncToMongo();
+        console.log('🌱 [MongoDB Atlas] Initialized and seeded cloud database with baseline records.');
+      }
+    } catch (err) {
+      console.warn('⚠️ [MongoDB Atlas] Connection warning (falling back to local storage):', err.message);
+    }
+  }
+
+  async syncToMongo() {
+    if (!this.mongoStateCol) return;
+    try {
+      await this.mongoStateCol.updateOne(
+        { _id: 'omnisix_data' },
+        { $set: { data: this.data, lastUpdated: new Date() } },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.warn('[db] Error syncing state to MongoDB Atlas:', err.message);
+    }
   }
 
   async syncToCloud() {
