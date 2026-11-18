@@ -1185,6 +1185,7 @@
   }
 
 </style>
+  <link rel="stylesheet" href="/whatzi_suite.css">
 </head>
 <body style="background:#07080c;color:#f8fafc;">
 
@@ -1224,6 +1225,10 @@
   </div>
 
   <div class="nav-right">
+        <!-- Global Menu Search Bar -->
+        <input type="text" class="global-search-input" placeholder="🔍 Search menu..." oninput="filterSidebarMenu(this.value)" />
+        <button type="button" class="util-btn" id="theme-toggle-btn" onclick="toggleThemeMode()" title="Toggle Dark / Light Mode">☀️ Light</button>
+        <button type="button" class="util-btn" id="rtl-toggle-btn" onclick="toggleRTLMode()" title="Toggle LTR / RTL Mode">⇄ RTL</button>
     <!-- Language Switcher (Tri-Language: Sinhala, English, Tamil) -->
     <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:4px 10px;">
       <span style="display:inline-flex;align-items:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
@@ -1372,6 +1377,51 @@
       </div>
       <span data-i18n="navWhatsapp">WhatsApp Web Hub</span>
     </button>
+  
+    <!-- WHATZI CRM 1-10 FULL FEATURE SUITE MODULES -->
+    <button class="tab-btn" onclick="showTab('kanban')">
+      <div class="nav-pro-icon" style="background:rgba(255,0,85,0.12);color:#ff0055;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><rect width="6" height="14" x="4" y="5" rx="1"/><rect width="6" height="10" x="14" y="5" rx="1"/></svg>
+      </div>
+      <span>Kanban CRM & Deals</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('contacts')">
+      <div class="nav-pro-icon" style="background:rgba(14,165,233,0.12);color:#38bdf8;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <span>Contacts & Phonebook</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('forms')">
+      <div class="nav-pro-icon" style="background:rgba(168,85,247,0.12);color:#c084fc;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <span>WhatsApp Forms & Flows</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('warmer')">
+      <div class="nav-pro-icon" style="background:rgba(245,158,11,0.12);color:#fbbf24;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+      </div>
+      <span>WhatsApp Warmer Engine</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('developer')">
+      <div class="nav-pro-icon" style="background:rgba(16,185,129,0.12);color:#34d399;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <span>Developer REST API & Hooks</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('team')">
+      <div class="nav-pro-icon" style="background:rgba(236,72,153,0.12);color:#f472b6;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <span>Team & Web Widget</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('calls')">
+      <div class="nav-pro-icon" style="background:rgba(99,102,241,0.12);color:#818cf8;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </div>
+      <span>Voice Call Logs & Transcripts</span>
+    </button>
+
   </aside>
 
   <!-- Content Sections -->
@@ -2502,6 +2552,446 @@
         </table>
       </div>
     </section>
+
+  
+    <!-- ══════════ WHATZI CRM FULL FEATURE SECTIONS ══════════ -->
+
+    <!-- 1. KANBAN CRM & DEAL PIPELINE -->
+    <section id="tab-kanban" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#ff0055;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><rect width="6" height="14" x="4" y="5" rx="1"/><rect width="6" height="10" x="14" y="5" rx="1"/></svg></span>
+            Kanban CRM & Lead Deal Pipeline
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Drag & drop leads across sales pipeline stages. Track deal values and close rates in real-time.
+          </p>
+        </div>
+        <button class="btn-primary" onclick="openAddDealModal()">➕ Add New Deal</button>
+      </div>
+
+      <div class="kanban-board">
+        <!-- New Lead -->
+        <div class="kanban-col" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'new')">
+          <div class="kanban-col-header">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;color:#38bdf8;">📥 New Leads</span>
+              <span id="kanban-count-new" class="deal-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;margin-left:6px;">0</span>
+            </div>
+            <div id="kanban-val-new" style="font-size:0.75rem;font-weight:700;color:var(--text-muted);">Rs. 0</div>
+          </div>
+          <div class="kanban-cards-list" id="kanban-list-new"></div>
+        </div>
+
+        <!-- Contacted -->
+        <div class="kanban-col" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'contacted')">
+          <div class="kanban-col-header">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;color:#fbbf24;">💬 Contacted</span>
+              <span id="kanban-count-contacted" class="deal-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24;margin-left:6px;">0</span>
+            </div>
+            <div id="kanban-val-contacted" style="font-size:0.75rem;font-weight:700;color:var(--text-muted);">Rs. 0</div>
+          </div>
+          <div class="kanban-cards-list" id="kanban-list-contacted"></div>
+        </div>
+
+        <!-- Proposal Sent -->
+        <div class="kanban-col" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'proposal')">
+          <div class="kanban-col-header">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;color:#c084fc;">📑 Proposal Sent</span>
+              <span id="kanban-count-proposal" class="deal-badge" style="background:rgba(192,132,252,0.15);color:#c084fc;margin-left:6px;">0</span>
+            </div>
+            <div id="kanban-val-proposal" style="font-size:0.75rem;font-weight:700;color:var(--text-muted);">Rs. 0</div>
+          </div>
+          <div class="kanban-cards-list" id="kanban-list-proposal"></div>
+        </div>
+
+        <!-- Won / Closed -->
+        <div class="kanban-col" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'won')">
+          <div class="kanban-col-header">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;color:#34d399;">🏆 Won / Paid</span>
+              <span id="kanban-count-won" class="deal-badge" style="background:rgba(52,211,153,0.15);color:#34d399;margin-left:6px;">0</span>
+            </div>
+            <div id="kanban-val-won" style="font-size:0.75rem;font-weight:700;color:#34d399;">Rs. 0</div>
+          </div>
+          <div class="kanban-cards-list" id="kanban-list-won"></div>
+        </div>
+
+        <!-- Lost -->
+        <div class="kanban-col" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'lost')">
+          <div class="kanban-col-header">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;color:#f43f5e;">❌ Lost</span>
+              <span id="kanban-count-lost" class="deal-badge" style="background:rgba(244,63,94,0.15);color:#f43f5e;margin-left:6px;">0</span>
+            </div>
+            <div id="kanban-val-lost" style="font-size:0.75rem;font-weight:700;color:var(--text-muted);">Rs. 0</div>
+          </div>
+          <div class="kanban-cards-list" id="kanban-list-lost"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CONTACTS & ADVANCED PHONEBOOK -->
+    <section id="tab-contacts" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#38bdf8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            Contacts & Advanced Phonebook
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Manage customer lists, group segments, and custom broadcast parameters ({{name}}, {{var1}}, {{var2}}).
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <label class="btn-secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:0.84rem;">
+            📥 Import CSV / Excel
+            <input type="file" accept=".csv,.txt" onchange="handleCsvFileSelect(event)" style="display:none;" />
+          </label>
+          <button class="btn-primary" onclick="openAddContactModal()">➕ Add Contact</button>
+        </div>
+      </div>
+
+      <div id="contacts-groups-chips" class="variable-chips-container" style="margin-bottom:16px;"></div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>WhatsApp Phone</th>
+              <th>Group Segment</th>
+              <th>Custom Variables</th>
+              <th>Direct Action</th>
+              <th>Remove</th>
+            </tr>
+          </thead>
+          <tbody id="contacts-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. WHATSAPP INTERACTIVE FORMS & FLOWS -->
+    <section id="tab-forms" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#c084fc;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+            WhatsApp Interactive Forms & Flows Builder
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Build native interactive forms directly inside WhatsApp messages with zero coding.
+          </p>
+        </div>
+        <button class="btn-primary" onclick="openCreateFormModal()">➕ Create WhatsApp Form</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;">
+        <div id="forms-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+        
+        <!-- Live WhatsApp Phone Simulator -->
+        <div>
+          <div style="font-size:0.85rem;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center;">
+            📱 Live WhatsApp Interactive Simulator
+          </div>
+          <div class="phone-mockup-wrapper">
+            <div class="phone-mockup-header">
+              <span style="color:#25d366;">💬</span> WhatsApp Interactive Form
+            </div>
+            <div class="phone-mockup-body" id="phone-simulator-body">
+              <div style="text-align:center;color:#64748b;font-size:0.8rem;padding-top:140px;">
+                Select a form on the left to preview it in this WhatsApp simulator.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. WHATSAPP NUMBER WARMER ENGINE -->
+    <section id="tab-warmer" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#fbbf24;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
+            WhatsApp Number Warmer Engine (Anti-Ban P2P Simulator)
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Exchanges realistic peer-to-peer dialogues between connected WhatsApp lines to raise trust score before sending broadcasts.
+          </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="warmer-status-pill" style="font-size:0.85rem;font-weight:800;">⏸️ STOPPED</span>
+          <label style="position:relative;display:inline-block;width:52px;height:28px;">
+            <input type="checkbox" id="warmer-toggle-checkbox" onchange="toggleWarmer(this.checked)" style="opacity:0;width:0;height:0;">
+            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#334155;border-radius:34px;transition:0.3s;" onclick="this.previousElementSibling.click()"></span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <!-- Scripts Manager -->
+        <div style="background:#0b0d14;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;">
+          <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;">💬 Warmer Q&A Script Pool</h4>
+          <form id="form-add-warmer-script" onsubmit="submitAddWarmerScript(event)" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+            <input type="text" id="warmer-q-input" class="form-input" placeholder="Question from Account A (e.g. Do you deliver to Colombo?)" required />
+            <input type="text" id="warmer-a-input" class="form-input" placeholder="Answer from Account B (e.g. Yes! Islandwide 2-3 days delivery)" required />
+            <button type="submit" class="btn-primary" style="padding:8px 14px;font-size:0.82rem;">➕ Add Dialogue Pair</button>
+          </form>
+          <div class="table-responsive" style="max-height:220px;margin:0;">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Q&A Dialogue</th><th>Del</th></tr>
+              </thead>
+              <tbody id="warmer-scripts-list"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Terminal Logs -->
+        <div style="background:#0b0d14;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin:0;">📟 Real-time Simulated Dialogue Feed</h4>
+            <button class="btn-secondary" onclick="clearWarmerLogs()" style="padding:4px 10px;font-size:0.75rem;">Clear Logs</button>
+          </div>
+          <div class="warmer-terminal" id="warmer-terminal-logs"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. DEVELOPER REST API & WEBHOOKS -->
+    <section id="tab-developer" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#34d399;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+            Developer REST API & Webhook Dispatcher
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Programmatic API tokens, WhatsApp REST sender, and outbound webhook event triggers for external systems.
+          </p>
+        </div>
+        <button class="btn-primary" onclick="generateApiKey()">🔑 Generate New API Key</button>
+      </div>
+
+      <!-- API Key List -->
+      <div style="margin-bottom:24px;">
+        <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Active Programmatic API Keys</h4>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr><th>Label</th><th>Bearer API Key</th><th>Created</th><th>Revoke</th></tr>
+            </thead>
+            <tbody id="api-keys-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Interactive cURL Documentation -->
+      <div style="background:#0b0d14;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;margin-bottom:24px;">
+        <h4 style="font-size:0.95rem;font-weight:700;color:#ff0055;margin-bottom:8px;">🚀 Quick REST API Endpoint: Send Message</h4>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;background:#050608;padding:14px;border-radius:10px;color:#cbd5e1;line-height:1.6;overflow-x:auto;">
+          curl -X POST "${window.location.origin}/api/qr/rest/send_message" \<br>
+          &nbsp;&nbsp;-H "Authorization: Bearer sk_live_YOUR_API_KEY" \<br>
+          &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+          &nbsp;&nbsp;-d '{"to": "94771234567", "messageType": "text", "text": "Hello from OmniSix API!"}'
+        </div>
+      </div>
+
+      <!-- Webhooks Configuration -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div style="background:#0b0d14;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;">
+          <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Add Outbound Webhook</h4>
+          <form id="form-add-webhook" onsubmit="submitAddWebhook(event)" style="display:flex;flex-direction:column;gap:12px;">
+            <input type="url" id="webhook-url-input" class="form-input" placeholder="https://your-webhook-endpoint.com/webhook" required />
+            <button type="submit" class="btn-primary" style="padding:8px 14px;font-size:0.82rem;">🔗 Save Webhook</button>
+          </form>
+        </div>
+        <div style="background:#0b0d14;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;">
+          <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Configured Webhooks</h4>
+          <div class="table-responsive" style="margin:0;">
+            <table>
+              <thead>
+                <tr><th>URL</th><th>Events</th><th>Status</th><th>Del</th></tr>
+              </thead>
+              <tbody id="webhooks-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. TEAM & WEBSITE EMBED WIDGET -->
+    <section id="tab-team" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#f472b6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            Team Collaboration & Embeddable Web Widget
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Manage multi-agent team roles (Admin, Sales, Support) and embed live floating chat widget into your website.
+          </p>
+        </div>
+        <button class="btn-primary" onclick="copyWidgetSnippet()">📋 Copy Website Widget Script</button>
+      </div>
+
+      <div style="background:#0b0d14;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;margin-bottom:24px;">
+        <h4 style="font-size:0.95rem;font-weight:700;color:#f472b6;margin-bottom:8px;">🌐 Embeddable Website Widget Code</h4>
+        <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;">Copy and paste this single script line into any website HTML before &lt;/body&gt; to show the OmniSix floating WhatsApp & AI Assistant:</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:#050608;padding:12px;border-radius:10px;color:#38bdf8;">
+          &lt;script src="${window.location.origin}/widget.js"&gt;&lt;/script&gt;
+        </div>
+      </div>
+
+      <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;">Active Team Agents</h4>
+      <div id="team-agents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+    </section>
+
+    <!-- 7. VOICE CALL LOGS & TRANSCRIPTS -->
+    <section id="tab-calls" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;color:#818cf8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+            Voice Call Logs & AI Transcripts
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
+            Comprehensive audit log of live voice calls, Sinhala/Singlish AI speech transcriptions, and recordings.
+          </p>
+        </div>
+        <a href="/call" target="_blank" class="btn-primary" style="text-decoration:none;">🎙️ Open Live Voice Interface</a>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Phone Number</th>
+              <th>Direction</th>
+              <th>Call Status</th>
+              <th>Duration</th>
+              <th>Call Time</th>
+              <th>AI Transcription</th>
+              <th>Follow-up</th>
+            </tr>
+          </thead>
+          <tbody id="call-logs-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MODALS FOR WHATZI CRM -->
+    <!-- Modal Add Deal -->
+    <div id="modal-add-deal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#10121b;border:1px solid rgba(255,0,85,0.3);border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:0 15px 40px rgba(0,0,0,0.8);">
+        <h3 style="color:#fff;margin:0 0 16px 0;font-size:1.15rem;">➕ Add New Deal Opportunity</h3>
+        <form id="form-add-deal" onsubmit="submitAddDeal(event)" style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label class="form-label">Deal Title</label>
+            <input type="text" id="deal-title-input" class="form-input" placeholder="e.g. Wedding Photo Album Order" required />
+          </div>
+          <div>
+            <label class="form-label">Customer Name</label>
+            <input type="text" id="deal-contact-name" class="form-input" placeholder="Customer Full Name" required />
+          </div>
+          <div>
+            <label class="form-label">WhatsApp Number</label>
+            <input type="text" id="deal-contact-phone" class="form-input" placeholder="94771234567" required />
+          </div>
+          <div>
+            <label class="form-label">Deal Value (Rs.)</label>
+            <input type="number" id="deal-value-input" class="form-input" placeholder="15000" required />
+          </div>
+          <div>
+            <label class="form-label">Pipeline Stage</label>
+            <select id="deal-stage-select" class="form-select">
+              <option value="new">New Lead</option>
+              <option value="contacted">Contacted</option>
+              <option value="proposal">Proposal Sent</option>
+              <option value="won">Won / Paid</option>
+              <option value="lost">Lost</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="submit" class="btn-primary" style="flex:1;">Save Deal</button>
+            <button type="button" class="btn-secondary" onclick="closeAddDealModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Add Contact -->
+    <div id="modal-add-contact" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#10121b;border:1px solid rgba(56,189,248,0.3);border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:0 15px 40px rgba(0,0,0,0.8);">
+        <h3 style="color:#fff;margin:0 0 16px 0;font-size:1.15rem;">➕ Add Contact</h3>
+        <form id="form-add-contact" onsubmit="submitAddContact(event)" style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label class="form-label">Customer Name</label>
+            <input type="text" id="cnt-name-input" class="form-input" placeholder="Full Name" required />
+          </div>
+          <div>
+            <label class="form-label">WhatsApp Number</label>
+            <input type="text" id="cnt-phone-input" class="form-input" placeholder="94771234567" required />
+          </div>
+          <div>
+            <label class="form-label">Group Segment</label>
+            <select id="cnt-group-select" class="form-select">
+              <option value="All Customers">All Customers</option>
+              <option value="VIP Clients">VIP Clients</option>
+              <option value="New Inquiries">New Inquiries</option>
+              <option value="Wholesale Buyers">Wholesale Buyers</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Variable 1 (e.g. City or Product)</label>
+            <input type="text" id="cnt-var1-input" class="form-input" placeholder="Kandy" />
+          </div>
+          <div>
+            <label class="form-label">Variable 2 (e.g. Due Date or Code)</label>
+            <input type="text" id="cnt-var2-input" class="form-input" placeholder="VIP-2026" />
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="submit" class="btn-primary" style="flex:1;">Save Contact</button>
+            <button type="button" class="btn-secondary" onclick="closeAddContactModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Create Form -->
+    <div id="modal-create-form" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#10121b;border:1px solid rgba(192,132,252,0.3);border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:0 15px 40px rgba(0,0,0,0.8);">
+        <h3 style="color:#fff;margin:0 0 16px 0;font-size:1.15rem;">📝 Create WhatsApp Interactive Form</h3>
+        <form id="form-create-interactive" onsubmit="submitCreateForm(event)" style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label class="form-label">Form Title</label>
+            <input type="text" id="form-name-input" class="form-input" placeholder="e.g. Wedding Photo Package Inquiry Form" required />
+          </div>
+          <div>
+            <label class="form-label">Trigger Keyword</label>
+            <input type="text" id="form-trigger-keyword" class="form-input" placeholder="e.g. order, book, form" required />
+          </div>
+          <div>
+            <label class="form-label">Form Fields</label>
+            <div id="form-fields-editor-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;max-height:160px;overflow-y:auto;"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="btn-secondary" onclick="addFieldToActiveForm('text')" style="padding:4px 8px;font-size:0.75rem;">+ Text</button>
+              <button type="button" class="btn-secondary" onclick="addFieldToActiveForm('phone')" style="padding:4px 8px;font-size:0.75rem;">+ Phone</button>
+              <button type="button" class="btn-secondary" onclick="addFieldToActiveForm('dropdown')" style="padding:4px 8px;font-size:0.75rem;">+ Dropdown</button>
+              <button type="button" class="btn-secondary" onclick="addFieldToActiveForm('date')" style="padding:4px 8px;font-size:0.75rem;">+ Date</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button type="submit" class="btn-primary" style="flex:1;">Save & Publish Form</button>
+            <button type="button" class="btn-secondary" onclick="closeCreateFormModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
   </main>
 </div>
@@ -5805,5 +6295,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+  <script src="/whatzi_suite.js"></script>
 </body>
 </html>

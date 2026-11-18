@@ -1213,6 +1213,515 @@ class Database {
     };
   }
 
+    // ─── 1. WhatsApp Number Warmer Engine ────────────────────────────────────────
+  getWarmer() {
+    this.initDefaults();
+    return this.data.warmer;
+  }
+
+  updateWarmer(settings = {}) {
+    this.initDefaults();
+    this.data.warmer = { ...this.data.warmer, ...settings };
+    this.save();
+    return this.data.warmer;
+  }
+
+  addWarmerScript(question, answer) {
+    this.initDefaults();
+    const script = {
+      id: 'ws_' + Date.now(),
+      question: String(question || '').trim(),
+      answer: String(answer || '').trim()
+    };
+    if (script.question && script.answer) {
+      this.data.warmer.scripts.push(script);
+      this.save();
+    }
+    return this.data.warmer.scripts;
+  }
+
+  deleteWarmerScript(id) {
+    this.initDefaults();
+    this.data.warmer.scripts = this.data.warmer.scripts.filter(s => s.id !== id);
+    this.save();
+    return this.data.warmer.scripts;
+  }
+
+  logWarmerEvent(event) {
+    this.initDefaults();
+    if (!this.data.warmer.logs) this.data.warmer.logs = [];
+    const entry = {
+      id: 'wlog_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      timestamp: new Date().toISOString(),
+      ...event
+    };
+    this.data.warmer.logs.unshift(entry);
+    if (this.data.warmer.logs.length > 100) this.data.warmer.logs.length = 100;
+    this.save();
+    return entry;
+  }
+
+  clearWarmerLogs() {
+    this.initDefaults();
+    this.data.warmer.logs = [];
+    this.save();
+    return { ok: true };
+  }
+
+  // ─── 2. Contact Management & Advanced Phonebook ──────────────────────────────
+  getContacts(businessId = null) {
+    this.initDefaults();
+    if (!businessId || businessId === 'all') return this.data.contacts;
+    return this.data.contacts.filter(c => !c.businessId || c.businessId === businessId);
+  }
+
+  saveContact(contact) {
+    this.initDefaults();
+    const id = contact.id || ('cnt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6));
+    const idx = this.data.contacts.findIndex(c => c.id === id);
+    const cleanPhone = String(contact.phone || '').replace(/\D/g, '');
+    const entry = {
+      id,
+      name: contact.name || 'New Contact',
+      phone: cleanPhone,
+      group: contact.group || 'All Customers',
+      var1: contact.var1 || '',
+      var2: contact.var2 || '',
+      var3: contact.var3 || '',
+      var4: contact.var4 || '',
+      var5: contact.var5 || '',
+      tags: contact.tags || [],
+      businessId: contact.businessId || 'weddingarts',
+      updatedAt: new Date().toISOString()
+    };
+    if (idx >= 0) {
+      this.data.contacts[idx] = { ...this.data.contacts[idx], ...entry };
+    } else {
+      this.data.contacts.push(entry);
+    }
+    this.save();
+    return entry;
+  }
+
+  bulkImportContacts(businessId, contactsList = []) {
+    this.initDefaults();
+    let imported = 0;
+    contactsList.forEach(c => {
+      const cleanPhone = String(c.phone || c.mobile || '').replace(/\D/g, '');
+      if (cleanPhone.length >= 9) {
+        this.saveContact({
+          name: c.name || 'Imported Customer',
+          phone: cleanPhone,
+          group: c.group || 'All Customers',
+          var1: c.var1 || '',
+          var2: c.var2 || '',
+          var3: c.var3 || '',
+          var4: c.var4 || '',
+          var5: c.var5 || '',
+          businessId: businessId || 'weddingarts'
+        });
+        imported++;
+      }
+    });
+    return { ok: true, imported, total: this.data.contacts.length };
+  }
+
+  deleteContact(id) {
+    this.initDefaults();
+    this.data.contacts = this.data.contacts.filter(c => c.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  getContactGroups(businessId = null) {
+    this.initDefaults();
+    const contacts = this.getContacts(businessId);
+    return this.data.contactGroups.map(grp => {
+      const count = contacts.filter(c => c.group === grp.name || (grp.name === 'All Customers')).length;
+      return { ...grp, count };
+    });
+  }
+
+  // ─── 3. Kanban CRM & Deal Pipeline ───────────────────────────────────────────
+  getKanbanDeals(businessId = null) {
+    this.initDefaults();
+    if (!businessId || businessId === 'all') return this.data.kanbanDeals;
+    return this.data.kanbanDeals.filter(d => !d.businessId || d.businessId === businessId);
+  }
+
+  saveKanbanDeal(deal) {
+    this.initDefaults();
+    const id = deal.id || ('deal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6));
+    const idx = this.data.kanbanDeals.findIndex(d => d.id === id);
+    const entry = {
+      id,
+      title: deal.title || 'New Deal Opportunity',
+      contactName: deal.contactName || 'Lead Customer',
+      contactPhone: deal.contactPhone || '',
+      dealValue: Number(deal.dealValue) || 0,
+      stage: deal.stage || 'new', // new, contacted, proposal, won, lost
+      tags: deal.tags || ['Inquiry'],
+      assignedTo: deal.assignedTo || 'Unassigned',
+      notes: deal.notes || [],
+      businessId: deal.businessId || 'weddingarts',
+      updatedAt: new Date().toISOString()
+    };
+    if (idx >= 0) {
+      this.data.kanbanDeals[idx] = { ...this.data.kanbanDeals[idx], ...entry };
+    } else {
+      this.data.kanbanDeals.push(entry);
+    }
+    this.save();
+    return entry;
+  }
+
+  updateDealStage(id, stage) {
+    this.initDefaults();
+    const deal = this.data.kanbanDeals.find(d => d.id === id);
+    if (deal) {
+      deal.stage = stage;
+      deal.updatedAt = new Date().toISOString();
+      this.save();
+      return deal;
+    }
+    return null;
+  }
+
+  deleteKanbanDeal(id) {
+    this.initDefaults();
+    this.data.kanbanDeals = this.data.kanbanDeals.filter(d => d.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  // ─── 4. WhatsApp Interactive Forms & Flows ──────────────────────────────────
+  getForms(businessId = null) {
+    this.initDefaults();
+    if (!businessId || businessId === 'all') return this.data.forms;
+    return this.data.forms.filter(f => !f.businessId || f.businessId === businessId);
+  }
+
+  saveForm(form) {
+    this.initDefaults();
+    const id = form.id || ('form_' + Date.now());
+    const idx = this.data.forms.findIndex(f => f.id === id);
+    const entry = {
+      id,
+      name: form.name || 'Customer Intake Form',
+      description: form.description || '',
+      triggerKeyword: form.triggerKeyword || 'form',
+      fields: form.fields || [
+        { id: 'f_name', type: 'text', label: 'Full Name', required: true },
+        { id: 'f_phone', type: 'phone', label: 'WhatsApp Phone Number', required: true },
+        { id: 'f_service', type: 'dropdown', label: 'Preferred Service', options: ['Western Photo Retouching', 'Frameless UV Wall Art', 'Custom Gift Package'], required: true },
+        { id: 'f_notes', type: 'textarea', label: 'Special Instructions', required: false }
+      ],
+      businessId: form.businessId || 'weddingarts',
+      createdAt: form.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (idx >= 0) {
+      this.data.forms[idx] = { ...this.data.forms[idx], ...entry };
+    } else {
+      this.data.forms.push(entry);
+    }
+    this.save();
+    return entry;
+  }
+
+  deleteForm(id) {
+    this.initDefaults();
+    this.data.forms = this.data.forms.filter(f => f.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  // ─── 5. Developer REST API & Webhooks ────────────────────────────────────────
+  getApiKeys(businessId = null) {
+    this.initDefaults();
+    if (!businessId || businessId === 'all') return this.data.apiKeys;
+    return this.data.apiKeys.filter(k => !k.businessId || k.businessId === businessId);
+  }
+
+  createApiKey(businessId = 'weddingarts', label = 'Production API Key') {
+    this.initDefaults();
+    const key = 'sk_live_' + Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const entry = {
+      id: 'key_' + Date.now(),
+      key,
+      label,
+      businessId,
+      createdAt: new Date().toISOString(),
+      lastUsed: null
+    };
+    this.data.apiKeys.push(entry);
+    this.save();
+    return entry;
+  }
+
+  revokeApiKey(id) {
+    this.initDefaults();
+    this.data.apiKeys = this.data.apiKeys.filter(k => k.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  validateApiKey(token) {
+    this.initDefaults();
+    if (!token) return null;
+    const clean = String(token).replace(/^Bearer\s+/i, '').trim();
+    const found = this.data.apiKeys.find(k => k.key === clean);
+    if (found) {
+      found.lastUsed = new Date().toISOString();
+      this.save();
+      return found;
+    }
+    return null;
+  }
+
+  getWebhooks(businessId = null) {
+    this.initDefaults();
+    if (!businessId || businessId === 'all') return this.data.webhooks;
+    return this.data.webhooks.filter(w => !w.businessId || w.businessId === businessId);
+  }
+
+  saveWebhook(webhook) {
+    this.initDefaults();
+    const id = webhook.id || ('wh_' + Date.now());
+    const idx = this.data.webhooks.findIndex(w => w.id === id);
+    const entry = {
+      id,
+      url: webhook.url,
+      events: webhook.events || ['message.received', 'order.confirmed', 'call.completed'],
+      status: webhook.status || 'active',
+      secret: webhook.secret || ('whsec_' + Math.random().toString(36).slice(2, 12)),
+      businessId: webhook.businessId || 'weddingarts',
+      createdAt: new Date().toISOString()
+    };
+    if (idx >= 0) {
+      this.data.webhooks[idx] = { ...this.data.webhooks[idx], ...entry };
+    } else {
+      this.data.webhooks.push(entry);
+    }
+    this.save();
+    return entry;
+  }
+
+  deleteWebhook(id) {
+    this.initDefaults();
+    this.data.webhooks = this.data.webhooks.filter(w => w.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  getWebhookLogs(businessId = null) {
+    this.initDefaults();
+    return this.data.webhookLogs.slice(0, 50);
+  }
+
+  logWebhookDispatch(log) {
+    this.initDefaults();
+    const entry = {
+      id: 'whlog_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      ...log
+    };
+    this.data.webhookLogs.unshift(entry);
+    if (this.data.webhookLogs.length > 100) this.data.webhookLogs.length = 100;
+    this.save();
+    return entry;
+  }
+
+  // ─── 6. Team Collaboration & Agents ─────────────────────────────────────────
+  getAgents(businessId = null) {
+    this.initDefaults();
+    return this.data.agents;
+  }
+
+  saveAgent(agent) {
+    this.initDefaults();
+    const id = agent.id || ('agt_' + Date.now());
+    const idx = this.data.agents.findIndex(a => a.id === id);
+    const entry = {
+      id,
+      name: agent.name || 'Agent',
+      email: agent.email || '',
+      role: agent.role || 'support', // admin, sales, support
+      active: agent.active !== false,
+      businessId: agent.businessId || 'weddingarts',
+      updatedAt: new Date().toISOString()
+    };
+    if (idx >= 0) {
+      this.data.agents[idx] = { ...this.data.agents[idx], ...entry };
+    } else {
+      this.data.agents.push(entry);
+    }
+    this.save();
+    return entry;
+  }
+
+  deleteAgent(id) {
+    this.initDefaults();
+    this.data.agents = this.data.agents.filter(a => a.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  // ─── 7. Chat Metadata (Notes, Tags, Status) & Quick Replies ─────────────────
+  getChatMetadata(chatId) {
+    this.initDefaults();
+    return this.data.chatMetadata[chatId] || {
+      status: 'open',
+      tags: [],
+      notes: []
+    };
+  }
+
+  saveChatNote(chatId, noteText, author = 'Agent') {
+    this.initDefaults();
+    if (!this.data.chatMetadata[chatId]) {
+      this.data.chatMetadata[chatId] = { status: 'open', tags: [], notes: [] };
+    }
+    const note = {
+      id: 'note_' + Date.now(),
+      text: noteText,
+      author,
+      timestamp: new Date().toISOString()
+    };
+    this.data.chatMetadata[chatId].notes.push(note);
+    this.save();
+    return note;
+  }
+
+  updateChatStatus(chatId, status) {
+    this.initDefaults();
+    if (!this.data.chatMetadata[chatId]) {
+      this.data.chatMetadata[chatId] = { status: 'open', tags: [], notes: [] };
+    }
+    this.data.chatMetadata[chatId].status = status; // open, pending, resolved
+    this.save();
+    return this.data.chatMetadata[chatId];
+  }
+
+  updateChatTags(chatId, tags = []) {
+    this.initDefaults();
+    if (!this.data.chatMetadata[chatId]) {
+      this.data.chatMetadata[chatId] = { status: 'open', tags: [], notes: [] };
+    }
+    this.data.chatMetadata[chatId].tags = tags;
+    this.save();
+    return this.data.chatMetadata[chatId];
+  }
+
+  getQuickReplies(businessId = null) {
+    this.initDefaults();
+    return this.data.quickReplies;
+  }
+
+  saveQuickReply(reply) {
+    this.initDefaults();
+    const id = reply.id || ('qr_' + Date.now());
+    const idx = this.data.quickReplies.findIndex(r => r.id === id);
+    const entry = {
+      id,
+      shortcut: String(reply.shortcut || '').toLowerCase().replace(/[^a-z0-9_-]/g, ''),
+      category: reply.category || 'General',
+      text: reply.text || ''
+    };
+    if (idx >= 0) {
+      this.data.quickReplies[idx] = { ...this.data.quickReplies[idx], ...entry };
+    } else {
+      this.data.quickReplies.push(entry);
+    }
+    this.save();
+    return entry;
+  }
+
+  deleteQuickReply(id) {
+    this.initDefaults();
+    this.data.quickReplies = this.data.quickReplies.filter(r => r.id !== id);
+    this.save();
+    return { ok: true };
+  }
+
+  // ─── 8. Voice Call Logs & Audio Transcriptions ──────────────────────────────
+  getCallLogs(businessId = null) {
+    this.initDefaults();
+    if (!businessId || businessId === 'all') return this.data.callLogs.slice(0, 50);
+    return this.data.callLogs.filter(c => !c.businessId || c.businessId === businessId).slice(0, 50);
+  }
+
+  recordCallLog(log) {
+    this.initDefaults();
+    const entry = {
+      id: 'call_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      number: log.number || 'Anonymous',
+      direction: log.direction || 'incoming', // incoming, outgoing
+      status: log.status || 'completed', // completed, missed, busy
+      duration: log.duration || '00:45',
+      timestamp: new Date().toISOString(),
+      audioUrl: log.audioUrl || '',
+      transcription: log.transcription || 'Call completed successfully via AI Live Voice Agent.',
+      businessId: log.businessId || 'weddingarts'
+    };
+    this.data.callLogs.unshift(entry);
+    if (this.data.callLogs.length > 200) this.data.callLogs.length = 200;
+    this.recordLiveCall();
+    this.save();
+    return entry;
+  }
+
+  initDefaults() {
+    if (!this.data) this.data = {};
+    if (!this.data.warmer) {
+      this.data.warmer = {
+        running: false,
+        intervalSeconds: 45,
+        minDelay: 20,
+        maxDelay: 60,
+        scripts: [
+          { id: 'ws_1', question: 'Hi, are your store products available for islandwide delivery?', answer: 'Yes, we provide 100% islandwide courier delivery in 2-3 business days!' },
+          { id: 'ws_2', question: 'Can I get the latest price catalog and sizes?', answer: 'Sure! I can send you our latest catalog with all prices and discounts.' },
+          { id: 'ws_3', question: 'How can I make the payment?', answer: 'You can deposit directly to our bank account or transfer via online banking.' },
+          { id: 'ws_4', question: 'Is advance payment required before confirmation?', answer: 'Yes, an advance payment confirms your order and starts processing immediately.' },
+          { id: 'ws_5', question: 'Do you offer custom package deals for events?', answer: 'Definitely! We have custom personalized packages tailored to your requirements.' }
+        ],
+        logs: []
+      };
+    }
+    if (!this.data.contacts) this.data.contacts = [];
+    if (!this.data.contactGroups) {
+      this.data.contactGroups = [
+        { id: 'grp_all', name: 'All Customers', count: 0 },
+        { id: 'grp_vip', name: 'VIP Clients', count: 0 },
+        { id: 'grp_leads', name: 'New Inquiries', count: 0 },
+        { id: 'grp_wholesale', name: 'Wholesale Buyers', count: 0 }
+      ];
+    }
+    if (!this.data.kanbanDeals) this.data.kanbanDeals = [];
+    if (!this.data.forms) this.data.forms = [];
+    if (!this.data.apiKeys) this.data.apiKeys = [];
+    if (!this.data.webhooks) this.data.webhooks = [];
+    if (!this.data.webhookLogs) this.data.webhookLogs = [];
+    if (!this.data.agents) {
+      this.data.agents = [
+        { id: 'agt_super', name: 'Master Executive', email: 'admin@omnisix.ai', role: 'admin', active: true },
+        { id: 'agt_sales1', name: 'Sales Agent (Kandy)', email: 'sales@omnisix.ai', role: 'sales', active: true },
+        { id: 'agt_supp1', name: 'Support Rep (General)', email: 'support@omnisix.ai', role: 'support', active: true }
+      ];
+    }
+    if (!this.data.chatMetadata) this.data.chatMetadata = {};
+    if (!this.data.quickReplies) {
+      this.data.quickReplies = [
+        { id: 'qr_greet', shortcut: 'hi', category: 'General', text: 'ආයුබෝවන්! අප හා සම්බන්ධ වූවාට ස්තූතියි. අද ඔබට උදව් කළ හැක්කේ කෙසේද?' },
+        { id: 'qr_bank', shortcut: 'bank', category: 'Payment', text: 'අපගේ බැංකු ගිණුම් විස්තර:\nBank of Ceylon (BOC)\nAccount: 92949122\nName: D T Rajapaksha\nBranch: Kandy' },
+        { id: 'qr_deliv', shortcut: 'delivery', category: 'Shipping', text: 'මුළු දිවයිනටම කුරියර් බෙදාහැරීම දින 2-3ක් ඇතුළත ලබාගත හැක.' },
+        { id: 'qr_thank', shortcut: 'thanks', category: 'General', text: 'ස්තූතියි! සුභ දවසක් වේවා!' }
+      ];
+    }
+    if (!this.data.callLogs) this.data.callLogs = [];
+  }
+
   updateBusinessPlan(businessId, planId) {
     const biz = this.getBusiness(businessId);
     if (biz && SUBSCRIPTION_PLANS[planId]) {

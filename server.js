@@ -1419,6 +1419,251 @@ app.post('/api/whatsapp/restart', async (req, res) => {
   }
 });
 
+// ─── 1. WhatsApp Number Warmer API ───────────────────────────────────────────
+app.get('/api/warmer', (req, res) => {
+  res.json({ ok: true, warmer: db.getWarmer() });
+});
+
+app.post('/api/warmer/toggle', (req, res) => {
+  const { running } = req.body;
+  const warmer = db.updateWarmer({ running: !!running });
+  res.json({ ok: true, warmer });
+});
+
+app.post('/api/warmer/settings', (req, res) => {
+  const { minDelay, maxDelay, intervalSeconds } = req.body;
+  const warmer = db.updateWarmer({
+    minDelay: Number(minDelay) || 20,
+    maxDelay: Number(maxDelay) || 60,
+    intervalSeconds: Number(intervalSeconds) || 45
+  });
+  res.json({ ok: true, warmer });
+});
+
+app.post('/api/warmer/scripts/add', (req, res) => {
+  const { question, answer } = req.body;
+  const scripts = db.addWarmerScript(question, answer);
+  res.json({ ok: true, scripts });
+});
+
+app.delete('/api/warmer/scripts/:id', (req, res) => {
+  const scripts = db.deleteWarmerScript(req.params.id);
+  res.json({ ok: true, scripts });
+});
+
+app.post('/api/warmer/logs/clear', (req, res) => {
+  res.json(db.clearWarmerLogs());
+});
+
+// ─── 2. Contact Management & Advanced Phonebook API ──────────────────────────
+app.get('/api/contacts', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({
+    ok: true,
+    contacts: db.getContacts(bId),
+    groups: db.getContactGroups(bId)
+  });
+});
+
+app.post('/api/contacts', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const contact = db.saveContact({ ...req.body, businessId: bId });
+  res.json({ ok: true, contact });
+});
+
+app.post('/api/contacts/bulk', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const { contacts } = req.body;
+  if (!Array.isArray(contacts)) {
+    return res.status(400).json({ ok: false, error: 'contacts array is required.' });
+  }
+  const result = db.bulkImportContacts(bId, contacts);
+  res.json(result);
+});
+
+app.delete('/api/contacts/:id', (req, res) => {
+  res.json(db.deleteContact(req.params.id));
+});
+
+app.get('/api/contacts/groups', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, groups: db.getContactGroups(bId) });
+});
+
+// ─── 3. Kanban CRM & Deal Pipeline API ───────────────────────────────────────
+app.get('/api/kanban/deals', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, deals: db.getKanbanDeals(bId) });
+});
+
+app.post('/api/kanban/deals', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const deal = db.saveKanbanDeal({ ...req.body, businessId: bId });
+  res.json({ ok: true, deal });
+});
+
+app.post('/api/kanban/deals/:id/stage', (req, res) => {
+  const { stage } = req.body;
+  const deal = db.updateDealStage(req.params.id, stage);
+  if (deal) res.json({ ok: true, deal });
+  else res.status(404).json({ ok: false, error: 'Deal not found.' });
+});
+
+app.delete('/api/kanban/deals/:id', (req, res) => {
+  res.json(db.deleteKanbanDeal(req.params.id));
+});
+
+// ─── 4. WhatsApp Interactive Forms & Flows API ──────────────────────────────
+app.get('/api/forms', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, forms: db.getForms(bId) });
+});
+
+app.post('/api/forms', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const form = db.saveForm({ ...req.body, businessId: bId });
+  res.json({ ok: true, form });
+});
+
+app.delete('/api/forms/:id', (req, res) => {
+  res.json(db.deleteForm(req.params.id));
+});
+
+// ─── 5. Developer REST API & Webhooks ────────────────────────────────────────
+app.get('/api/developer/keys', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, keys: db.getApiKeys(bId) });
+});
+
+app.post('/api/developer/keys', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const { label } = req.body;
+  const key = db.createApiKey(bId, label || 'Production Key');
+  res.json({ ok: true, key });
+});
+
+app.delete('/api/developer/keys/:id', (req, res) => {
+  res.json(db.revokeApiKey(req.params.id));
+});
+
+app.get('/api/developer/webhooks', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({
+    ok: true,
+    webhooks: db.getWebhooks(bId),
+    logs: db.getWebhookLogs(bId)
+  });
+});
+
+app.post('/api/developer/webhooks', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const webhook = db.saveWebhook({ ...req.body, businessId: bId });
+  res.json({ ok: true, webhook });
+});
+
+app.delete('/api/developer/webhooks/:id', (req, res) => {
+  res.json(db.deleteWebhook(req.params.id));
+});
+
+app.get('/api/developer/webhook-logs', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, logs: db.getWebhookLogs(bId) });
+});
+
+// ─── Public Developer Message Sending REST API (Whatzi REST Compatible) ──────
+app.all('/api/qr/rest/send_message', async (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-api-key'] || (req.query && req.query.token);
+  const apiKey = db.validateApiKey(authHeader);
+
+  // If not validated via API Key, allow if Admin Session or Tenant Key is valid
+  if (!apiKey && !isAdminReq(req) && !isTenantReq(req)) {
+    return res.status(401).json({
+      ok: false,
+      error: 'Unauthorized: Valid Bearer API Token or X-API-KEY required.'
+    });
+  }
+
+  const payload = req.method === 'GET' ? req.query : req.body;
+  const result = await waEngine.sendRestMessage(payload);
+  if (result.ok) {
+    res.json({ ok: true, result });
+  } else {
+    res.status(400).json({ ok: false, error: result.error || 'Failed to dispatch WhatsApp message.' });
+  }
+});
+
+// ─── 6. Team Collaboration & Agents API ──────────────────────────────────────
+app.get('/api/team/agents', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, agents: db.getAgents(bId) });
+});
+
+app.post('/api/team/agents', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const agent = db.saveAgent({ ...req.body, businessId: bId });
+  res.json({ ok: true, agent });
+});
+
+app.delete('/api/team/agents/:id', (req, res) => {
+  res.json(db.deleteAgent(req.params.id));
+});
+
+// ─── 7. Chat Metadata & Quick Replies ────────────────────────────────────────
+app.get('/api/chats/:id/metadata', (req, res) => {
+  res.json({ ok: true, metadata: db.getChatMetadata(req.params.id) });
+});
+
+app.post('/api/chats/:id/notes', (req, res) => {
+  const { text, author } = req.body;
+  const note = db.saveChatNote(req.params.id, text, author || 'Agent');
+  res.json({ ok: true, note });
+});
+
+app.post('/api/chats/:id/status', (req, res) => {
+  const { status } = req.body;
+  const meta = db.updateChatStatus(req.params.id, status || 'open');
+  res.json({ ok: true, metadata: meta });
+});
+
+app.post('/api/chats/:id/tags', (req, res) => {
+  const { tags } = req.body;
+  const meta = db.updateChatTags(req.params.id, tags || []);
+  res.json({ ok: true, metadata: meta });
+});
+
+app.get('/api/quick-replies', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, quickReplies: db.getQuickReplies(bId) });
+});
+
+app.post('/api/quick-replies', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const reply = db.saveQuickReply(req.body);
+  res.json({ ok: true, reply });
+});
+
+app.delete('/api/quick-replies/:id', (req, res) => {
+  res.json(db.deleteQuickReply(req.params.id));
+});
+
+// ─── 8. Voice Call Logs API ──────────────────────────────────────────────────
+app.get('/api/calls/logs', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, logs: db.getCallLogs(bId) });
+});
+
+app.post('/api/calls/logs', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const log = db.recordCallLog({ ...req.body, businessId: bId });
+  res.json({ ok: true, log });
+});
+
+// ─── 9. Website Embeddable Floating Chat Widget Script ───────────────────────
+app.get('/widget.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'public', 'widget.js'));
+});
+
 // ─── Master Dataset Upload (.TXT & .PDF) ─────────────────────────────────────
 app.post('/api/dataset/upload', datasetUploadLimiter, async (req, res) => {
   try {

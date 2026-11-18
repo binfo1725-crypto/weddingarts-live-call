@@ -1,0 +1,266 @@
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* WHATZI CRM 1-10 FULL FEATURE SUITE CSS                                      */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Global Top Bar Search & Utility Controls */
+.global-search-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  outline: none;
+  width: 170px;
+  transition: all 0.2s;
+}
+.global-search-input:focus {
+  width: 220px;
+  border-color: #ff0055;
+  box-shadow: 0 0 12px rgba(255, 0, 85, 0.35);
+}
+
+.util-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+.util-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 0, 85, 0.4);
+}
+
+/* Light Theme Overrides */
+body.light-theme {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+body.light-theme .navbar {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+body.light-theme .sidebar,
+body.light-theme .glass-card,
+body.light-theme .metric-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+body.light-theme .tab-btn {
+  color: #475569 !important;
+}
+body.light-theme .tab-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+body.light-theme .form-input,
+body.light-theme .form-select,
+body.light-theme .form-textarea {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+body.light-theme .kanban-col {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+body.light-theme .kanban-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* RTL Layout Mode */
+body[dir="rtl"] .dashboard-container {
+  direction: rtl;
+}
+body[dir="rtl"] .sidebar {
+  text-align: right;
+}
+body[dir="rtl"] .tab-btn {
+  text-align: right;
+}
+
+/* 1. Kanban CRM & Deal Pipeline Styles */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(280px, 1fr));
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scrollbar-width: thin;
+}
+.kanban-col {
+  background: #0b0d16;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  max-height: 720px;
+}
+.kanban-col-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kanban-cards-list {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 200px;
+}
+.kanban-card {
+  background: #121524;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: grab;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.kanban-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 0, 85, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+.kanban-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.96);
+}
+.deal-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+/* 2. WhatsApp Number Warmer Terminal */
+.warmer-terminal {
+  background: #05060a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: #38bdf8;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.warmer-log-entry {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  padding-bottom: 4px;
+}
+
+/* 3. Anti-Ban Broadcast Chips */
+.variable-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px 0;
+}
+.var-chip {
+  background: rgba(255, 0, 85, 0.12);
+  border: 1px solid rgba(255, 0, 85, 0.3);
+  color: #ff4d6d;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.var-chip:hover {
+  background: #ff0055;
+  color: #ffffff;
+}
+
+/* 4. Interactive Forms Phone Simulator */
+.phone-mockup-wrapper {
+  width: 320px;
+  height: 560px;
+  border: 10px solid #1a1e30;
+  border-radius: 36px;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 0, 85, 0.15);
+  background: #0b0d14;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.phone-mockup-header {
+  background: #0f1322;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.phone-mockup-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 5. Audio Player in Voice Logs */
+.voice-audio-player {
+  height: 32px;
+  outline: none;
+  border-radius: 20px;
+  filter: invert(0.9) hue-rotate(180deg);
+}
+
+/* 6. Live Chat Inbox Filter Tabs */
+.inbox-filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #0b0d16;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.inbox-filter-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.inbox-filter-btn.active,
+.inbox-filter-btn:hover {
+  background: rgba(255, 0, 85, 0.15);
+  border-color: #ff0055;
+  color: #ffffff;
+}
