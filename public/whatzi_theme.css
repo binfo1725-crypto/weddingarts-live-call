@@ -1,0 +1,510 @@
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* WHATZI CRM v6.2.0 PIXEL-PERFECT THEME ENGINE                                */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --wz-bg-page: #090d16;
+  --wz-bg-sidebar: #0f141f;
+  --wz-bg-navbar: #0d111a;
+  --wz-bg-card: #131926;
+  --wz-bg-card-subtle: #0d121c;
+  --wz-bg-hover: rgba(255, 255, 255, 0.04);
+  --wz-border: rgba(255, 255, 255, 0.08);
+  --wz-border-subtle: rgba(255, 255, 255, 0.05);
+  --wz-border-active: rgba(34, 197, 94, 0.4);
+  
+  --wz-primary-green: #22c55e;
+  --wz-primary-green-glow: rgba(34, 197, 94, 0.25);
+  --wz-primary-green-light: rgba(34, 197, 94, 0.12);
+  --wz-primary-blue: #2563eb;
+  --wz-primary-blue-glow: rgba(37, 99, 235, 0.35);
+  
+  --wz-text-primary: #f8fafc;
+  --wz-text-secondary: #cbd5e1;
+  --wz-text-muted: #8b9bb4;
+  --wz-text-dim: #64748b;
+  
+  --wz-shadow-card: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --wz-shadow-glow: 0 0 20px rgba(34, 197, 94, 0.2);
+}
+
+/* Base resets & Dark Page Body */
+body {
+  background-color: var(--wz-bg-page) !important;
+  color: var(--wz-text-primary) !important;
+  font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* ════════ TOP NAVBAR (WHATZI MINIMAL SAAS STYLE) ════════ */
+.navbar {
+  background: var(--wz-bg-navbar) !important;
+  border-bottom: 1px solid var(--wz-border) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  padding: 10px 24px !important;
+  height: 64px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3) !important;
+}
+
+.nav-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+/* Whatzi Breadcrumb Trail */
+.whatzi-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--wz-text-muted);
+}
+.whatzi-breadcrumb-home {
+  display: flex;
+  align-items: center;
+  color: #a0aec0;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.whatzi-breadcrumb-home:hover {
+  color: var(--wz-primary-green);
+}
+.whatzi-breadcrumb-sep {
+  color: #4a5568;
+  font-size: 0.8rem;
+}
+.whatzi-breadcrumb-cur {
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+/* Business Switcher Pill in Navbar */
+.biz-switcher-wrap {
+  background: #131926 !important;
+  border: 1px solid var(--wz-border) !important;
+  border-radius: 24px !important;
+  padding: 5px 14px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+.biz-switcher-wrap label {
+  color: #64748b !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+}
+.biz-select {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+}
+.biz-select option {
+  background: #101622 !important;
+  color: #ffffff !important;
+}
+
+/* Top Right Action Controls */
+.nav-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.whatzi-nav-btn {
+  background: #131926;
+  border: 1px solid var(--wz-border);
+  color: var(--wz-text-secondary);
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.whatzi-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.whatzi-nav-icon-btn {
+  background: #131926;
+  border: 1px solid var(--wz-border);
+  color: var(--wz-text-secondary);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+.whatzi-nav-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+/* Whatzi Avatar Pill */
+.whatzi-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.status-pill {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border: 1px solid rgba(34, 197, 94, 0.25) !important;
+  color: #4ade80 !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+}
+
+/* ════════ WHATZI SIDEBAR (IDENTICAL TO SCREENSHOT) ════════ */
+.sidebar {
+  width: 260px !important;
+  background: var(--wz-bg-sidebar) !important;
+  border: 1px solid var(--wz-border) !important;
+  border-radius: 16px !important;
+  padding: 16px 12px !important;
+  box-shadow: var(--wz-shadow-card) !important;
+  height: calc(100vh - 90px) !important;
+  max-height: calc(100vh - 90px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Sidebar Brand Header */
+.whatzi-sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 14px 6px;
+  border-bottom: 1px solid var(--wz-border-subtle);
+  margin-bottom: 12px;
+}
+.whatzi-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.whatzi-brand-logo-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: radial-gradient(circle, #22c55e 0%, #15803d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.5);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+.whatzi-brand-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+.whatzi-collapse-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--wz-border);
+  color: var(--wz-text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.75rem;
+}
+.whatzi-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Sidebar Search Capsule */
+.whatzi-search-box {
+  background: #151b26;
+  border: 1px solid var(--wz-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.whatzi-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.82rem;
+  width: 100%;
+}
+.whatzi-search-box input::placeholder {
+  color: #64748b;
+}
+
+/* Category Section Headings */
+.whatzi-nav-category {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  padding: 12px 10px 4px 10px;
+  margin-top: 4px;
+  user-select: none;
+}
+
+/* Whatzi Sidebar Navigation Buttons */
+.sidebar .tab-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 9px 12px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #94a3b8 !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-align: left !important;
+  width: 100% !important;
+  margin-bottom: 2px !important;
+}
+.sidebar .tab-btn:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #ffffff !important;
+  transform: translateX(2px) !important;
+}
+.sidebar .tab-btn.active {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border: 1px solid rgba(34, 197, 94, 0.28) !important;
+  border-left: 3px solid #22c55e !important;
+  color: #22c55e !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 12px rgba(34, 197, 94, 0.1) !important;
+  transform: none !important;
+}
+.sidebar .tab-btn.active::before {
+  display: none !important;
+}
+
+/* Icons inside Whatzi Buttons */
+.tab-btn .nav-pro-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  color: inherit !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.tab-btn .nav-pro-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+.tab-btn.active .nav-pro-icon {
+  color: #22c55e !important;
+}
+
+/* Pink / Purple NEW Badge */
+.whatzi-badge-new {
+  margin-left: auto;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(236, 72, 153, 0.3);
+}
+
+/* Sidebar Footer (Whatzi CRM 6.2.0) */
+.whatzi-sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--wz-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.whatzi-footer-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+}
+.whatzi-version-pill {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* ════════ MAIN CARDS & CONTENT (WHATZI MODERN SLATE) ════════ */
+.glass-card,
+.chat-layout,
+.metric-card {
+  background: var(--wz-bg-card) !important;
+  border: 1px solid var(--wz-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--wz-shadow-card) !important;
+  color: var(--wz-text-primary) !important;
+}
+
+.table-responsive {
+  background: var(--wz-bg-card-subtle) !important;
+  border: 1px solid var(--wz-border) !important;
+  border-radius: 12px !important;
+}
+table thead {
+  background: #0d121c !important;
+}
+table th {
+  color: var(--wz-text-muted) !important;
+  border-bottom: 1px solid var(--wz-border) !important;
+  font-size: 0.74rem !important;
+}
+table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: var(--wz-text-secondary) !important;
+}
+table tr:hover td {
+  background: var(--wz-bg-hover) !important;
+}
+
+/* Form Controls */
+.form-input,
+.form-select,
+.form-textarea {
+  background: #0d121c !important;
+  border: 1px solid var(--wz-border) !important;
+  border-radius: 10px !important;
+  color: #ffffff !important;
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2) !important;
+}
+
+/* Buttons */
+.btn-primary {
+  background: #22c55e !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+  transition: all 0.2s !important;
+}
+.btn-primary:hover {
+  background: #16a34a !important;
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-secondary {
+  background: #182030 !important;
+  border: 1px solid var(--wz-border) !important;
+  color: var(--wz-text-secondary) !important;
+  border-radius: 10px !important;
+}
+.btn-secondary:hover {
+  background: #212c40 !important;
+  color: #ffffff !important;
+}
+
+/* Chat Inbox Dark Harmonization */
+.chat-layout {
+  background: #111622 !important;
+}
+.chat-list {
+  background: #0d111a !important;
+  border-right: 1px solid var(--wz-border) !important;
+}
+.chat-item {
+  border-bottom: 1px solid var(--wz-border-subtle) !important;
+}
+.chat-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+.chat-item.active {
+  background: #171f2e !important;
+  border-left: 3px solid #22c55e !important;
+}
+.chat-main {
+  background: #111622 !important;
+}
+.chat-header {
+  background: #111622 !important;
+  border-bottom: 1px solid var(--wz-border) !important;
+}
+.chat-messages {
+  background: #0b0f17 !important;
+}
+.msg-bubble.customer {
+  background: #171f2e !important;
+  border: 1px solid var(--wz-border) !important;
+  color: #ffffff !important;
+}
+.msg-bubble.ai {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  color: #86efac !important;
+}
+.msg-bubble.agent {
+  background: rgba(37, 99, 235, 0.15) !important;
+  border: 1px solid rgba(37, 99, 235, 0.35) !important;
+  color: #93c5fd !important;
+}
+
+/* Whatzi Notice / Coexistence Box */
+.whatzi-notice-box {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: #93c5fd;
+  margin: 16px 0;
+  display: flex;
+  gap: 12px;
+}

@@ -16,6 +16,24 @@ function filterSidebarMenu(query) {
       btn.style.display = 'none';
     }
   });
+
+  const categories = document.querySelectorAll('.sidebar .whatzi-nav-category');
+  categories.forEach(cat => {
+    if (!q) {
+      cat.style.display = 'block';
+      return;
+    }
+    let next = cat.nextElementSibling;
+    let anyVisible = false;
+    while (next && !next.classList.contains('whatzi-nav-category') && !next.classList.contains('whatzi-sidebar-footer')) {
+      if (next.classList.contains('tab-btn') && next.style.display !== 'none') {
+        anyVisible = true;
+        break;
+      }
+      next = next.nextElementSibling;
+    }
+    cat.style.display = anyVisible ? 'block' : 'none';
+  });
 }
 
 // ─── Global Utility: Dark / Light Mode Switcher ──────────────────────────────
