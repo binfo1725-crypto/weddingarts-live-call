@@ -658,218 +658,6 @@ class WhatsAppAccountSession {
   }
 
 
-  // ─── Number Warmer Scheduler & Peer-to-Peer Simulator ──────────────────────
-  initWarmer() {
-    if (this._warmerTimer) return;
-    this._warmerTimer = setInterval(() => this.runWarmerCycle(), 35000);
-    console.log('[whatsapp-warmer] Initialized WhatsApp Number Warmer background scheduler.');
-  }
-
-  async runWarmerCycle() {
-    try {
-      const warmer = db.getWarmer();
-      if (!warmer || !warmer.running) return;
-
-      const connectedSessions = [];
-      for (const [, session] of this.sessions.entries()) {
-        if (session.connected && session.sock && session.phoneNumber) {
-          connectedSessions.push(session);
-        }
-      }
-
-      if (connectedSessions.length < 2) {
-        db.logWarmerEvent({
-          event: 'skipped',
-          status: 'idle',
-          details: 'At least 2 connected WhatsApp instances required for P2P human conversation warming.'
-        });
-        return;
-      }
-
-      // Pick two distinct connected accounts
-      const shuffled = [...connectedSessions].sort(() => 0.5 - Math.random());
-      const sender = shuffled[0];
-      const receiver = shuffled[1];
-
-      const scripts = warmer.scripts || [];
-      if (scripts.length === 0) return;
-      const script = scripts[Math.floor(Math.random() * scripts.length)];
-
-      const receiverPhone = receiver.phoneNumber;
-      const senderPhone = sender.phoneNumber;
-
-      console.log(`[whatsapp-warmer] Warming dialogue between +${senderPhone} and +${receiverPhone}...`);
-
-      // 1. Sender asks question with anti-ban invisible characters
-      const questionText = this.injectInvisibleZeroWidthChars(script.question);
-      await sender.sendMessage(receiverPhone, questionText);
-
-      // 2. Realistic human typing delay before replying (4 - 9 seconds)
-      const replyDelay = 4000 + Math.floor(Math.random() * 5000);
-      setTimeout(async () => {
-        try {
-          if (receiver.connected && receiver.sock) {
-            const answerText = this.injectInvisibleZeroWidthChars(script.answer);
-            await receiver.sendMessage(senderPhone, answerText);
-            db.logWarmerEvent({
-              event: 'p2p_conversation',
-              status: 'success',
-              from: senderPhone,
-              to: receiverPhone,
-              question: script.question,
-              answer: script.answer
-            });
-            console.log(`[whatsapp-warmer] ✅ Successfully exchanged warmer dialogue between +${senderPhone} and +${receiverPhone}`);
-          }
-        } catch (e) {
-          console.warn('[whatsapp-warmer] Receiver reply error:', e.message);
-        }
-      }, replyDelay);
-
-    } catch (err) {
-      console.warn('[whatsapp-warmer] Cycle error:', err.message);
-    }
-  }
-
-  // Anti-Ban Invisible Unicode Zero-Width character injector
-  injectInvisibleZeroWidthChars(text) {
-    if (!text || typeof text !== 'string') return text || '';
-    const invisibleChars = ['\u200B', '\u200C', '\u200D', '\uFEFF'];
-    return text.split(' ').map(word => {
-      if (Math.random() > 0.35 && word.length > 2) {
-        const randChar = invisibleChars[Math.floor(Math.random() * invisibleChars.length)];
-        const mid = Math.floor(word.length / 2);
-        return word.slice(0, mid) + randChar + word.slice(mid);
-      }
-      return word;
-    }).join(' ');
-  }
-
-  // Dynamic Variable Interpolator for personalized broadcasts
-  interpolateVariables(textTemplate, contact = {}) {
-    if (!textTemplate) return '';
-    return textTemplate
-      .replace(/\{\{name\}\}/gi, contact.name || '')
-      .replace(/\{\{(?:mobile|phone)\}}/gi, contact.phone || '')
-      .replace(/\{\{var1\}\}/gi, contact.var1 || '')
-      .replace(/\{\{var2\}\}/gi, contact.var2 || '')
-      .replace(/\{\{var3\}\}/gi, contact.var3 || '')
-      .replace(/\{\{var4\}\}/gi, contact.var4 || '')
-      .replace(/\{\{var5\}\}/gi, contact.var5 || '');
-  }
-
-  // Universal Outbound Webhook Dispatcher
-  async dispatchWebhooks(eventName, payload, businessId = null) {
-    try {
-      const webhooks = db.getWebhooks(businessId);
-      const active = webhooks.filter(w => w.status === 'active' && (!w.events || w.events.includes(eventName) || w.events.includes('*')));
-      if (active.length === 0) return;
-
-      const bodyData = JSON.stringify({
-        event: eventName,
-        timestamp: new Date().toISOString(),
-        businessId: businessId || 'weddingarts',
-        data: payload
-      });
-
-      for (const wh of active) {
-        try {
-          fetch(wh.url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'OmniSix-AI-Webhook/1.0',
-              'X-Hub-Signature': wh.secret || ''
-            },
-            body: bodyData,
-            signal: AbortSignal.timeout(8000)
-          }).then(res => {
-            db.logWebhookDispatch({
-              webhookId: wh.id,
-              url: wh.url,
-              event: eventName,
-              status: res.status,
-              success: res.ok
-            });
-          }).catch(err => {
-            db.logWebhookDispatch({
-              webhookId: wh.id,
-              url: wh.url,
-              event: eventName,
-              status: 0,
-              error: err.message,
-              success: false
-            });
-          });
-        } catch (e) {}
-      }
-    } catch (e) {
-      console.warn('[webhook-dispatch] Error:', e.message);
-    }
-  }
-
-  // Public Developer REST API Sender
-  async sendRestMessage(params) {
-    const {
-      accountId,
-      to,
-      messageType = 'text',
-      text = '',
-      imageUrl,
-      videoUrl,
-      docUrl,
-      caption,
-      lat,
-      long,
-      title
-    } = params;
-
-    const session = this.getSession(accountId || 'default');
-    if (!session || !session.connected) {
-      return { ok: false, error: 'Target WhatsApp account not connected or unavailable.' };
-    }
-
-    const cleanTo = String(to || '').replace(/\D/g, '');
-    if (!cleanTo || cleanTo.length < 9) {
-      return { ok: false, error: 'Valid recipient phone number with country code is required.' };
-    }
-
-    try {
-      switch (messageType.toLowerCase()) {
-        case 'text':
-          return await session.sendMessage(cleanTo, text);
-        case 'image':
-          return await session.sendImageMessage(cleanTo, imageUrl, caption || text);
-        case 'video':
-          if (session.sock) {
-            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
-            await session.sock.sendMessage(jid, { video: { url: videoUrl }, caption: caption || text });
-            return { ok: true };
-          }
-          break;
-        case 'document':
-          if (session.sock) {
-            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
-            await session.sock.sendMessage(jid, { document: { url: docUrl }, mimetype: 'application/pdf', fileName: title || 'Document.pdf', caption: caption || text });
-            return { ok: true };
-          }
-          break;
-        case 'location':
-          if (session.sock) {
-            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
-            await session.sock.sendMessage(jid, { location: { degreesLatitude: Number(lat) || 6.9271, degreesLongitude: Number(long) || 79.8612, name: title || 'Store Location' } });
-            return { ok: true };
-          }
-          break;
-        default:
-          return await session.sendMessage(cleanTo, text);
-      }
-      return { ok: false, error: 'Unsupported message type or socket not ready.' };
-    } catch (err) {
-      return { ok: false, error: err.message };
-    }
-  }
-
   getStatus() {
     return {
       id: this.id,
@@ -1110,6 +898,219 @@ class MultiAccountWhatsAppManager {
     }
     return { ok: false, error: 'Account not found' };
   }
+
+  // ─── Number Warmer Scheduler & Peer-to-Peer Simulator ──────────────────────
+  initWarmer() {
+    if (this._warmerTimer) return;
+    this._warmerTimer = setInterval(() => this.runWarmerCycle(), 35000);
+    console.log('[whatsapp-warmer] Initialized WhatsApp Number Warmer background scheduler.');
+  }
+
+  async runWarmerCycle() {
+    try {
+      const warmer = db.getWarmer();
+      if (!warmer || !warmer.running) return;
+
+      const connectedSessions = [];
+      for (const [, session] of this.sessions.entries()) {
+        if (session.connected && session.sock && session.phoneNumber) {
+          connectedSessions.push(session);
+        }
+      }
+
+      if (connectedSessions.length < 2) {
+        db.logWarmerEvent({
+          event: 'skipped',
+          status: 'idle',
+          details: 'At least 2 connected WhatsApp instances required for P2P human conversation warming.'
+        });
+        return;
+      }
+
+      // Pick two distinct connected accounts
+      const shuffled = [...connectedSessions].sort(() => 0.5 - Math.random());
+      const sender = shuffled[0];
+      const receiver = shuffled[1];
+
+      const scripts = warmer.scripts || [];
+      if (scripts.length === 0) return;
+      const script = scripts[Math.floor(Math.random() * scripts.length)];
+
+      const receiverPhone = receiver.phoneNumber;
+      const senderPhone = sender.phoneNumber;
+
+      console.log(`[whatsapp-warmer] Warming dialogue between +${senderPhone} and +${receiverPhone}...`);
+
+      // 1. Sender asks question with anti-ban invisible characters
+      const questionText = this.injectInvisibleZeroWidthChars(script.question);
+      await sender.sendMessage(receiverPhone, questionText);
+
+      // 2. Realistic human typing delay before replying (4 - 9 seconds)
+      const replyDelay = 4000 + Math.floor(Math.random() * 5000);
+      setTimeout(async () => {
+        try {
+          if (receiver.connected && receiver.sock) {
+            const answerText = this.injectInvisibleZeroWidthChars(script.answer);
+            await receiver.sendMessage(senderPhone, answerText);
+            db.logWarmerEvent({
+              event: 'p2p_conversation',
+              status: 'success',
+              from: senderPhone,
+              to: receiverPhone,
+              question: script.question,
+              answer: script.answer
+            });
+            console.log(`[whatsapp-warmer] ✅ Successfully exchanged warmer dialogue between +${senderPhone} and +${receiverPhone}`);
+          }
+        } catch (e) {
+          console.warn('[whatsapp-warmer] Receiver reply error:', e.message);
+        }
+      }, replyDelay);
+
+    } catch (err) {
+      console.warn('[whatsapp-warmer] Cycle error:', err.message);
+    }
+  }
+
+  // Anti-Ban Invisible Unicode Zero-Width character injector
+  injectInvisibleZeroWidthChars(text) {
+    if (!text || typeof text !== 'string') return text || '';
+    const invisibleChars = ['\u200B', '\u200C', '\u200D', '\uFEFF'];
+    return text.split(' ').map(word => {
+      if (Math.random() > 0.35 && word.length > 2) {
+        const randChar = invisibleChars[Math.floor(Math.random() * invisibleChars.length)];
+        const mid = Math.floor(word.length / 2);
+        return word.slice(0, mid) + randChar + word.slice(mid);
+      }
+      return word;
+    }).join(' ');
+  }
+
+  // Dynamic Variable Interpolator for personalized broadcasts
+  interpolateVariables(textTemplate, contact = {}) {
+    if (!textTemplate) return '';
+    return textTemplate
+      .replace(/\{\{name\}\}/gi, contact.name || '')
+      .replace(/\{\{(?:mobile|phone)\}}/gi, contact.phone || '')
+      .replace(/\{\{var1\}\}/gi, contact.var1 || '')
+      .replace(/\{\{var2\}\}/gi, contact.var2 || '')
+      .replace(/\{\{var3\}\}/gi, contact.var3 || '')
+      .replace(/\{\{var4\}\}/gi, contact.var4 || '')
+      .replace(/\{\{var5\}\}/gi, contact.var5 || '');
+  }
+
+  // Universal Outbound Webhook Dispatcher
+  async dispatchWebhooks(eventName, payload, businessId = null) {
+    try {
+      const webhooks = db.getWebhooks(businessId);
+      const active = webhooks.filter(w => w.status === 'active' && (!w.events || w.events.includes(eventName) || w.events.includes('*')));
+      if (active.length === 0) return;
+
+      const bodyData = JSON.stringify({
+        event: eventName,
+        timestamp: new Date().toISOString(),
+        businessId: businessId || 'weddingarts',
+        data: payload
+      });
+
+      for (const wh of active) {
+        try {
+          fetch(wh.url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'OmniSix-AI-Webhook/1.0',
+              'X-Hub-Signature': wh.secret || ''
+            },
+            body: bodyData,
+            signal: AbortSignal.timeout(8000)
+          }).then(res => {
+            db.logWebhookDispatch({
+              webhookId: wh.id,
+              url: wh.url,
+              event: eventName,
+              status: res.status,
+              success: res.ok
+            });
+          }).catch(err => {
+            db.logWebhookDispatch({
+              webhookId: wh.id,
+              url: wh.url,
+              event: eventName,
+              status: 0,
+              error: err.message,
+              success: false
+            });
+          });
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('[webhook-dispatch] Error:', e.message);
+    }
+  }
+
+  // Public Developer REST API Sender
+  async sendRestMessage(params) {
+    const {
+      accountId,
+      to,
+      messageType = 'text',
+      text = '',
+      imageUrl,
+      videoUrl,
+      docUrl,
+      caption,
+      lat,
+      long,
+      title
+    } = params;
+
+    const session = this.getSession(accountId || 'default');
+    if (!session || !session.connected) {
+      return { ok: false, error: 'Target WhatsApp account not connected or unavailable.' };
+    }
+
+    const cleanTo = String(to || '').replace(/\D/g, '');
+    if (!cleanTo || cleanTo.length < 9) {
+      return { ok: false, error: 'Valid recipient phone number with country code is required.' };
+    }
+
+    try {
+      switch (messageType.toLowerCase()) {
+        case 'text':
+          return await session.sendMessage(cleanTo, text);
+        case 'image':
+          return await session.sendImageMessage(cleanTo, imageUrl, caption || text);
+        case 'video':
+          if (session.sock) {
+            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
+            await session.sock.sendMessage(jid, { video: { url: videoUrl }, caption: caption || text });
+            return { ok: true };
+          }
+          break;
+        case 'document':
+          if (session.sock) {
+            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
+            await session.sock.sendMessage(jid, { document: { url: docUrl }, mimetype: 'application/pdf', fileName: title || 'Document.pdf', caption: caption || text });
+            return { ok: true };
+          }
+          break;
+        case 'location':
+          if (session.sock) {
+            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
+            await session.sock.sendMessage(jid, { location: { degreesLatitude: Number(lat) || 6.9271, degreesLongitude: Number(long) || 79.8612, name: title || 'Store Location' } });
+            return { ok: true };
+          }
+          break;
+        default:
+          return await session.sendMessage(cleanTo, text);
+      }
+      return { ok: false, error: 'Unsupported message type or socket not ready.' };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+
 
   // Backwards compatibility properties
   get connected() {
