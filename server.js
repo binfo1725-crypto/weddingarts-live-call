@@ -2094,14 +2094,14 @@ async function getGeminiReply(userMessage, sess, userLang) {
 
   // Smart fallback from dataset if all Gemini models exhaust daily quota
   console.warn('[Gemini Text] All text models hit quota or failed. Using smart dataset fallback.');
-  const store = sess.storeName || 'Wedding Arts';
+  const store = sess.storeName || 'OmniSix AI';
   let fallbackReply = '';
   if (detectedLang === 'English') {
-    fallbackReply = `Thank you for reaching out to ${store}! We offer professional photo retouching, 12x18 UV Frames (Rs. 4,800), and 16x24 UV Frames (Rs. 7,800 with Free Islandwide Delivery). Please let us know how we can assist you today! 😊`;
+    fallbackReply = `Thank you for reaching out to ${store}! We offer 24/7 autonomous AI assistant, CRM, and omnichannel messaging solutions. How can we help you today? 😊`;
   } else if (detectedLang === 'Tamil') {
-    fallbackReply = `நன்றி! ${store} உங்களுக்கு உயர்தர புகைப்பட எடிட்டிங் மற்றும் UV Frames சேவைகளை வழங்குகிறது. உங்களுக்கு தேவையான விபரங்களை கூறவும். 😊`;
+    fallbackReply = `நன்றி! ${store} உங்களுக்கு 24/7 AI உதவியாளர் மற்றும் CRM சேவைகளை வழங்குகிறது. உங்களுக்கு எவ்வாறு உதவ முடியும்? 😊`;
   } else {
-    fallbackReply = `ස්තූතියි! ${store} වෙතින් ෆොටෝ එඩිටිං, 12x18 UV Frames (රු. 4800) සහ 16x24 UV Frames (රු. 7800 නොමිලේ ඩිලිවරි සහිතව) ලබාගත හැක. ඔබට අවශ්‍ය විස්තරය හෝ ඇණවුම ලබා දෙන්න. 😊`;
+    fallbackReply = `ස්තූතියි! ${store} වෙතින් ස්වයංක්‍රීය 24/7 AI Sales Assistant සහ Omnichannel CRM සේවාවන් ලබාගත හැක. ඔබට අවශ්‍ය සහය කුමක්දැයි අපට දන්වන්න. 😊`;
   }
   sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
   sess.history.push({ role: 'model', parts: [{ text: fallbackReply }] });

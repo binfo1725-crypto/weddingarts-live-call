@@ -25,37 +25,34 @@ if (!fs.existsSync(DATA_DIR)) {
 const DEFAULT_BUSINESSES = [
   {
     id: 'weddingarts',
-    name: 'WEDDING ARTS',
-    category: 'studio',
+    name: 'OmniSix AI Software',
+    category: 'software',
     ownerName: 'D T Rajapaksha (Tharindu)',
     phone: '076 210 7801',
     whatsappPhone: '94762107801',
-    bankDetails: 'Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha | Branch: Kandy',
-    deliveryPolicy: 'Islandwide Courier Delivery available. Free delivery on 16x24 and above. 2-3 business days.',
+    bankDetails: 'Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha',
+    deliveryPolicy: 'Instant Digital Delivery of License Keys and Cloud Activation.',
     currency: 'Rs.',
-    welcomeMessage: 'ආයුබෝවන්! Wedding Arts වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?',
-    dataset: `Store: WEDDING ARTS
+    welcomeMessage: 'ආයුබෝවන්! OmniSix AI වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?',
+    dataset: `Store: OmniSix AI Software Solutions
 Owner: D T Rajapaksha (Tharindu)
 BOC Bank Account: 92949122
 Contact / WhatsApp: 076 210 7801
 
-PRODUCTS & SERVICES:
-- Western / Kandyan Single Photo Edit: Rs. 1,500
-- 10-Photo Shoot Retouching: Rs. 5,000
-- Army Uniform Single Photo Edit: Rs. 2,000
-- Army Uniform 10-Photo Shoot: Rs. 8,000
-- 8x12 UV Gloss Frameless: Rs. 2,300
-- 10x15 UV Gloss Frameless: Rs. 3,200
-- 12x18 UV Gloss Frameless: Rs. 4,800
-- 16x24 UV Gloss Frameless: Rs. 7,800 (FREE Island-wide Courier Delivery)
-- 20x30 UV Gloss Frameless: Rs. 11,500 (FREE Island-wide Courier Delivery)
-- 24x36 UV Gloss Frameless: Rs. 13,000 (FREE Island-wide Courier Delivery)
-- 3-Panel Wall Hanging Set: Rs. 14,000 (FREE Island-wide Courier Delivery)
+SOFTWARE PRODUCTS & PLANS:
+- 3-Day Free Trial: Rs. 0
+- 1 Month PRO License: Rs. 800
+- 3 Months PRO License: Rs. 2,000
+- 6 Months PRO License: Rs. 3,500
+- 1 Year VIP License: Rs. 5,500
 
-DELIVERY & PAYMENT:
-- 12x18 and below courier delivery fee: Rs. 450
-- 16x24 and above: 100% Free Island-wide Courier Delivery
-- Payment: Bank of Ceylon (BOC) Account 92949122 D T Rajapaksha. Advance payment required to begin editing & printing.`,
+CORE CAPABILITIES:
+- 24/7 Autonomous AI Sales & Support Agent
+- WhatsApp Multi-Device & Meta Cloud API Dual Engine
+- Number Warmer Anti-Ban P2P Simulator
+- Multi-Channel Inbox & Kanban Deals Pipeline
+- Gemini HD Natural Voice Notes (30 Voices)
+- Bank Slip Vision Scanner & Sri Lankan Couriers Tracking`,
     isActive: true
   }
 ];

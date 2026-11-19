@@ -82,7 +82,7 @@ const AngryCustomerEscalationEngine = {
     'damage wela', 'aparade salli', 'කෝ මගේ බඩු', 'තාම ආවේ නෑ', 'බොරු කරන්න එපා', 'වංචා', 'රිෆන්ඩ්'
   ],
 
-  check(text, detectedLang = 'Sinhala', storeName = 'Wedding Arts') {
+  check(text, detectedLang = 'Sinhala', storeName = 'OmniSix AI') {
     const lower = (text || '').toLowerCase().trim();
     for (const kw of this.ANGRY_TRIGGERS) {
       if (lower.includes(kw)) {
@@ -96,7 +96,7 @@ const AngryCustomerEscalationEngine = {
     return { isAngry: false };
   },
 
-  buildDeEscalationReply(detectedLang = 'Sinhala', storeName = 'Wedding Arts') {
+  buildDeEscalationReply(detectedLang = 'Sinhala', storeName = 'OmniSix AI') {
     const sName = storeName || 'අපගේ ආයතනය';
     if (detectedLang === 'English') {
       return `🙏 *We Sincerely Apologize for the Inconvenience!*\n\nWe take your concern very seriously and regret any frustration caused.\n\n🚨 An *Urgent High-Priority Alert* has just been dispatched directly to our Store Owner & General Manager.\n\nA senior team member will contact you personally right away to resolve this issue to your complete satisfaction. Thank you for your patience with us! 💕`;
@@ -120,11 +120,11 @@ const SmartNegotiationEngine = {
 
   getNegotiationDirective(turnCount = 1) {
     if (turnCount === 1) {
-      return '[NEGOTIATION TURN 1: Politely highlight superior UV Gloss durability and craftsmanship. Offer a gentle polite concession of around 5% or free gift retouch.]';
+      return '[NEGOTIATION TURN 1: Politely highlight superior AI reliability, 24/7 automation, and multi-channel features. Offer a gentle polite concession of around 5% or 3 extra trial days.]';
     } else if (turnCount === 2) {
-      return '[NEGOTIATION TURN 2: If customer pushes further, offer a 2-item bundle deal with 100% Free Island-wide Delivery instead of dropping single unit price.]';
+      return '[NEGOTIATION TURN 2: If customer pushes further, offer a 3-Month or Annual Plan bundle discount instead of dropping short plan prices.]';
     } else {
-      return '[NEGOTIATION TURN 3+: Enforce strict floor price. Firmly and courteously state this is the lowest direct factory price available for this premium quality.]';
+      return '[NEGOTIATION TURN 3+: Enforce strict floor price. Firmly and courteously state this is the lowest direct developer pricing available.]';
     }
   }
 };
@@ -134,19 +134,14 @@ const SmartUpsellEngine = {
   detectUpsellOpportunity(userText, activeProducts = []) {
     const lower = (userText || '').toLowerCase();
     
-    // Photo Edit -> 10-Shoot Retouch bundle
-    if (lower.includes('photo edit') || lower.includes('single edit') || lower.includes('retouch')) {
-      return '\n[UPSELL TIP: Suggest the 10-Photo Retouching Shoot Bundle for only Rs. 5,000 (saving Rs. 10,000 compared to single photo edits).]';
+    // 1 Month -> 3 Months or 1 Year VIP plan
+    if (lower.includes('1 month') || lower.includes('masayak') || lower.includes('eka masayak')) {
+      return '\n[UPSELL TIP: Suggest the 3-Month Plan (Rs. 2,000 saving Rs. 400) or 1-Year VIP Plan (Rs. 5,500 saving thousands).]';
     }
 
-    // 12x18 Frame -> 16x24 UV Frame with Free Delivery
-    if (lower.includes('12x18') || lower.includes('dolahai')) {
-      return '\n[UPSELL TIP: Suggest the grand 16x24 UV Gloss Frameless at Rs. 7,800 which includes 100% FREE Islandwide Courier Delivery (saving delivery cost).]';
-    }
-
-    // 16x24 -> 3-Panel Wall Set
-    if (lower.includes('16x24') || lower.includes('dahashayai')) {
-      return '\n[UPSELL TIP: Mention our luxury 3-Panel Wall Gallery Set (Rs. 14,000 with Free Delivery) for master living rooms and wedding bedrooms.]';
+    // Trial / Demo -> Pro License
+    if (lower.includes('trial') || lower.includes('free') || lower.includes('nomile')) {
+      return '\n[UPSELL TIP: Mention our full PRO features with 24/7 WhatsApp auto-reply and Voice notes support.]';
     }
 
     return '';
