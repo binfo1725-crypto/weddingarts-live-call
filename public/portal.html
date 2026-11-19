@@ -1187,7 +1187,7 @@
   <link rel="stylesheet" href="/whatzi_suite.css">
   <style id="whatzi-theme-inline">
 /* ═══════════════════════════════════════════════════════════════════════════ */
-/* WHATZI CRM v6.2.0 PIXEL-PERFECT THEME ENGINE                                */
+/* OmniSix AI v6.2.0 PIXEL-PERFECT THEME ENGINE                                */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -1240,7 +1240,7 @@ body {
   gap: 16px !important;
 }
 
-/* Whatzi Breadcrumb Trail */
+/* OmniSix AI Breadcrumb Trail */
 .whatzi-breadcrumb {
   display: flex;
   align-items: center;
@@ -1340,7 +1340,7 @@ body {
   color: #ffffff;
 }
 
-/* Whatzi Avatar Pill */
+/* OmniSix AI Avatar Pill */
 .whatzi-user-avatar {
   width: 38px;
   height: 38px;
@@ -1472,7 +1472,7 @@ body {
   user-select: none;
 }
 
-/* Whatzi Sidebar Navigation Buttons */
+/* OmniSix AI Sidebar Navigation Buttons */
 .sidebar .tab-btn {
   display: flex !important;
   align-items: center !important;
@@ -1508,7 +1508,7 @@ body {
   display: none !important;
 }
 
-/* Icons inside Whatzi Buttons */
+/* Icons inside OmniSix AI Buttons */
 .tab-btn .nav-pro-icon {
   background: transparent !important;
   border: none !important;
@@ -1542,7 +1542,7 @@ body {
   box-shadow: 0 2px 6px rgba(236, 72, 153, 0.3);
 }
 
-/* Sidebar Footer (Whatzi CRM 6.2.0) */
+/* Sidebar Footer (OmniSix AI 6.2.0) */
 .whatzi-sidebar-footer {
   margin-top: auto;
   padding-top: 14px;
@@ -1685,7 +1685,7 @@ table tr:hover td {
   color: #93c5fd !important;
 }
 
-/* Whatzi Notice / Coexistence Box */
+/* OmniSix AI Notice / Coexistence Box */
 .whatzi-notice-box {
   background: rgba(37, 99, 235, 0.08);
   border: 1px solid rgba(37, 99, 235, 0.28);
@@ -1713,13 +1713,16 @@ table tr:hover td {
 <!-- Top Navbar -->
 <header class="navbar" id="admin-header" style="display:none;">
   <div class="nav-left">
-    <!-- Whatzi Breadcrumb Trail -->
+    <!-- OmniSix AI Brand Logo -->
+    <a href="javascript:void(0)" onclick="showTab('overview')" style="display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:12px;">
+      <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.1rem;box-shadow:0 0 14px rgba(16,185,129,0.5);">6</div>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.1rem;color:#ffffff;letter-spacing:-0.01em;">OMNISIX <span style="color:#22c55e;">AI</span></span>
+    </a>
+
+    <!-- Breadcrumb Trail -->
     <div class="whatzi-breadcrumb">
-      <a href="javascript:void(0)" onclick="showTab('overview')" class="whatzi-breadcrumb-home" title="Home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </a>
       <span class="whatzi-breadcrumb-sep">&gt;</span>
-      <span id="whatzi-cur-page-title" class="whatzi-breadcrumb-cur">wa-dashboard</span>
+      <span id="whatzi-cur-page-title" class="whatzi-breadcrumb-cur">Executive Overview</span>
     </div>
 
     <!-- Store Switcher Pill -->
@@ -1786,7 +1789,7 @@ table tr:hover td {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10a9.96 9.96 0 0 1-4.83-1.24L2 22l1.24-5.17A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2z"/></svg>
       </div>
       <div>
-        <div class="whatzi-brand-title">Whatzi CRM</div>
+        <div class="whatzi-brand-title">OmniSix AI</div>
       </div>
     </div>
     <button type="button" class="whatzi-collapse-btn" title="Toggle sidebar" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">&lt;</button>
@@ -1937,8 +1940,8 @@ table tr:hover td {
 
   <!-- Sidebar Footer -->
   <div class="whatzi-sidebar-footer">
-    <span class="whatzi-footer-title">Whatzi CRM</span>
-    <span class="whatzi-version-pill">6.2.0</span>
+    <span class="whatzi-footer-title">OmniSix AI CRM</span>
+    <span class="whatzi-version-pill">v6.2.0</span>
   </div>
 </aside>
 
@@ -2881,7 +2884,7 @@ table tr:hover td {
     
 
   
-    <!-- ══════════ WHATZI CRM FULL FEATURE SECTIONS ══════════ -->
+    <!-- ══════════ OmniSix AI FULL FEATURE SECTIONS ══════════ -->
 
     <!-- 1. KANBAN CRM & DEAL PIPELINE -->
     <section id="tab-kanban" class="glass-card hidden">
@@ -3211,7 +3214,7 @@ table tr:hover td {
       </div>
     </section>
 
-    <!-- MODALS FOR WHATZI CRM -->
+    <!-- MODALS FOR OmniSix AI -->
     <!-- Modal Add Deal -->
     <div id="modal-add-deal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
       <div style="background:#10121b;border:1px solid rgba(255,0,85,0.3);border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:0 15px 40px rgba(0,0,0,0.8);">
@@ -3905,6 +3908,31 @@ let waPollTimer = null;
 
 // ─── Tab Navigation ───────────────────────────────────────────────────────────
 function showTab(tabName) {
+  const omnisixTitles = {
+    overview: 'Executive Dashboard',
+    whatsapp: 'WhatsApp QR Multi-Account Hub',
+    warmer: 'WhatsApp Number Warmer Engine',
+    broadcast: 'QR Bulk Marketing Campaigns',
+    developer: 'Developer REST API & Webhooks',
+    flows: 'Autonomous Automation Flows',
+    settings: 'AI Settings & Store Persona',
+    calls: 'Live Voice Call Logs & AI Transcripts',
+    kanban: 'Kanban CRM Deals Pipeline',
+    forms: 'Interactive WhatsApp Forms',
+    contacts: 'Contacts & Advanced Phonebook',
+    inbox: 'Omnichannel Live Chat Inbox',
+    team: 'Team Collaboration & Web Widget',
+    orders: 'Orders & Payment Slips',
+    products: 'Products & Services Catalog',
+    business: 'Business Dataset & Knowledge',
+    stores: 'Multi-Store Management Hub',
+    licenses: 'License KeyGen & SaaS Clients'
+  };
+  const bTitle = document.getElementById('whatzi-cur-page-title');
+  if (bTitle) {
+    bTitle.textContent = omnisixTitles[tabName] || (tabName.charAt(0).toUpperCase() + tabName.slice(1));
+  }
+
   currentTab = tabName;
   window.scrollTo({ top: 0, behavior: 'instant' });
   const stage = document.querySelector('.main-stage');

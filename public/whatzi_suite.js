@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// WHATZI CRM 1-10 FULL FEATURE SUITE JAVASCRIPT ENGINE
+// OmniSix AI 1-10 FULL FEATURE SUITE JAVASCRIPT ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 
 let currentDraggedDealId = null;

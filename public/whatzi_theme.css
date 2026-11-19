@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════ */
-/* WHATZI CRM v6.2.0 PIXEL-PERFECT THEME ENGINE                                */
+/* OmniSix AI v6.2.0 PIXEL-PERFECT THEME ENGINE                                */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -52,7 +52,7 @@ body {
   gap: 16px !important;
 }
 
-/* Whatzi Breadcrumb Trail */
+/* OmniSix AI Breadcrumb Trail */
 .whatzi-breadcrumb {
   display: flex;
   align-items: center;
@@ -152,7 +152,7 @@ body {
   color: #ffffff;
 }
 
-/* Whatzi Avatar Pill */
+/* OmniSix AI Avatar Pill */
 .whatzi-user-avatar {
   width: 38px;
   height: 38px;
@@ -284,7 +284,7 @@ body {
   user-select: none;
 }
 
-/* Whatzi Sidebar Navigation Buttons */
+/* OmniSix AI Sidebar Navigation Buttons */
 .sidebar .tab-btn {
   display: flex !important;
   align-items: center !important;
@@ -320,7 +320,7 @@ body {
   display: none !important;
 }
 
-/* Icons inside Whatzi Buttons */
+/* Icons inside OmniSix AI Buttons */
 .tab-btn .nav-pro-icon {
   background: transparent !important;
   border: none !important;
@@ -354,7 +354,7 @@ body {
   box-shadow: 0 2px 6px rgba(236, 72, 153, 0.3);
 }
 
-/* Sidebar Footer (Whatzi CRM 6.2.0) */
+/* Sidebar Footer (OmniSix AI 6.2.0) */
 .whatzi-sidebar-footer {
   margin-top: auto;
   padding-top: 14px;
@@ -497,7 +497,7 @@ table tr:hover td {
   color: #93c5fd !important;
 }
 
-/* Whatzi Notice / Coexistence Box */
+/* OmniSix AI Notice / Coexistence Box */
 .whatzi-notice-box {
   background: rgba(37, 99, 235, 0.08);
   border: 1px solid rgba(37, 99, 235, 0.28);
