@@ -195,18 +195,33 @@ class Database {
     }, 1000);
   }
 
+  scheduleMongoReconnect() {
+    if (this._mongoRetryTimer) clearTimeout(this._mongoRetryTimer);
+    this.mongoReconnectAttempts = (this.mongoReconnectAttempts || 0) + 1;
+    // Exponential backoff: 10s, 20s, 40s, up to max 5 minutes (300000ms) to prevent socket & CPU churn
+    const delayMs = Math.min(300000, 10000 * Math.pow(1.5, Math.min(this.mongoReconnectAttempts, 8)));
+    this._mongoRetryTimer = setTimeout(() => {
+      if (!this.isMongoConnected && !this.isMongoConnecting) {
+        console.log(`[db] 🔄 Retrying MongoDB Atlas connection (attempt ${this.mongoReconnectAttempts})...`);
+        this.initMongo().catch(() => {});
+      }
+    }, delayMs);
+  }
+
   // ─── Native MongoDB Atlas Integration ─────────────────────────────────────────
   async initMongo() {
     if (!MongoClient || !MONGODB_URI) return;
     if (this.isMongoConnecting) return;
     this.isMongoConnecting = true;
 
+    let client = null;
     try {
       if (this.mongoClient) {
         try { await this.mongoClient.close(); } catch (_) {}
+        this.mongoClient = null;
       }
 
-      const client = new MongoClient(MONGODB_URI, {
+      client = new MongoClient(MONGODB_URI, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 10000,
         socketTimeoutMS: 45000,
@@ -222,7 +237,7 @@ class Database {
         if (this.isMongoConnected) {
           this.isMongoConnected = false;
           console.warn('[MongoDB Atlas] Connection closed. Reconnecting...');
-          setTimeout(() => this.initMongo().catch(() => {}), 5000);
+          this.scheduleMongoReconnect();
         }
       });
       client.on('error', (err) => {
@@ -238,6 +253,11 @@ class Database {
       this.isMongoConnected = true;
       this.isMongoConnecting = false;
       this.mongoError = null;
+      this.mongoReconnectAttempts = 0;
+      if (this._mongoRetryTimer) {
+        clearTimeout(this._mongoRetryTimer);
+        this._mongoRetryTimer = null;
+      }
       console.log('🍃 [MongoDB Atlas] Connected successfully to Cloud Database (omnisix)!');
 
       // Reconcile state non-destructively (never overwrite newer local data)
@@ -300,16 +320,15 @@ class Database {
         console.log('🌱 [MongoDB Atlas] Initialized and seeded cloud database with baseline records.');
       }
     } catch (err) {
+      if (client) {
+        try { await client.close(); } catch (_) {}
+      }
+      this.mongoClient = null;
       this.isMongoConnected = false;
       this.isMongoConnecting = false;
       this.mongoError = err.message;
       console.warn('⚠️ [MongoDB Atlas] Connection warning (falling back to local storage):', err.message);
-      setTimeout(() => {
-        if (!this.isMongoConnected) {
-          console.log('[db] 🔄 Retrying MongoDB Atlas connection...');
-          this.initMongo().catch(() => {});
-        }
-      }, 10000);
+      this.scheduleMongoReconnect();
     }
   }
 

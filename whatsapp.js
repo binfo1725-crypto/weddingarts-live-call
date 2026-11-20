@@ -52,9 +52,27 @@ class WhatsAppAccountSession {
     this.isStarting = false;
   }
 
+  cleanupSocket() {
+    if (this.sock) {
+      try {
+        if (this.sock.ev) {
+          this.sock.ev.removeAllListeners('creds.update');
+          this.sock.ev.removeAllListeners('connection.update');
+          this.sock.ev.removeAllListeners('messages.upsert');
+        }
+        this.sock.end(new Error('Socket cleanup'));
+      } catch (e) {}
+      this.sock = null;
+    }
+  }
+
   async start() {
+    if (this.isDestroyed) return;
     if (this.isStarting) return;
     this.isStarting = true;
+
+    // Clean up any existing socket and listeners before creating a new connection
+    this.cleanupSocket();
 
     try {
       if (!fs.existsSync(this.authDir)) {
@@ -576,6 +594,7 @@ class WhatsAppAccountSession {
     try {
       if (this.sock) await this.sock.logout();
     } catch (e) {}
+    this.cleanupSocket();
     this.clearAuth();
     this.connected = false;
     this.qrDataUrl = null;
@@ -606,12 +625,7 @@ class WhatsAppAccountSession {
 
   async restart() {
     console.log(`[whatsapp-acc:${this.id}] Restarting session and requesting new QR code...`);
-    try {
-      if (this.sock) {
-        this.sock.ev.removeAllListeners('connection.update');
-        this.sock.end(new Error('Manual session restart requested'));
-      }
-    } catch (e) {}
+    this.cleanupSocket();
     this.isStarting = false;
     this.qrDataUrl = null;
     this.rawQr = null;
@@ -891,6 +905,7 @@ class MultiAccountWhatsAppManager {
       try {
         if (session.sock) await session.sock.logout();
       } catch (e) {}
+      session.cleanupSocket();
       session.clearAuth();
       this.sessions.delete(accountId);
       db.deleteWhatsAppAccount(accountId);
@@ -919,11 +934,16 @@ class MultiAccountWhatsAppManager {
       }
 
       if (connectedSessions.length < 2) {
-        db.logWarmerEvent({
-          event: 'skipped',
-          status: 'idle',
-          details: 'At least 2 connected WhatsApp instances required for P2P human conversation warming.'
-        });
+        // Throttled: only log idle status once every 30 minutes to prevent high-frequency disk writes
+        const now = Date.now();
+        if (!this._lastWarmerIdleLog || (now - this._lastWarmerIdleLog) > 30 * 60 * 1000) {
+          this._lastWarmerIdleLog = now;
+          db.logWarmerEvent({
+            event: 'skipped',
+            status: 'idle',
+            details: 'At least 2 connected WhatsApp instances required for P2P human conversation warming.'
+          });
+        }
         return;
       }
 

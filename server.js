@@ -3,6 +3,23 @@
 // Full Dataset Integration + Instant Full-Duplex Barge-in + Gemini 3.5 Flash & Aoede Voice
 
 require('dotenv').config();
+
+// ─── Top-Level Crash Resilience & Process Guards ─────────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL-GUARD] Uncaught Exception caught by top-level handler:', err && err.stack ? err.stack : err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL-GUARD] Unhandled Promise Rejection at:', promise, 'reason:', reason && reason.stack ? reason.stack : reason);
+});
+
+process.on('SIGTERM', () => {
+  console.log('[SYSTEM] SIGTERM received. Gracefully maintaining state before shutdown...');
+});
+process.on('SIGINT', () => {
+  console.log('[SYSTEM] SIGINT received. Gracefully maintaining state before shutdown...');
+});
+
 const express = require('express');
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
@@ -1808,9 +1825,19 @@ app.post('/api/chat', async (req, res) => {
 
 // ─── HTTP & WebSocket Server ─────────────────────────────────────────────────
 const server = http.createServer(app);
+server.on('error', (err) => {
+  console.error('[server] HTTP Server error:', err && err.message ? err.message : err);
+});
+
 const wss = new WebSocketServer({ server, path: '/ws' });
+wss.on('error', (err) => {
+  console.error('[wss] WebSocket Server error:', err && err.message ? err.message : err);
+});
 
 wss.on('connection', (browserWs, req) => {
+  browserWs.on('error', (err) => {
+    console.warn(`[ws] Client socket error:`, err && err.message ? err.message : err);
+  });
   db.recordLiveCall();
   const url = new URL(req.url, `http://localhost`);
   const activeBiz = db.getActiveBusiness();
@@ -2585,13 +2612,19 @@ server.listen(PORT, () => {
   // Start WhatsApp Multi-Device Web Engine
   waEngine.start();
 
-  // Keep-alive self-ping to prevent cloud container sleep
-  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || (CALL_SERVER_URL.startsWith('http') && !CALL_SERVER_URL.includes('localhost') ? CALL_SERVER_URL : 'https://weddingarts-live-call.onrender.com');
+  // Keep-alive self-ping to prevent cloud container sleep (Render Free Tier 15-min idle sleep prevention)
+  const defaultKeepAlive = 'https://omnisix-ai.onrender.com';
+  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || (CALL_SERVER_URL.startsWith('http') && !CALL_SERVER_URL.includes('localhost') ? CALL_SERVER_URL : defaultKeepAlive);
   if (keepAliveUrl.startsWith('https://')) {
     const httpsModule = require('https');
     setInterval(() => {
-      httpsModule.get(`${keepAliveUrl}/health`, () => {}).on('error', () => {});
-    }, 10 * 60 * 1000); // Ping every 10 minutes
-    console.log(`⏱️ Keep-alive self-ping configured for: ${keepAliveUrl}/health`);
+      httpsModule.get(`${keepAliveUrl}/health`, (res) => {
+        // Drain response data so socket returns to agent pool
+        res.resume();
+      }).on('error', (err) => {
+        // Suppress transient DNS / network errors
+      });
+    }, 5 * 60 * 1000); // Ping every 5 minutes (Render sleep threshold is 15 minutes)
+    console.log(`⏱️ Keep-alive 24/7 self-ping configured for: ${keepAliveUrl}/health (5m interval)`);
   }
 });
