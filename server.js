@@ -698,9 +698,34 @@ app.get('/api/orders', (req, res) => {
   });
 });
 
-app.post('/api/orders/status', (req, res) => {
+app.post('/api/orders/status', async (req, res) => {
   const { id, status, trackingNumber } = req.body;
   const order = db.updateOrderStatus(id, status, trackingNumber);
+
+  // Auto-Dispatch Customer WhatsApp Tracking Notification
+  if (order && status === 'Dispatched' && order.customerPhone && waEngine) {
+    const trackMsg = `🚚 *ඇණවුම බෙදාහැරීම සඳහා භාර දෙන ලදී (Order Dispatched)!*\n\n` +
+      `👤 පාරිභෝගික නම: *${order.customerName || 'Customer'}*\n` +
+      `📦 ඇණවුම් අංකය: *#${order.id}*\n` +
+      (trackingNumber ? `🚚 කුරියර් Tracking අංකය: *${trackingNumber}*\n` : '') +
+      `📍 ලැබිය යුතු ලිපිනය: ${order.address || 'Standard Delivery'}\n\n` +
+      `_දින 2-3ක් ඇතුළත කුරියර් නිලධාරියා ඔබව අමතා පාර්සලය භාරදෙනු ඇත. අප හා සම්බන්ධ වූවාට ස්තූතියි!_ 🙏✨`;
+    waEngine.sendTextMessage(order.customerPhone, trackMsg).catch(() => {});
+  }
+
+  // Real-Time Google Sheets Auto-Sync
+  try {
+    const settings = db.getSettings();
+    if (settings.googleSheets && settings.googleSheets.enabled && settings.googleSheets.webhookUrl) {
+      fetch(settings.googleSheets.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'order_status_update', order }),
+        signal: AbortSignal.timeout(5000)
+      }).catch(() => {});
+    }
+  } catch (e) {}
+
   res.json({ ok: true, order });
 });
 
@@ -713,6 +738,20 @@ app.post('/api/orders/create', (req, res) => {
   });
   const biz = db.getBusiness(bId) || db.getActiveBusiness();
   notifyOwnerOfNewOrder(order, biz);
+
+  // Real-Time Google Sheets Auto-Sync for New Orders
+  try {
+    const settings = db.getSettings();
+    if (settings.googleSheets && settings.googleSheets.enabled && settings.googleSheets.webhookUrl) {
+      fetch(settings.googleSheets.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'order_created', order, store: biz.name }),
+        signal: AbortSignal.timeout(5000)
+      }).catch(() => {});
+    }
+  } catch (e) {}
+
   res.json({ ok: true, order });
 });
 
@@ -854,6 +893,158 @@ app.get('/api/export/orders.csv', (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(csvContent);
 });
+
+// ─── 🚚 Automated Courier Waybill Bulk Export (Koombiyo, Domex, Prompt X, Fardar) ──
+app.get('/api/export/courier-waybill.csv', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const orders = db.getOrders(bId);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+  const provider = (req.query.provider || 'koombiyo').toLowerCase().trim();
+
+  let headers = [];
+  let rows = [];
+
+  const sanitize = (val) => String(val || "").replace(/"/g, '""').replace(/\r?\n/g, " ").trim();
+
+  // Helper to extract clean phone
+  const cleanPhone = (phone) => {
+    let p = String(phone || '').replace(/\D/g, '');
+    if (p.startsWith('94')) p = '0' + p.slice(2);
+    return p;
+  };
+
+  // Helper to extract city from address
+  const extractCity = (addr) => {
+    if (!addr) return 'Colombo';
+    const parts = addr.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    return parts.length > 0 ? parts[parts.length - 1] : 'Colombo';
+  };
+
+  if (provider === 'domex') {
+    // Domex Bulk Waybill Format
+    headers = ['WaybillNumber', 'Name', 'Address', 'City', 'PhoneNo1', 'PhoneNo2', 'COD', 'ItemType', 'Weight', 'Remark'];
+    rows = orders.map(o => [
+      `"${sanitize(o.trackingNumber || o.id)}"`,
+      `"${sanitize(o.customerName || 'Customer')}"`,
+      `"${sanitize(o.address || 'Sri Lanka')}"`,
+      `"${sanitize(extractCity(o.address))}"`,
+      `"${cleanPhone(o.customerPhone)}"`,
+      `""`,
+      `"${parseFloat(o.amount) || 0}"`,
+      `"${sanitize(o.item || 'Goods')}"`,
+      `"1.0"`,
+      `"Order #${o.id} - Handle with care"`
+    ]);
+  } else if (provider === 'promptx') {
+    // Prompt X Logistics Bulk CSV Format
+    headers = ['TrackingNumber', 'RecipientName', 'DeliveryAddress', 'Town', 'ContactNo', 'COD_Amount', 'OrderReference', 'Remarks'];
+    rows = orders.map(o => [
+      `"${sanitize(o.trackingNumber || '')}"`,
+      `"${sanitize(o.customerName || 'Customer')}"`,
+      `"${sanitize(o.address || 'Sri Lanka')}"`,
+      `"${sanitize(extractCity(o.address))}"`,
+      `"${cleanPhone(o.customerPhone)}"`,
+      `"${parseFloat(o.amount) || 0}"`,
+      `"${sanitize(o.id)}"`,
+      `"Call before delivery"`
+    ]);
+  } else if (provider === 'fardar') {
+    // Fardar Express Format
+    headers = ['WaybillNo', 'ReceiverName', 'ReceiverAddress', 'Destination', 'Phone', 'COD', 'Pieces', 'Weight', 'Description'];
+    rows = orders.map(o => [
+      `"${sanitize(o.trackingNumber || o.id)}"`,
+      `"${sanitize(o.customerName || 'Customer')}"`,
+      `"${sanitize(o.address || 'Sri Lanka')}"`,
+      `"${sanitize(extractCity(o.address))}"`,
+      `"${cleanPhone(o.customerPhone)}"`,
+      `"${parseFloat(o.amount) || 0}"`,
+      `"1"`,
+      `"1.0"`,
+      `"${sanitize(o.item || 'Parcel')}"`
+    ]);
+  } else {
+    // Koombiyo Delivery Format (Default Sri Lanka favorite)
+    headers = ['Waybill_No', 'Consignee_Name', 'Consignee_Address', 'Consignee_City', 'Consignee_Phone', 'COD_Amount', 'Description', 'Special_Notes'];
+    rows = orders.map(o => [
+      `"${sanitize(o.trackingNumber || o.id)}"`,
+      `"${sanitize(o.customerName || 'Customer')}"`,
+      `"${sanitize(o.address || 'Sri Lanka')}"`,
+      `"${sanitize(extractCity(o.address))}"`,
+      `"${cleanPhone(o.customerPhone)}"`,
+      `"${parseFloat(o.amount) || 0}"`,
+      `"${sanitize(o.item || 'OmniSix Store Package')}"`,
+      `"Order #${o.id} - Call customer before delivery"`
+    ]);
+  }
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  const filename = `${provider.toUpperCase()}_Waybills_${new Date().toISOString().split('T')[0]}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csvContent);
+});
+
+// ─── 📊 Google Sheets Real-Time 2-Way Sync Webhook Receiver ──────────────────
+app.post('/api/webhook/google-sheets', async (req, res) => {
+  try {
+    const { orderId, status, trackingNumber, secret } = req.body;
+    const settings = db.getSettings();
+    if (settings.googleSheets && settings.googleSheets.secret) {
+      if (secret !== settings.googleSheets.secret) {
+        return res.status(403).json({ ok: false, error: 'Unauthorized secret token' });
+      }
+    }
+    if (!orderId) {
+      return res.status(400).json({ ok: false, error: 'orderId is required' });
+    }
+    const order = db.updateOrderStatus(orderId, status || 'Confirmed', trackingNumber);
+    if (!order) {
+      return res.status(404).json({ ok: false, error: 'Order not found in database' });
+    }
+
+    // Auto-dispatch customer WhatsApp notification if status changed to Dispatched
+    if (status === 'Dispatched' && order.customerPhone && waEngine) {
+      const trackMsg = `🚚 *ඇණවුම බෙදාහැරීම සඳහා භාර දෙන ලදී (Order Dispatched)!*\n\n` +
+        `👤 පාරිභෝගික නම: *${order.customerName || 'Customer'}*\n` +
+        `📦 ඇණවුම් අංකය: *#${order.id}*\n` +
+        (trackingNumber ? `🚚 කුරියර් Tracking අංකය: *${trackingNumber}*\n` : '') +
+        `📍 ලැබිය යුතු ලිපිනය: ${order.address || 'Standard Delivery'}\n\n` +
+        `_දින 2-3ක් ඇතුළත කුරියර් නිලධාරියා ඔබව අමතා පාර්සලය භාරදෙනු ඇත. අප හා සම්බන්ධ වූවාට ස්තූතියි!_ 🙏✨`;
+      waEngine.sendTextMessage(order.customerPhone, trackMsg).catch(() => {});
+    }
+
+    console.log(`[google-sheets-sync] ✅ Updated Order #${orderId} -> ${status} (Tracking: ${trackingNumber || 'N/A'})`);
+    res.json({ ok: true, order });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/google-sheets/test-sync', async (req, res) => {
+  try {
+    const settings = db.getSettings();
+    const webhookUrl = req.body.webhookUrl || settings.googleSheets?.webhookUrl;
+    if (!webhookUrl) {
+      return res.status(400).json({ ok: false, error: 'Webhook URL not configured' });
+    }
+    const testPayload = {
+      event: 'test_connection',
+      timestamp: new Date().toISOString(),
+      store: db.getActiveBusiness().name,
+      message: 'OmniSix AI 2-Way Google Sheets Sync Connected Successfully!'
+    };
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testPayload),
+      signal: AbortSignal.timeout(8000)
+    });
+    res.json({ ok: true, status: response.status, statusText: response.statusText });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 
 app.get('/api/export/contacts.csv', (req, res) => {
   const bId = resolveReqBusinessId(req);

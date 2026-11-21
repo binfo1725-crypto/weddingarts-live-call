@@ -2419,6 +2419,17 @@ table tr:hover td {
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn-primary" onclick="openAddOrderModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add New Order</button>
           <a href="/api/export/orders.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Export Orders (CSV)</a>
+          <div style="position:relative;display:inline-block;" id="courier-export-dropdown">
+            <button type="button" class="btn-secondary" onclick="toggleCourierDropdown()" style="display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;">
+              <span>🚚</span> Export Courier Waybill ▼
+            </button>
+            <div id="courier-menu" style="display:none;position:absolute;right:0;top:105%;background:#10121b;border:1px solid rgba(255,255,255,0.15);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.8);z-index:999;min-width:190px;overflow:hidden;">
+              <a href="/api/export/courier-waybill.csv?provider=koombiyo" download="koombiyo_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">📦 Koombiyo CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=domex" download="domex_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">🚚 Domex CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=promptx" download="promptx_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">⚡ Prompt X CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=fardar" download="fardar_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;">📮 Fardar Express CSV</a>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2938,7 +2949,85 @@ table tr:hover td {
         </div>
       </div>
 
-        <button type="submit" class="btn-primary" style="margin-top:16px;">💾 Save AI Settings</button>
+        
+      <!-- 🎨 Embeddable Web Widget Designer & Live Embed Snippet Generator -->
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-top:20px;">
+        <h4 style="font-size:0.98rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span>💬</span> Embeddable Web Widget Designer (වෙබ් අඩවි සඳහා Live Chat Bubble)
+        </h4>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">
+          ඔබගේ Shopify, WooCommerce, හෝ ඕනෑම වෙබ් අඩවියක පාරිභෝගිකයින්ට AI Live Voice & WhatsApp මඟින් සෘජුව සම්බන්ධ වීමට මෙම Floating Chat Widget එක එක් කරන්න.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Store Brand Name (Widget Display)</label>
+            <input type="text" id="widget-store-name" class="form-input" value="OmniSix AI Store" oninput="updateWidgetSnippetPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brand Theme Color</label>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <input type="color" id="widget-brand-color" value="#ff0055" style="border:none;background:none;width:40px;height:38px;cursor:pointer;" onchange="document.getElementById('widget-color-hex').value = this.value; updateWidgetSnippetPreview();">
+              <input type="text" id="widget-color-hex" class="form-input" value="#ff0055" oninput="document.getElementById('widget-brand-color').value = this.value; updateWidgetSnippetPreview();">
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Screen Position</label>
+            <select id="widget-position" class="form-select" onchange="updateWidgetSnippetPreview()">
+              <option value="right">Bottom Right (දකුණු පස පහළ - Recommended)</option>
+              <option value="left">Bottom Left (වම් පස පහළ)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">WhatsApp Contact Number</label>
+            <input type="text" id="widget-whatsapp-phone" class="form-input" placeholder="94771234567" oninput="updateWidgetSnippetPreview()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Website Embed HTML Code (Copy & Paste before &lt;/body&gt;)</span>
+            <button type="button" class="btn-secondary" onclick="copyWidgetSnippet()" style="padding:4px 10px;font-size:0.75rem;">📋 Copy Code</button>
+          </label>
+          <textarea id="widget-snippet-code" class="form-input" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;height:70px;background:#05070e;color:#38bdf8;" readonly></textarea>
+        </div>
+      </div>
+
+      <!-- 📊 Google Sheets Real-Time 2-Way Sync Engine -->
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-top:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <h4 style="font-size:0.98rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
+            <span>📊</span> Google Sheets 2-Way Real-Time Sync (ස්වයංක්‍රීය Sheet සමමුහුර්තකරණය)
+          </h4>
+          <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:0.84rem;">
+            <input type="checkbox" id="setting-sheets-enabled" style="accent-color:#10b981;width:16px;height:16px;">
+            <span style="font-weight:700;color:#10b981;">Enable 2-Way Sync</span>
+          </label>
+        </div>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;">
+          WhatsApp හා ඇමතුම් වලින් තහවුරු වන සියලුම නව ඇණවුම් Google Sheet එකට Auto-Append වේ. Google Sheet එකේ Status වෙනස් කළ විට OmniSix CRM එකද Real-Time Update වේ.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:flex-end;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Google Apps Script Web App Webhook URL</label>
+            <input type="url" id="setting-sheets-webhook-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <button type="button" class="btn-secondary" onclick="testGoogleSheetsSync()" style="height:42px;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;white-space:nowrap;">
+            <span>🔄</span> Test Sync
+          </button>
+        </div>
+        <div id="sheets-sync-status" class="hidden" style="margin-top:10px;padding:8px 12px;border-radius:8px;font-size:0.8rem;"></div>
+
+        <div style="margin-top:12px;background:rgba(255,255,255,0.03);padding:10px 14px;border-radius:8px;font-size:0.78rem;color:var(--text-muted);line-height:1.4;">
+          💡 <strong>Incoming Webhook Endpoint:</strong> Google Sheets වලින් OmniSix වෙත Updates එවීම සඳහා: <code style="color:#38bdf8;">https://omnisix-ai.onrender.com/api/webhook/google-sheets</code> (Method: POST)
+        </div>
+      </div>
+
+<button type="submit" class="btn-primary" style="margin-top:16px;">💾 Save AI Settings</button>
       </form>
     </section>
 
@@ -5955,6 +6044,80 @@ async function saveBusinessProfile(e) {
 }
 
 // ─── Settings Form ────────────────────────────────────────────────────────────
+
+// ─── Courier Dropdown Helper ─────────────────────────────────────────────────
+function toggleCourierDropdown() {
+  const menu = document.getElementById('courier-menu');
+  if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('courier-export-dropdown');
+  const menu = document.getElementById('courier-menu');
+  if (dd && menu && !dd.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
+
+// ─── Web Widget Designer Helpers ─────────────────────────────────────────────
+function updateWidgetSnippetPreview() {
+  const store = document.getElementById('widget-store-name')?.value?.trim() || 'OmniSix AI Store';
+  const color = document.getElementById('widget-color-hex')?.value?.trim() || '#ff0055';
+  const pos = document.getElementById('widget-position')?.value || 'right';
+  const phone = document.getElementById('widget-whatsapp-phone')?.value?.trim() || '94762107801';
+  const host = window.location.origin.includes('localhost') ? window.location.origin : 'https://omnisix-ai.onrender.com';
+
+  const snippet = `<script src="${host}/widget.js" data-store="${store}" data-color="${color}" data-position="${pos}" data-whatsapp="${phone}" defer><\/script>`;
+  const snippetEl = document.getElementById('widget-snippet-code');
+  if (snippetEl) snippetEl.value = snippet;
+}
+
+function copyWidgetSnippet() {
+  const snippetEl = document.getElementById('widget-snippet-code');
+  if (!snippetEl) return;
+  snippetEl.select();
+  navigator.clipboard.writeText(snippetEl.value).then(() => {
+    alert('📋 Widget code copied to clipboard! Paste it into your website header or footer.');
+  }).catch(() => {
+    alert('Copied: ' + snippetEl.value);
+  });
+}
+
+// ─── Google Sheets Sync Tester ───────────────────────────────────────────────
+async function testGoogleSheetsSync() {
+  const url = document.getElementById('setting-sheets-webhook-url')?.value?.trim();
+  const statusBox = document.getElementById('sheets-sync-status');
+  if (!url) {
+    alert('Please enter a Google Apps Script Web App URL first!');
+    return;
+  }
+  statusBox.classList.remove('hidden');
+  statusBox.style.background = 'rgba(56,189,248,0.1)';
+  statusBox.style.color = '#38bdf8';
+  statusBox.textContent = '🔄 Testing connection to Google Sheets Webhook...';
+
+  try {
+    const res = await fetch('/api/google-sheets/test-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhookUrl: url })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      statusBox.style.background = 'rgba(34,197,94,0.15)';
+      statusBox.style.color = '#4ade80';
+      statusBox.textContent = '✅ Google Sheets Webhook Connected Successfully! Status: ' + (data.status || 200);
+    } else {
+      statusBox.style.background = 'rgba(239,68,68,0.15)';
+      statusBox.style.color = '#f87171';
+      statusBox.textContent = '❌ Google Sheets Connection Failed: ' + (data.error || 'Server error');
+    }
+  } catch (err) {
+    statusBox.style.background = 'rgba(239,68,68,0.15)';
+    statusBox.style.color = '#f87171';
+    statusBox.textContent = '❌ Connection Error: ' + err.message;
+  }
+}
+
 async function loadSettingsForm() {
   try {
     const res = await fetch('/api/settings');
@@ -6014,6 +6177,31 @@ async function loadSettingsForm() {
         const metaVTok = document.getElementById('setting-meta-verify-token');
         if (metaVTok) metaVTok.value = s.metaCloudApi.verifyToken || 'omnisix_meta_verify_2026';
       }
+
+      // Populate Google Sheets Sync settings
+      if (s.googleSheets) {
+        const gsEn = document.getElementById('setting-sheets-enabled');
+        if (gsEn) gsEn.checked = !!s.googleSheets.enabled;
+        const gsUrl = document.getElementById('setting-sheets-webhook-url');
+        if (gsUrl) gsUrl.value = s.googleSheets.webhookUrl || '';
+      }
+
+      // Populate Web Widget settings
+      if (s.widget) {
+        const wStore = document.getElementById('widget-store-name');
+        if (wStore && s.widget.storeName) wStore.value = s.widget.storeName;
+        const wColor = document.getElementById('widget-color-hex');
+        if (wColor && s.widget.color) {
+          wColor.value = s.widget.color;
+          const wPick = document.getElementById('widget-brand-color');
+          if (wPick) wPick.value = s.widget.color;
+        }
+        const wPos = document.getElementById('widget-position');
+        if (wPos && s.widget.position) wPos.value = s.widget.position;
+        const wPhone = document.getElementById('widget-whatsapp-phone');
+        if (wPhone && s.widget.phone) wPhone.value = s.widget.phone;
+      }
+      updateWidgetSnippetPreview();
     }
   } catch(e){}
 }
@@ -6043,6 +6231,16 @@ async function saveSettings(e) {
       phoneNumberId: document.getElementById('setting-meta-phone-id')?.value?.trim() || '',
       token: document.getElementById('setting-meta-token')?.value?.trim() || '',
       verifyToken: document.getElementById('setting-meta-verify-token')?.value?.trim() || 'omnisix_meta_verify_2026'
+    },
+    googleSheets: {
+      enabled: document.getElementById('setting-sheets-enabled')?.checked || false,
+      webhookUrl: document.getElementById('setting-sheets-webhook-url')?.value?.trim() || ''
+    },
+    widget: {
+      storeName: document.getElementById('widget-store-name')?.value?.trim() || 'OmniSix AI Store',
+      color: document.getElementById('widget-color-hex')?.value?.trim() || '#ff0055',
+      position: document.getElementById('widget-position')?.value || 'right',
+      phone: document.getElementById('widget-whatsapp-phone')?.value?.trim() || '94762107801'
     }
   };
 

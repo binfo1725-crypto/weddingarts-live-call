@@ -17,6 +17,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./db.js');
 const { LanguageDetectionEngine } = require('./ai_engines.js');
+const { verifyBankSlipWithGeminiVision } = require('./slipVerifier.js');
 
 const AUTH_BASE = path.join(__dirname, 'data');
 const DEFAULT_AUTH_DIR = path.join(AUTH_BASE, 'baileys_auth');
@@ -211,6 +212,39 @@ class WhatsAppAccountSession {
                          msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson ||
                          '';
 
+            // Download & verify bank deposit slip with Gemini Vision if image received
+            const imgMsg = msg.message?.imageMessage;
+            const isImage = !!imgMsg;
+            let slipResult = null;
+
+            if (isImage) {
+              console.log(`[whatsapp-acc:${this.id}] 📷 Received WhatsApp Image/Slip from ${remoteJid}`);
+              try {
+                const imgBuffer = await downloadMediaMessage(
+                  msg,
+                  'buffer',
+                  {},
+                  { logger: pino({ level: 'silent' }), reuploadRequest: this.sock.updateMediaMessage }
+                );
+                if (imgBuffer) {
+                  const activeBiz = (this.businessId && (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId))) || db.getActiveBusiness();
+                  const settings = (this.businessId && db.getTenantSettings(this.businessId)) || db.getSettings();
+                  const geminiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || '';
+                  if (geminiKey) {
+                    slipResult = await verifyBankSlipWithGeminiVision(imgBuffer, imgMsg.mimetype || 'image/jpeg', geminiKey);
+                  }
+                }
+              } catch (imgErr) {
+                console.error(`[whatsapp-acc:${this.id}] Slip verify error:`, imgErr.message);
+              }
+
+              if (!text || text.trim().length === 0) {
+                text = slipResult && slipResult.isBankSlip
+                  ? `[Bank Payment Slip - Rs. ${slipResult.amount}]`
+                  : `[Customer Sent an Image]`;
+              }
+            }
+
             // Download and transcribe audio if voice note received
             if (isVoiceNote) {
               console.log(`[whatsapp-acc:${this.id}] 🎙️ Received WhatsApp Voice Note (${audioMsg.seconds || 0}s) from ${remoteJid}`);
@@ -251,6 +285,34 @@ class WhatsAppAccountSession {
             // Resolve store / business scoped to this specific WhatsApp account
             const activeBiz = (this.businessId && (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId))) || db.getActiveBusiness();
             const settings = (this.businessId && db.getTenantSettings(this.businessId)) || db.getSettings();
+
+            // If Gemini Vision verified this as a genuine Bank Transfer Slip
+            if (slipResult && slipResult.isBankSlip) {
+              console.log(`[whatsapp-acc:${this.id}] 🧾 Bank Slip Verified via Gemini Vision: Rs. ${slipResult.amount} (${slipResult.bankName})`);
+              const allOrders = db.getOrders(activeBiz.id);
+              const cleanSender = senderPhone.replace(/\D/g, '');
+              const matchedOrder = allOrders.find(o => 
+                (o.status === 'Pending' || o.status === 'Pending Payment') &&
+                o.customerPhone && (o.customerPhone.includes(cleanSender) || cleanSender.includes(o.customerPhone.replace(/\D/g, '')))
+              );
+
+              if (matchedOrder) {
+                db.updateOrderStatus(matchedOrder.id, 'Slip Verified');
+                console.log(`[whatsapp-acc:${this.id}] ✅ Order #${matchedOrder.id} status updated to 'Slip Verified'`);
+              }
+
+              const confirmText = `🧾 *ස්තූතියි! ඔබගේ බැංකු ගෙවීම් රිසිට්පත තහවුරු විය (Payment Slip Verified)*\n\n` +
+                `🏦 බැංකුව: *${slipResult.bankName || 'Bank of Sri Lanka'}*\n` +
+                `💰 ගෙවූ මුදල: *Rs. ${Number(slipResult.amount || 0).toLocaleString()}*\n` +
+                `🔖 යොමු අංකය: *${slipResult.referenceNumber || 'N/A'}*\n` +
+                (matchedOrder ? `📦 අදාළ ඇණවුම: *#${matchedOrder.id}*\n\n` : `\n`) +
+                `අපගේ කාර්ය මණ්ඩලය විසින් ඔබගේ ඇණවුම සූදානම් කර කඩිනමින් කුරියර් වෙත භාරදෙනු ඇත. ඔබට ස්තූතියි! 🙏✨`;
+
+              await this.sock.sendMessage(remoteJid, { text: confirmText });
+              db.addChatMessage(senderPhone, 'customer', `📷 [Bank Slip Attached: Rs. ${slipResult.amount}]`, senderName, senderPhone, activeBiz.id);
+              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id);
+              continue;
+            }
 
             // Store message in unified database with receiving account tag & businessId
             const storedText = isVoiceNote ? `🎤 ${text.trim()}` : text.trim();
