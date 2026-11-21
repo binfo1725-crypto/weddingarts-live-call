@@ -27,6 +27,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const db = require('./db.js');
+const { AgentFleetManager } = require('./agentTeam.js');
+const agentFleet = new AgentFleetManager(db);
 const waEngine = require('./whatsapp.js');
 const { generateInvoicePdf } = require('./invoiceGenerator.js');
 const categoryProfiles = require('./categoryProfiles.js');
@@ -1044,6 +1046,56 @@ app.post('/api/google-sheets/test-sync', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// ─── 🤖 Autonomous 20-Agent Enterprise Fleet Endpoints ───────────────────────
+app.get('/api/agents', (req, res) => {
+  const fleet = agentFleet.getFleet();
+  const mode = agentFleet.getOperatingMode();
+  const departments = {};
+  fleet.forEach(a => {
+    departments[a.dept] = (departments[a.dept] || 0) + 1;
+  });
+  const activeCount = fleet.filter(a => a.active).length;
+  res.json({
+    ok: true,
+    totalAgents: fleet.length,
+    activeAgents: activeCount,
+    mode,
+    departments,
+    agents: fleet
+  });
+});
+
+app.post('/api/agents/:id/toggle', (req, res) => {
+  const { active } = req.body;
+  const updated = agentFleet.toggleAgent(req.params.id, active);
+  if (!updated) return res.status(404).json({ ok: false, error: 'Agent not found' });
+  res.json({ ok: true, agent: updated });
+});
+
+app.post('/api/agents/mode', (req, res) => {
+  const { mode } = req.body;
+  const currentMode = agentFleet.setOperatingMode(mode);
+  res.json({ ok: true, mode: currentMode });
+});
+
+app.get('/api/agents/decisions', (req, res) => {
+  const limit = parseInt(req.query.limit) || 30;
+  res.json({ ok: true, decisions: agentFleet.getRecentDecisions(limit) });
+});
+
+app.post('/api/agents/test-route', (req, res) => {
+  const { text, phone } = req.body;
+  const agent = agentFleet.resolveBestAgent(text, { phone });
+  const decision = agentFleet.recordDecision(
+    agent.id,
+    phone || 'Preview Test',
+    `Dispatched to ${agent.name} (${agent.title})`,
+    `Intent detected for ${agent.dept}. Action directive activated: ${agent.directive.slice(0, 80)}...`
+  );
+  res.json({ ok: true, agent, decision });
+});
+
 
 
 app.get('/api/export/contacts.csv', (req, res) => {

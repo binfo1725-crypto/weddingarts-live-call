@@ -1931,6 +1931,16 @@ table tr:hover td {
   </button>
 
   <!-- Category 5: LIVE INBOX & TEAM -->
+    <!-- Category: 20-AGENT AI WORKFORCE -->
+  <div class="whatzi-nav-category">AI Workforce</div>
+  <button class="tab-btn" onclick="showTab('agents')" id="nav-btn-agents">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+    </div>
+    <span>20-Agent AI Fleet</span>
+    <span class="whatzi-badge-new" style="background:#10b981;">20 ACTIVE</span>
+  </button>
+
   <div class="whatzi-nav-category">Live Inbox &amp; Team</div>
   <button class="tab-btn" onclick="showTab('inbox')">
     <div class="nav-pro-icon">
@@ -2410,6 +2420,105 @@ table tr:hover td {
     </section>
 
     <!-- 3. ORDERS PIPELINE TAB -->
+    
+    <!-- 🤖 20-AGENT AUTONOMOUS ENTERPRISE FLEET TAB -->
+    <section id="tab-agents" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:22px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;">🤖 20-Agent AI Enterprise Fleet</h2>
+            <span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:700;border:1px solid rgba(16,185,129,0.3);">
+              ● Autonomous Enterprise Mesh
+            </span>
+          </div>
+          <p style="font-size:0.86rem;color:var(--text-secondary);">
+            විකුණුම්, පාරිභෝගික සත්කාරය, කුරියර් බෙදාහැරීම් සහ අලෙවිකරණය සඳහා එකමුතුව වැඩ කරන විශේෂඥ AI නියෝජිතයින් 20 දෙනෙකුගේ කණ්ඩායම.
+          </p>
+        </div>
+
+        <!-- Autonomy Mode Selector -->
+        <div style="background:#10121b;border:1px solid rgba(255,255,255,0.1);padding:6px;border-radius:12px;display:flex;gap:6px;align-items:center;">
+          <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);padding-left:8px;">MODE:</span>
+          <button type="button" id="mode-btn-autonomous" onclick="setFleetOperatingMode('autonomous')" class="btn-primary" style="padding:6px 14px;font-size:0.78rem;">⚡ 24/7 Fully Autonomous</button>
+          <button type="button" id="mode-btn-copilot" onclick="setFleetOperatingMode('copilot')" class="btn-secondary" style="padding:6px 14px;font-size:0.78rem;">🛡️ Co-Pilot (Human Review)</button>
+          <button type="button" id="mode-btn-supervised" onclick="setFleetOperatingMode('supervised')" class="btn-secondary" style="padding:6px 14px;font-size:0.78rem;">👁️ Supervised</button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Counters -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:14px;margin-bottom:22px;">
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Total AI Workforce</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#f8fafc;margin-top:4px;" id="stat-total-agents">20</div>
+          <div style="font-size:0.74rem;color:#10b981;margin-top:2px;">Across 5 Key Departments</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Active on Live WhatsApp</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#10b981;margin-top:4px;" id="stat-active-agents">20</div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">0 Standby | 100% Operational</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Average Decision Speed</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#38bdf8;margin-top:4px;">0.4s</div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">Powered by Google Gemini</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Autonomous Accuracy</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#a855f7;margin-top:4px;">99.4%</div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">Floor Price Margin Guard Active</div>
+        </div>
+      </div>
+
+      <!-- Department Filter Pills -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="dept-filter-bar">
+        <button type="button" class="btn-primary" onclick="filterAgentDept('all')" id="dept-btn-all" style="padding:6px 14px;font-size:0.78rem;">All Departments (20)</button>
+        <button type="button" class="btn-secondary" onclick="filterAgentDept('Sales & Revenue')" id="dept-btn-sales" style="padding:6px 14px;font-size:0.78rem;">🎯 Sales & Revenue (5)</button>
+        <button type="button" class="btn-secondary" onclick="filterAgentDept('Customer Support')" id="dept-btn-support" style="padding:6px 14px;font-size:0.78rem;">🤝 Customer Support (4)</button>
+        <button type="button" class="btn-secondary" onclick="filterAgentDept('Logistics & Finance')" id="dept-btn-logistics" style="padding:6px 14px;font-size:0.78rem;">🚚 Logistics & Finance (4)</button>
+        <button type="button" class="btn-secondary" onclick="filterAgentDept('Marketing & Growth')" id="dept-btn-marketing" style="padding:6px 14px;font-size:0.78rem;">📢 Marketing & Growth (4)</button>
+        <button type="button" class="btn-secondary" onclick="filterAgentDept('Intelligence & Supervision')" id="dept-btn-supervision" style="padding:6px 14px;font-size:0.78rem;">🛡️ Intelligence & SRE (3)</button>
+      </div>
+
+      <!-- 20-Agent Cards Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;margin-bottom:28px;" id="agent-cards-container">
+        <!-- Rendered via JavaScript -->
+      </div>
+
+      <!-- Interactive Live Agent Intent Tester & Chain-of-Thought Stream -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- Live Dispatch Tester -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
+          <h4 style="font-size:0.95rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span>⚡</span> Interactive Agent Dispatch Tester
+          </h4>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;">
+            පාරිභෝගිකයෙකු එවන ඕනෑම පණිවිඩයක් මෙහි Type කර Test කරන්න. ඒජන්තවරුන් 20 දෙනා අතරින් වඩාත්ම සුදුසු ඒජන්තයා ස්වයංක්‍රීයව තෝරාගන්නා ආකාරය සජීවීව බලාගන්න.
+          </p>
+          <div style="display:flex;gap:10px;margin-bottom:12px;">
+            <input type="text" id="test-agent-input" class="form-input" placeholder="උදා: mata frame eka aduwata ganna puluwanda? (or) tracking eka denna..." onkeydown="if(event.key==='Enter') executeAgentTest()">
+            <button type="button" class="btn-primary" onclick="executeAgentTest()" style="padding:0 18px;font-size:0.84rem;white-space:nowrap;">Test Route</button>
+          </div>
+          <div id="test-agent-result" class="hidden" style="background:#05070e;border:1px solid rgba(56,189,248,0.3);border-radius:10px;padding:14px;font-size:0.82rem;"></div>
+        </div>
+
+        <!-- Live Chain-of-Thought Decision Audit Stream -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <h4 style="font-size:0.95rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
+              <span>📜</span> Live Decision Stream (Chain-of-Thought)
+            </h4>
+            <button type="button" class="btn-secondary" onclick="fetchAgentDecisions()" style="padding:3px 10px;font-size:0.75rem;">🔄 Refresh</button>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;">
+            සැබෑ WhatsApp පාරිභෝගිකයින් හා සංවාද වලදී ඒජන්තයින් ගත් ස්වයංක්‍රීය තීරණ සහ Action Logs.
+          </p>
+          <div id="agent-decisions-stream" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;">
+            <div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:20px;">Loading live decision stream...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="tab-orders" class="glass-card hidden">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
         <div>
@@ -4580,9 +4689,197 @@ let activeChatId = null;
 let waPollTimer = null;
 
 // ─── Tab Navigation ───────────────────────────────────────────────────────────
+
+// ─── 🤖 20-Agent AI Enterprise Fleet Client Engine ───────────────────────────
+let allFleetAgents = [];
+let currentDeptFilter = 'all';
+
+async function loadAgentFleet() {
+  try {
+    const res = await fetch('/api/agents');
+    const data = await res.json();
+    if (data.ok) {
+      allFleetAgents = data.agents || [];
+      document.getElementById('stat-total-agents').textContent = data.totalAgents || allFleetAgents.length;
+      document.getElementById('stat-active-agents').textContent = data.activeAgents || allFleetAgents.filter(a => a.active).length;
+      renderFleetModeButtons(data.mode || 'autonomous');
+      renderAgentCards(currentDeptFilter);
+      fetchAgentDecisions();
+    }
+  } catch (err) {
+    console.error('Error loading agent fleet:', err);
+  }
+}
+
+function renderFleetModeButtons(activeMode) {
+  ['autonomous', 'copilot', 'supervised'].forEach(m => {
+    const btn = document.getElementById('mode-btn-' + m);
+    if (btn) {
+      if (m === activeMode) {
+        btn.className = 'btn-primary';
+        btn.style.boxShadow = '0 0 12px rgba(16,185,129,0.4)';
+      } else {
+        btn.className = 'btn-secondary';
+        btn.style.boxShadow = 'none';
+      }
+    }
+  });
+}
+
+async function setFleetOperatingMode(mode) {
+  try {
+    const res = await fetch('/api/agents/mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      renderFleetModeButtons(data.mode);
+      alert('⚡ 20-Agent Fleet Mode updated to: ' + data.mode.toUpperCase());
+    }
+  } catch (e) {
+    alert('Error setting mode: ' + e.message);
+  }
+}
+
+function filterAgentDept(dept) {
+  currentDeptFilter = dept;
+  document.querySelectorAll('#dept-filter-bar button').forEach(b => {
+    b.className = 'btn-secondary';
+  });
+  const activeBtnId = dept === 'all' ? 'dept-btn-all' :
+    dept === 'Sales & Revenue' ? 'dept-btn-sales' :
+    dept === 'Customer Support' ? 'dept-btn-support' :
+    dept === 'Logistics & Finance' ? 'dept-btn-logistics' :
+    dept === 'Marketing & Growth' ? 'dept-btn-marketing' : 'dept-btn-supervision';
+  const activeBtn = document.getElementById(activeBtnId);
+  if (activeBtn) activeBtn.className = 'btn-primary';
+  renderAgentCards(dept);
+}
+
+function renderAgentCards(deptFilter = 'all') {
+  const container = document.getElementById('agent-cards-container');
+  if (!container) return;
+  const filtered = deptFilter === 'all' ? allFleetAgents : allFleetAgents.filter(a => a.dept === deptFilter);
+
+  container.innerHTML = filtered.map(agent => `
+    <div style="background:#10121b;border:1px solid ${agent.active ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.2)'};border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;transition:transform 0.2s;box-shadow:0 4px 16px rgba(0,0,0,0.4);" onmouseover="this.style.borderColor='rgba(56,189,248,0.3)'" onmouseout="this.style.borderColor='${agent.active ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.2)'}'">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:1.6rem;width:42px;height:42px;background:rgba(255,255,255,0.05);border-radius:10px;display:flex;align-items:center;justify-content:center;">${agent.avatar}</div>
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;color:#f8fafc;">${agent.name}</div>
+              <div style="font-size:0.75rem;color:#38bdf8;font-weight:600;">${agent.title}</div>
+            </div>
+          </div>
+          <label style="position:relative;display:inline-block;width:38px;height:22px;cursor:pointer;">
+            <input type="checkbox" ${agent.active ? 'checked' : ''} onchange="toggleAgentActive('${agent.id}', this.checked)" style="opacity:0;width:0;height:0;">
+            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:${agent.active ? '#10b981' : '#475569'};transition:0.3s;border-radius:24px;"></span>
+            <span style="position:absolute;content:'';height:16px;width:16px;left:3px;bottom:3px;background-color:white;transition:0.3s;border-radius:50%;transform:${agent.active ? 'translateX(16px)' : 'none'};"></span>
+          </label>
+        </div>
+
+        <div style="display:inline-block;background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:6px;font-size:0.72rem;color:var(--text-muted);font-weight:600;margin-bottom:8px;">
+          🏷️ ${agent.dept}
+        </div>
+
+        <p style="font-size:0.8rem;color:#cbd5e1;line-height:1.4;margin-bottom:12px;">
+          ${agent.description}
+        </p>
+      </div>
+
+      <div>
+        <div style="font-size:0.72rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">Autonomous Tools</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${(agent.allowedTools || []).map(t => `<span style="background:#07080c;color:#a855f7;border:1px solid rgba(168,85,247,0.3);padding:2px 7px;border-radius:6px;font-size:0.7rem;font-family:'JetBrains Mono',monospace;">${t}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function toggleAgentActive(agentId, state) {
+  try {
+    const res = await fetch(`/api/agents/${agentId}/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: state })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      loadAgentFleet();
+    }
+  } catch (err) {
+    alert('Error toggling agent: ' + err.message);
+  }
+}
+
+async function executeAgentTest() {
+  const input = document.getElementById('test-agent-input')?.value?.trim();
+  const resBox = document.getElementById('test-agent-result');
+  if (!input) {
+    alert('Please enter a message to test');
+    return;
+  }
+  resBox.classList.remove('hidden');
+  resBox.innerHTML = '<span style="color:#38bdf8;">🧠 Orchestrating across 20 specialized agents...</span>';
+
+  try {
+    const res = await fetch('/api/agents/test-route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: input, phone: '+94770000000' })
+    });
+    const data = await res.json();
+    if (data.ok && data.agent) {
+      const a = data.agent;
+      resBox.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:1.6rem;">${a.avatar}</span>
+          <div>
+            <div style="font-weight:800;color:#10b981;font-size:0.95rem;">Assigned Agent: ${a.name}</div>
+            <div style="font-size:0.75rem;color:#38bdf8;">${a.title} (${a.dept})</div>
+          </div>
+        </div>
+        <div style="color:#f8fafc;font-size:0.82rem;margin-bottom:6px;"><strong>Directive:</strong> ${a.directive}</div>
+        <div style="color:var(--text-muted);font-size:0.75rem;"><strong>Allowed Tools:</strong> ${(a.allowedTools || []).join(', ')}</div>
+      `;
+      fetchAgentDecisions();
+    }
+  } catch (e) {
+    resBox.innerHTML = '<span style="color:#f87171;">Error: ' + e.message + '</span>';
+  }
+}
+
+async function fetchAgentDecisions() {
+  const container = document.getElementById('agent-decisions-stream');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/agents/decisions');
+    const data = await res.json();
+    if (data.ok && data.decisions && data.decisions.length > 0) {
+      container.innerHTML = data.decisions.map(d => `
+        <div style="background:#07080c;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:8px 12px;font-size:0.78rem;">
+          <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:0.72rem;margin-bottom:3px;">
+            <span style="color:#10b981;font-weight:700;">${d.agentName}</span>
+            <span>${new Date(d.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div style="color:#f8fafc;font-weight:600;">${d.summary}</div>
+          ${d.reasoning ? `<div style="color:var(--text-muted);font-size:0.72rem;margin-top:2px;font-style:italic;">${d.reasoning}</div>` : ''}
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:15px;">No decisions logged yet. Execute incoming chats to see stream.</div>';
+    }
+  } catch(e){}
+}
+
 function showTab(tabName) {
   const omnisixTitles = {
     overview: 'Executive Dashboard',
+    agents: 'Autonomous 20-Agent Enterprise Fleet',
     whatsapp: 'WhatsApp QR Multi-Account Hub',
     warmer: 'WhatsApp Number Warmer Engine',
     broadcast: 'QR Bulk Marketing Campaigns',

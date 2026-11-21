@@ -1897,6 +1897,44 @@ class Database {
     }
   }
 
+
+  // ─── 🤖 Autonomous 20-Agent Enterprise Fleet Methods ─────────────────────────
+  getAgentFleet() {
+    this.initDefaults();
+    return this.data.agentFleet || [];
+  }
+
+  setAgentFleet(fleet) {
+    this.initDefaults();
+    this.data.agentFleet = fleet;
+    this.save();
+    return this.data.agentFleet;
+  }
+
+  getAgentFleetMode() {
+    this.initDefaults();
+    return this.data.agentFleetMode || 'autonomous';
+  }
+
+  setAgentFleetMode(mode) {
+    this.initDefaults();
+    this.data.agentFleetMode = mode;
+    this.save();
+    return this.data.agentFleetMode;
+  }
+
+  get(key) {
+    this.initDefaults();
+    return this.data[key];
+  }
+
+  set(key, val) {
+    this.initDefaults();
+    this.data[key] = val;
+    this.save();
+    return val;
+  }
+
   updateBusinessPlan(businessId, planId) {
     const biz = this.getBusiness(businessId);
     if (biz && SUBSCRIPTION_PLANS[planId]) {
