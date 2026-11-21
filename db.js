@@ -250,6 +250,7 @@ class Database {
       this.mongoStateCol = this.mongoDb.collection('app_state');
       this.mongoOrdersCol = this.mongoDb.collection('orders');
       this.mongoProductsCol = this.mongoDb.collection('products');
+      this.mongoBaileysCol = this.mongoDb.collection('baileys_auth');
       this.isMongoConnected = true;
       this.isMongoConnecting = false;
       this.mongoError = null;
@@ -348,6 +349,108 @@ class Database {
       );
     } catch (err) {
       console.warn('[db] Error syncing state to MongoDB Atlas:', err.message);
+    }
+  }
+
+  // ─── Baileys WhatsApp Cloud Session Persistence ──────────────────────────────
+  async restoreBaileysAuthFromMongo(accountId, authDir) {
+    if (!this.mongoBaileysCol || !this.isMongoConnected) return false;
+    try {
+      const records = await this.mongoBaileysCol.find({ accountId }).toArray();
+      if (!records || records.length === 0) return false;
+
+      if (!fs.existsSync(authDir)) {
+        fs.mkdirSync(authDir, { recursive: true });
+      }
+
+      let restoredCount = 0;
+      for (const rec of records) {
+        if (!rec.filename || !rec.data) continue;
+        const filePath = path.join(authDir, rec.filename);
+        let shouldWrite = true;
+        if (fs.existsSync(filePath)) {
+          const stat = fs.statSync(filePath);
+          if (rec.updatedAt && new Date(rec.updatedAt).getTime() <= stat.mtimeMs) {
+            shouldWrite = false;
+          }
+        }
+        if (shouldWrite) {
+          const content = rec.isBase64 ? Buffer.from(rec.data, 'base64') : rec.data;
+          fs.writeFileSync(filePath, content);
+          restoredCount++;
+        }
+      }
+      if (restoredCount > 0) {
+        console.log(`🍃 [MongoDB Atlas] Restored ${restoredCount} Baileys auth keys for account "${accountId}".`);
+      }
+      return true;
+    } catch (e) {
+      console.warn(`[db] Failed to restore Baileys auth for ${accountId}:`, e.message);
+      return false;
+    }
+  }
+
+  async backupBaileysAuthToMongo(accountId, authDir) {
+    if (!this.mongoBaileysCol || !this.isMongoConnected) return false;
+    try {
+      if (!fs.existsSync(authDir)) return false;
+      const files = fs.readdirSync(authDir);
+      if (!files || files.length === 0) return false;
+
+      const bulkOps = [];
+      const now = new Date();
+
+      for (const file of files) {
+        const filePath = path.join(authDir, file);
+        try {
+          const stat = fs.statSync(filePath);
+          if (!stat.isFile()) continue;
+
+          let data;
+          let isBase64 = false;
+          if (file.endsWith('.json')) {
+            data = fs.readFileSync(filePath, 'utf8');
+          } else {
+            data = fs.readFileSync(filePath).toString('base64');
+            isBase64 = true;
+          }
+
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: `${accountId}:${file}` },
+              update: {
+                $set: {
+                  accountId,
+                  filename: file,
+                  data,
+                  isBase64,
+                  updatedAt: now
+                }
+              },
+              upsert: true
+            }
+          });
+        } catch (fileErr) {}
+      }
+
+      if (bulkOps.length > 0) {
+        await this.mongoBaileysCol.bulkWrite(bulkOps, { ordered: false });
+        console.log(`🍃 [MongoDB Atlas] Backed up ${bulkOps.length} Baileys auth keys for account "${accountId}".`);
+      }
+      return true;
+    } catch (e) {
+      console.warn(`[db] Failed to backup Baileys auth for ${accountId}:`, e.message);
+      return false;
+    }
+  }
+
+  async clearBaileysAuthInMongo(accountId) {
+    if (!this.mongoBaileysCol || !this.isMongoConnected) return;
+    try {
+      await this.mongoBaileysCol.deleteMany({ accountId });
+      console.log(`🍃 [MongoDB Atlas] Cleared Baileys auth keys for account "${accountId}".`);
+    } catch (e) {
+      console.warn(`[db] Failed to clear Baileys auth in Mongo for ${accountId}:`, e.message);
     }
   }
 
@@ -670,7 +773,7 @@ class Database {
     return (this.data.chats || []).find(c => c.id === chatId);
   }
 
-  addChatMessage(chatId, sender, text, customerName = 'Customer', customerPhone = '', businessId = null) {
+  addChatMessage(chatId, sender, text, customerName = 'Customer', customerPhone = '', businessId = null, extra = {}) {
     if (!this.data.chats) this.data.chats = [];
     let chat = this.data.chats.find(c => c.id === chatId);
     const assignedBizId = businessId || (chat && chat.businessId) || this.getActiveBusiness().id;
@@ -699,7 +802,9 @@ class Database {
       sender: sender, // 'customer' | 'ai' | 'agent'
       text: text,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      audioBase64: extra.audioBase64 || null,
+      mimeType: extra.mimeType || null
     };
 
     chat.messages.push(msgObj);

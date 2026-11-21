@@ -79,6 +79,13 @@ class WhatsAppAccountSession {
         fs.mkdirSync(this.authDir, { recursive: true });
       }
 
+      // 1. Restore persistent Baileys credentials from MongoDB Atlas cloud if available
+      try {
+        await db.restoreBaileysAuthFromMongo(this.id, this.authDir);
+      } catch (restErr) {
+        console.warn(`[whatsapp-acc:${this.id}] Cloud auth restore warning:`, restErr.message);
+      }
+
       console.log(`[whatsapp-acc:${this.id}] Initializing session in: ${this.authDir}`);
       const { state, saveCreds } = await useMultiFileAuthState(this.authDir);
       this.state = state;
@@ -99,7 +106,12 @@ class WhatsAppAccountSession {
         emitOwnEvents: false
       });
 
-      this.sock.ev.on('creds.update', this.saveCreds);
+      this.sock.ev.on('creds.update', async () => {
+        try {
+          await this.saveCreds();
+        } catch (e) {}
+        this.scheduleCloudAuthBackup();
+      });
 
       this.sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
@@ -169,6 +181,7 @@ class WhatsAppAccountSession {
 
           console.log(`[whatsapp-acc:${this.id}] 🚀 Connected successfully as +${this.phoneNumber}!`);
           this.syncDb();
+          this.scheduleCloudAuthBackup();
         }
       });
 
@@ -184,6 +197,7 @@ class WhatsAppAccountSession {
 
             const audioMsg = msg.message?.audioMessage;
             const isVoiceNote = !!audioMsg;
+            let rawAudioBuffer = null;
 
             let text = msg.message?.conversation ||
                          msg.message?.extendedTextMessage?.text ||
@@ -207,11 +221,14 @@ class WhatsAppAccountSession {
                   {},
                   { logger: pino({ level: 'silent' }), reuploadRequest: this.sock.updateMediaMessage }
                 );
-                if (buffer && this.manager.audioTranscribeHandler) {
-                  const transcribed = await this.manager.audioTranscribeHandler(buffer, audioMsg.mimetype || 'audio/ogg; codecs=opus');
-                  if (transcribed && transcribed.trim().length > 0) {
-                    text = transcribed.trim();
-                    console.log(`[whatsapp-acc:${this.id}] 📝 Transcribed Voice Note: "${text}"`);
+                if (buffer) {
+                  rawAudioBuffer = buffer;
+                  if (this.manager.audioTranscribeHandler) {
+                    const transcribed = await this.manager.audioTranscribeHandler(buffer, audioMsg.mimetype || 'audio/ogg; codecs=opus');
+                    if (transcribed && transcribed.trim().length > 0) {
+                      text = transcribed.trim();
+                      console.log(`[whatsapp-acc:${this.id}] 📝 Transcribed Voice Note: "${text}"`);
+                    }
                   }
                 }
               } catch (audioErr) {
@@ -237,7 +254,15 @@ class WhatsAppAccountSession {
 
             // Store message in unified database with receiving account tag & businessId
             const storedText = isVoiceNote ? `🎤 ${text.trim()}` : text.trim();
-            db.addChatMessage(senderPhone, 'customer', storedText, senderName, senderPhone, activeBiz.id);
+            db.addChatMessage(
+              senderPhone,
+              'customer',
+              storedText,
+              senderName,
+              senderPhone,
+              activeBiz.id,
+              isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: audioMsg.mimetype || 'audio/ogg' } : {}
+            );
 
             // Check if AI Bot is disabled for this specific account
             if (!this.botActive) {
@@ -419,7 +444,10 @@ class WhatsAppAccountSession {
                   await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 }
 
-                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id);
+                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, {
+                  audioBase64: voiceAudioBase64,
+                  mimeType: 'audio/mp4'
+                });
               } else {
                 await this.sock.sendPresenceUpdate('composing', remoteJid);
                 await delay(1200);
@@ -590,6 +618,34 @@ class WhatsAppAccountSession {
     }
   }
 
+  async sendDocumentMessage(toPhone, docInput, fileName = 'Invoice.pdf', caption = '') {
+    if (!this.sock || !this.connected) {
+      return { ok: false, error: `Account ${this.id} not connected` };
+    }
+    let clean = String(toPhone || '').replace(/\D/g, '');
+    if (clean.startsWith('0') && clean.length === 10) {
+      clean = '94' + clean.slice(1);
+    } else if (clean.length === 9 && !clean.startsWith('94')) {
+      clean = '94' + clean;
+    }
+    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
+
+    try {
+      const docBuffer = Buffer.isBuffer(docInput) ? docInput : Buffer.from(docInput, 'base64');
+      await this.sock.sendMessage(jid, {
+        document: docBuffer,
+        mimetype: 'application/pdf',
+        fileName: fileName || 'Document.pdf',
+        caption: caption || ''
+      });
+      console.log(`[whatsapp-acc:${this.id}] 📄 Sent document ${fileName} to ${clean}`);
+      return { ok: true };
+    } catch (e) {
+      console.error(`[whatsapp-acc:${this.id}] Send document failed to ${clean}:`, e.message);
+      return { ok: false, error: e.message };
+    }
+  }
+
   async logout() {
     try {
       if (this.sock) await this.sock.logout();
@@ -614,12 +670,26 @@ class WhatsAppAccountSession {
     return { ok: true };
   }
 
+  scheduleCloudAuthBackup() {
+    if (this._cloudBackupTimer) clearTimeout(this._cloudBackupTimer);
+    this._cloudBackupTimer = setTimeout(async () => {
+      try {
+        await db.backupBaileysAuthToMongo(this.id, this.authDir);
+      } catch (bErr) {
+        console.warn(`[whatsapp-acc:${this.id}] Cloud auth backup warning:`, bErr.message);
+      }
+    }, 4000);
+  }
+
   clearAuth() {
     try {
       if (fs.existsSync(this.authDir)) {
         fs.rmSync(this.authDir, { recursive: true, force: true });
         fs.mkdirSync(this.authDir, { recursive: true });
       }
+    } catch (e) {}
+    try {
+      db.clearBaileysAuthInMongo(this.id);
     } catch (e) {}
   }
 
@@ -867,6 +937,23 @@ class MultiAccountWhatsAppManager {
       return { ok: false, error: 'No connected WhatsApp account available' };
     }
     return await session.sendImageMessage(toPhone, imageInput, caption);
+  }
+
+  // Send PDF document (with optional accountId target or round-robin)
+  async sendDocumentMessage(toPhone, docInput, fileName = 'Document.pdf', caption = '', accountId = null) {
+    let session = accountId ? this.sessions.get(accountId) : null;
+    if (!session) {
+      for (const [, s] of this.sessions.entries()) {
+        if (s.connected) {
+          session = s;
+          break;
+        }
+      }
+    }
+    if (!session || !session.connected) {
+      return { ok: false, error: 'No connected WhatsApp account available' };
+    }
+    return await session.sendDocumentMessage(toPhone, docInput, fileName, caption);
   }
 
   async toggleBot(accountId, botActive) {

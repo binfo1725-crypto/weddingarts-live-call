@@ -5526,11 +5526,16 @@ function selectChat(chatId) {
     let formattedText = escapeHtml(m.text || '').replace(/\n/g, '<br>');
     if (m.text && (m.text.startsWith('🎤') || m.text.startsWith('🎙️'))) {
       const isIncoming = m.text.startsWith('🎤');
+      let audioPlayerHtml = '';
+      if (m.audioBase64) {
+        audioPlayerHtml = '<div style="margin-top:6px;"><audio controls style="width:100%;max-width:240px;height:32px;border-radius:6px;outline:none;"><source src="data:' + (m.mimeType || 'audio/mp4') + ';base64,' + m.audioBase64 + '" type="' + (m.mimeType || 'audio/mp4') + '"></audio></div>';
+      }
       formattedText = `
-        <div style="display:inline-flex;align-items:center;gap:6px;background:${isIncoming ? '#dcfce7' : '#e0f2fe'};color:${isIncoming ? '#166534' : '#0369a1'};padding:3px 8px;border-radius:12px;font-size:0.75rem;font-weight:700;margin-bottom:6px;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:${isIncoming ? 'rgba(34,197,94,0.15)' : 'rgba(56,189,248,0.15)'};color:${isIncoming ? '#4ade80' : '#38bdf8'};padding:3px 8px;border-radius:12px;font-size:0.75rem;font-weight:700;margin-bottom:6px;border:1px solid ${isIncoming ? 'rgba(34,197,94,0.3)' : 'rgba(56,189,248,0.3)'};">
           <span>${isIncoming ? '🎤 Voice Note (Transcribed)' : '🎙️ Gemini Voice Note (PTT)'}</span>
         </div>
         <div>${formattedText}</div>
+        ${audioPlayerHtml}
       `;
     }
     bubble.innerHTML = `
@@ -5614,6 +5619,8 @@ function openInvoiceModal(orderId) {
   const bizPhone = activeBiz ? activeBiz.phone : '';
   const bankInfo = (activeBiz && activeBiz.bankDetails) ? activeBiz.bankDetails : 'Contact store for bank details';
 
+  const pdfBtn = document.getElementById('btn-download-pdf-invoice');
+  if (pdfBtn) pdfBtn.href = '/api/orders/' + encodeURIComponent(orderId) + '/invoice.pdf';
   document.getElementById('inv-store-name').textContent = bizName;
   document.getElementById('inv-store-phone').textContent = bizPhone ? ('Tel: ' + bizPhone) : 'Official Commercial Invoice';
   document.getElementById('inv-number').textContent = invNum;

@@ -28,6 +28,7 @@ const path = require('path');
 const crypto = require('crypto');
 const db = require('./db.js');
 const waEngine = require('./whatsapp.js');
+const { generateInvoicePdf } = require('./invoiceGenerator.js');
 const categoryProfiles = require('./categoryProfiles.js');
 const pdfParse = require('pdf-parse');
 const {
@@ -793,10 +794,37 @@ app.post('/api/orders/send-invoice', async (req, res) => {
     const result = await waEngine.sendTextMessage(customerPhone, invoiceText, targetAccId);
     if (result.ok) {
       db.addChatMessage(customerPhone, 'agent', `🧾 [Sent Official Invoice #${ord.id}]`, 'Agent', customerPhone, bId);
+      // Attempt to send genuine PDF invoice attachment
+      try {
+        const pdfBuf = await generateInvoicePdf(ord, biz);
+        await waEngine.sendDocumentMessage(customerPhone, pdfBuf, `Invoice-${ord.id}.pdf`, `Official Invoice #${ord.id}`, targetAccId);
+      } catch (pdfErr) {
+        console.warn('[invoice-pdf] Failed to dispatch PDF document to WhatsApp:', pdfErr.message);
+      }
     }
     res.json({ ...result, customerPhone, orderId: ord.id });
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── 📄 Download High-Resolution Vector PDF Invoice ─────────────────────────
+app.get('/api/orders/:orderId/invoice.pdf', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const bId = resolveReqBusinessId(req);
+    const order = db.getOrders(bId).find(o => o.id === orderId);
+    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+    const pdfBuffer = await generateInvoicePdf(order, biz);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Invoice-${order.id}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.end(pdfBuffer);
+  } catch (err) {
+    console.error('[invoice-pdf] Generation error:', err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
