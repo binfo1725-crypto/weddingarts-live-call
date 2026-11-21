@@ -1776,13 +1776,17 @@ class Database {
     this.initDefaults();
     const entry = {
       id: 'call_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      number: log.number || 'Anonymous',
+      sessionId: log.sessionId || '',
+      number: log.number || log.customerPhone || 'Web Call',
+      customerName: log.customerName || log.name || 'Valued Customer',
       direction: log.direction || 'incoming', // incoming, outgoing
       status: log.status || 'completed', // completed, missed, busy
       duration: log.duration || '00:45',
+      sentiment: log.sentiment || 'Product Inquiry', // 'High Buying Intent', 'Product Inquiry', 'Price Concern', 'Critical Escalation', 'Satisfied'
       timestamp: new Date().toISOString(),
       audioUrl: log.audioUrl || '',
-      transcription: log.transcription || 'Call completed successfully via AI Live Voice Agent.',
+      audioBase64: log.audioBase64 || '',
+      transcription: log.transcription || log.transcript || 'Call completed successfully via AI Live Voice Agent.',
       businessId: log.businessId || 'weddingarts'
     };
     this.data.callLogs.unshift(entry);
@@ -1790,6 +1794,49 @@ class Database {
     this.recordLiveCall();
     this.save();
     return entry;
+  }
+
+  // ─── Multi-User Staff & Role-Based Access Control (RBAC) ─────────────────────
+  getStaff(businessId = null) {
+    this.initDefaults();
+    if (!this.data.staff) this.data.staff = [];
+    if (!businessId || businessId === 'all') return this.data.staff;
+    return this.data.staff.filter(s => !s.businessId || s.businessId === businessId || s.businessId === 'all');
+  }
+
+  addStaff(staffMember) {
+    this.initDefaults();
+    if (!this.data.staff) this.data.staff = [];
+    const id = staffMember.id || 'staff_' + Date.now();
+    const entry = {
+      id,
+      name: staffMember.name || 'Staff Member',
+      username: (staffMember.username || `user_${Date.now()}`).toLowerCase().trim(),
+      password: staffMember.password || '123456',
+      role: staffMember.role || 'support', // 'admin' | 'support' | 'dispatch'
+      businessId: staffMember.businessId || this.getActiveBusiness().id,
+      active: staffMember.active !== false,
+      createdAt: new Date().toISOString()
+    };
+    this.data.staff = this.data.staff.filter(s => s.username !== entry.username);
+    this.data.staff.push(entry);
+    this.save();
+    return entry;
+  }
+
+  deleteStaff(id) {
+    this.initDefaults();
+    if (!this.data.staff) return false;
+    this.data.staff = this.data.staff.filter(s => s.id !== id);
+    this.save();
+    return true;
+  }
+
+  authenticateStaff(username, password) {
+    this.initDefaults();
+    const u = (username || '').toLowerCase().trim();
+    const member = (this.data.staff || []).find(s => s.username === u && s.password === password && s.active);
+    return member || null;
   }
 
   initDefaults() {
@@ -1841,6 +1888,13 @@ class Database {
       ];
     }
     if (!this.data.callLogs) this.data.callLogs = [];
+    if (!this.data.staff || this.data.staff.length === 0) {
+      this.data.staff = [
+        { id: 'staff_admin', name: 'Master Admin', username: 'admin', password: 'password123', role: 'admin', businessId: 'all', active: true, createdAt: new Date().toISOString() },
+        { id: 'staff_supp', name: 'Customer Care Support', username: 'support', password: 'support123', role: 'support', businessId: 'all', active: true, createdAt: new Date().toISOString() },
+        { id: 'staff_disp', name: 'Courier & Packing Dispatch', username: 'dispatch', password: 'dispatch123', role: 'dispatch', businessId: 'all', active: true, createdAt: new Date().toISOString() }
+      ];
+    }
   }
 
   updateBusinessPlan(businessId, planId) {

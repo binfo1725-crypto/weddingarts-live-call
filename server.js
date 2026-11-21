@@ -1207,7 +1207,30 @@ app.post('/api/whatsapp/incoming', async (req, res) => {
   }
 });
 
-// Safe Broadcast Campaigns
+// ─── 📢 Spintax Parser & Dynamic Variable Interpolation ─────────────────────
+function parseSpintax(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  const spintaxRegex = /\{([^{}]+)\}/g;
+  let matches;
+  while ((matches = spintaxRegex.exec(text)) !== null) {
+    const choices = matches[1].split('|');
+    const randomChoice = choices[Math.floor(Math.random() * choices.length)];
+    text = text.replace(matches[0], randomChoice);
+    spintaxRegex.lastIndex = 0;
+  }
+  return text;
+}
+
+function interpolateBroadcastTemplate(template, contact = {}) {
+  let res = parseSpintax(template || '');
+  for (const [key, val] of Object.entries(contact)) {
+    const reg = new RegExp(`\\{\\{${key}\\}\\}`, 'gi');
+    res = res.replace(reg, val || '');
+  }
+  return res;
+}
+
+// ─── Safe Broadcast Campaigns with Anti-Ban Spintax & Human Delays ───────────
 app.get('/api/broadcasts', (req, res) => {
   res.json({
     ok: true,
@@ -1217,25 +1240,180 @@ app.get('/api/broadcasts', (req, res) => {
 
 app.post('/api/broadcasts', async (req, res) => {
   const activeBiz = db.getActiveBusiness();
+  const { title, message, contacts, minDelay = 8, maxDelay = 22 } = req.body;
+
+  // Determine recipients list (custom CSV upload or existing customer database)
+  let targetContacts = [];
+  if (Array.isArray(contacts) && contacts.length > 0) {
+    targetContacts = contacts.map(c => ({
+      name: c.name || 'Customer',
+      phone: String(c.phone || c.mobile || '').replace(/\D/g, ''),
+      city: c.city || c.address || '',
+      var1: c.var1 || ''
+    })).filter(c => c.phone.length >= 9);
+  } else {
+    const chats = db.getChats();
+    const seen = new Set();
+    for (const c of chats) {
+      const clean = String(c.customerPhone || '').replace(/\D/g, '');
+      if (clean.length >= 9 && !seen.has(clean)) {
+        seen.add(clean);
+        targetContacts.push({ name: c.customerName || 'Customer', phone: clean, city: '' });
+      }
+    }
+  }
+
   const broadcast = db.addBroadcast({
-    ...req.body,
+    title: title || 'Marketing Campaign',
+    message: message || '',
+    targetAudience: req.body.targetAudience || (Array.isArray(contacts) ? 'Custom Upload List' : 'All Customers'),
+    targetCount: targetContacts.length,
+    status: 'In Progress',
+    sentCount: 0,
+    failedCount: 0,
     businessId: activeBiz.id
   });
 
-  if (waEngine && waEngine.connected && req.body.message) {
-    const chats = db.getChats();
-    const uniquePhones = [...new Set(chats.map(c => c.customerPhone).filter(Boolean))];
+  // Background Anti-Ban Drip Queue with Human Jitter
+  if (message && targetContacts.length > 0) {
     (async () => {
-      for (const phone of uniquePhones.slice(0, 100)) {
+      let sent = 0;
+      let failed = 0;
+      for (const recipient of targetContacts) {
         try {
-          await waEngine.sendTextMessage(phone, req.body.message);
-          await new Promise(r => setTimeout(r, 2500 + Math.random() * 2000));
-        } catch (e) {}
+          const personalizedText = interpolateBroadcastTemplate(message, recipient);
+          const sendRes = await waEngine.sendTextMessage(recipient.phone, personalizedText);
+          if (sendRes.ok) {
+            sent++;
+            db.addChatMessage(recipient.phone, 'ai', personalizedText, recipient.name, recipient.phone, activeBiz.id);
+          } else {
+            failed++;
+          }
+        } catch (e) {
+          failed++;
+        }
+
+        // Anti-ban human jitter delay (random between minDelay and maxDelay seconds)
+        const delaySec = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+        await new Promise(r => setTimeout(r, delaySec * 1000));
       }
+      broadcast.status = 'Completed';
+      broadcast.sentCount = sent;
+      broadcast.failedCount = failed;
+      db.save();
+      console.log(`[broadcast] 📢 Completed campaign "${broadcast.title}": ${sent} sent, ${failed} failed.`);
     })();
   }
 
   res.json({ ok: true, broadcast });
+});
+
+// ─── 🌐 Meta Official WhatsApp Cloud API Webhooks ─────────────────────────────
+app.get('/api/webhook/meta', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const settings = db.getSettings();
+  const configuredToken = (settings.metaCloudApi && settings.metaCloudApi.verifyToken) || process.env.META_VERIFY_TOKEN || 'omnisix_meta_verify_2026';
+
+  if (mode === 'subscribe' && token === configuredToken) {
+    console.log('[meta-webhook] ✅ Meta Webhook verified successfully!');
+    return res.status(200).send(challenge);
+  }
+  return res.sendStatus(403);
+});
+
+app.post('/api/webhook/meta', async (req, res) => {
+  try {
+    const body = req.body;
+    if (body.object === 'whatsapp_business_account') {
+      const entry = body.entry?.[0];
+      const changes = entry?.changes?.[0];
+      const value = changes?.value;
+      const message = value?.messages?.[0];
+
+      if (message && message.type === 'text') {
+        const from = message.from;
+        const customerName = value?.contacts?.[0]?.profile?.name || 'Customer';
+        const text = message.text?.body || '';
+        const activeBiz = db.getActiveBusiness();
+
+        console.log(`[meta-webhook] 📩 Incoming Meta WhatsApp from +${from}: "${text}"`);
+        db.addChatMessage(from, 'customer', text, customerName, from, activeBiz.id);
+
+        const tempSess = {
+          storeName: activeBiz.name,
+          businessId: activeBiz.id,
+          business: activeBiz,
+          customerName,
+          customerPhone: from,
+          dataset: activeBiz.dataset,
+          isWhatsApp: true,
+          isVoiceCall: false,
+          history: []
+        };
+
+        const aiReply = await getGeminiReply(text, tempSess);
+        if (aiReply) {
+          const settings = db.getSettings();
+          if (settings.metaCloudApi && settings.metaCloudApi.enabled) {
+            await waEngine.sendMetaCloudMessage(from, aiReply, settings.metaCloudApi);
+          } else {
+            await waEngine.sendTextMessage(from, aiReply);
+          }
+          db.addChatMessage(from, 'ai', aiReply, customerName, from, activeBiz.id);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[meta-webhook] Processing error:', err.message);
+  }
+  res.sendStatus(200);
+});
+
+// ─── 👥 Multi-User Staff & Role-Based Access Control (RBAC) ─────────────────
+app.get('/api/staff', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  res.json({ ok: true, staff: db.getStaff(bId) });
+});
+
+app.post('/api/staff/create', (req, res) => {
+  try {
+    const bId = resolveReqBusinessId(req);
+    const member = db.addStaff({ ...req.body, businessId: bId });
+    res.json({ ok: true, member });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/staff/delete', (req, res) => {
+  try {
+    const { id } = req.body;
+    db.deleteStaff(id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/staff/login', (req, res) => {
+  const { username, password } = req.body;
+  const staff = db.authenticateStaff(username, password);
+  if (staff) {
+    res.json({
+      ok: true,
+      user: {
+        id: staff.id,
+        name: staff.name,
+        username: staff.username,
+        role: staff.role,
+        businessId: staff.businessId
+      }
+    });
+  } else {
+    res.status(401).json({ ok: false, error: 'Invalid staff username or password' });
+  }
 });
 
 // ─── Multi-Account WhatsApp (Baileys Multi-Device) Endpoints ───────────────
@@ -1978,6 +2156,49 @@ wss.on('connection', (browserWs, req) => {
 
   browserWs.on('close', () => {
     console.log(`[ws] Browser disconnected — session: ${sessionId}`);
+    try {
+      const durationSec = Math.max(1, Math.round((Date.now() - (sess.createdAt || Date.now())) / 1000));
+      const mins = Math.floor(durationSec / 60);
+      const secs = durationSec % 60;
+      const durationStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      // Build readable conversation transcript
+      const transcriptLines = (sess.history || []).map(h => {
+        const speaker = (h.role === 'user' ? (sess.customerName || 'Customer') : 'OmniSix AI');
+        const text = (h.parts?.[0]?.text || '').trim();
+        return `${speaker}: ${text}`;
+      });
+      const transcript = transcriptLines.join('\n');
+
+      // Intelligent Sentiment Analysis
+      let sentiment = 'Product Inquiry';
+      const userText = transcript.toLowerCase();
+      if (userText.includes('angry') || userText.includes('bad') || userText.includes('horrible') || userText.includes('wrong') || userText.includes('police') || userText.includes('nodakin') || userText.includes('boruda')) {
+        sentiment = 'Critical Escalation';
+      } else if (userText.includes('order') || userText.includes('buy') || userText.includes('ganna') || userText.includes('price') || userText.includes('deliver') || userText.includes('slip') || userText.includes('cash')) {
+        sentiment = 'High Buying Intent';
+      } else if (userText.includes('thank') || userText.includes('sthuthi') || userText.includes('good') || userText.includes('ela') || userText.includes('super') || userText.includes('great')) {
+        sentiment = 'Satisfied';
+      } else if (userText.includes('discount') || userText.includes('adu') || userText.includes('wedi') || userText.includes('ganan') || userText.includes('expensive')) {
+        sentiment = 'Price Concern';
+      }
+
+      if (transcriptLines.length > 0) {
+        db.recordCallLog({
+          sessionId,
+          number: sess.customerPhone || 'Web Voice Call',
+          customerName: sess.customerName || 'Customer',
+          status: 'completed',
+          duration: durationStr,
+          sentiment: sentiment,
+          transcription: transcript,
+          businessId: sess.businessId || activeBiz.id
+        });
+        console.log(`[ws] 📞 Recorded call (${durationStr}) with sentiment "${sentiment}" for ${sess.customerName}`);
+      }
+    } catch (logErr) {
+      console.warn('[ws] Failed to record call log:', logErr.message);
+    }
   });
 });
 
