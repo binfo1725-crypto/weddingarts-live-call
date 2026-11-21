@@ -1530,6 +1530,28 @@ body {
 }
 
 /* Pink / Purple NEW Badge */
+
+/* Fixed Tab Buttons Overflow & Badges */
+.sidebar .tab-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  min-height: 40px !important;
+  box-sizing: border-box !important;
+}
+.sidebar .tab-btn > span:not(.whatzi-badge-new) {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.84rem !important;
+}
+.sidebar .whatzi-badge-new {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
 .whatzi-badge-new {
   margin-left: auto;
   background: linear-gradient(135deg, #ec4899, #8b5cf6);
@@ -1933,12 +1955,12 @@ table tr:hover td {
   <!-- Category 5: LIVE INBOX & TEAM -->
     <!-- Category: 20-AGENT AI WORKFORCE -->
   <div class="whatzi-nav-category">AI Workforce</div>
-  <button class="tab-btn" onclick="showTab('agents')" id="nav-btn-agents">
+  <button class="tab-btn" onclick="showTab('agents')" id="nav-btn-agents" style="position:relative;overflow:hidden;">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
     </div>
-    <span>20-Agent AI Fleet</span>
-    <span class="whatzi-badge-new" style="background:#10b981;">20 ACTIVE</span>
+    <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">20 AI Agents</span>
+    <span class="whatzi-badge-new" style="background:linear-gradient(135deg, #10b981, #059669);white-space:nowrap;padding:2px 7px;font-size:0.65rem;border:1px solid rgba(16,185,129,0.3);box-shadow:0 0 8px rgba(16,185,129,0.25);">20 LIVE</span>
   </button>
 
   <div class="whatzi-nav-category">Live Inbox &amp; Team</div>
@@ -2422,102 +2444,148 @@ table tr:hover td {
     <!-- 3. ORDERS PIPELINE TAB -->
     
     <!-- 🤖 20-AGENT AUTONOMOUS ENTERPRISE FLEET TAB -->
-    <section id="tab-agents" class="glass-card hidden">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:22px;">
+    
+    <!-- 🤖 20-AGENT AUTONOMOUS ENTERPRISE FLEET COMMAND CENTER -->
+    <section id="tab-agents" class="glass-card hidden" style="padding:24px;border:1px solid rgba(255,255,255,0.08);background:radial-gradient(ellipse at top, rgba(16,185,129,0.05) 0%, #07080c 70%);">
+      <!-- Hero Header & Mode Switcher -->
+      <div style="background:linear-gradient(135deg, rgba(16,185,129,0.09) 0%, rgba(56,189,248,0.05) 100%);border:1px solid rgba(16,185,129,0.22);border-radius:18px;padding:22px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;">
         <div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;">🤖 20-Agent AI Enterprise Fleet</h2>
-            <span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:700;border:1px solid rgba(16,185,129,0.3);">
-              ● Autonomous Enterprise Mesh
-            </span>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+            <div style="width:40px;height:40px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">
+              🤖
+            </div>
+            <div>
+              <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:800;letter-spacing:-0.02em;margin:0;display:flex;align-items:center;gap:10px;">
+                20-Agent AI Enterprise Fleet
+                <span style="background:rgba(16,185,129,0.18);color:#34d399;font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:700;border:1px solid rgba(16,185,129,0.35);letter-spacing:0.02em;">
+                  ● 20 AUTONOMOUS WORKERS LIVE
+                </span>
+              </h2>
+              <p style="font-size:0.84rem;color:var(--text-secondary);margin:3px 0 0 0;">
+                විකුණුම්, පාරිභෝගික සත්කාරය, කුරියර් Tracking, සහ Campaigns සඳහා විශේෂඥ AI නියෝජිතයින් 20 දෙනෙකුගේ එකමුතුව.
+              </p>
+            </div>
           </div>
-          <p style="font-size:0.86rem;color:var(--text-secondary);">
-            විකුණුම්, පාරිභෝගික සත්කාරය, කුරියර් බෙදාහැරීම් සහ අලෙවිකරණය සඳහා එකමුතුව වැඩ කරන විශේෂඥ AI නියෝජිතයින් 20 දෙනෙකුගේ කණ්ඩායම.
-          </p>
         </div>
 
-        <!-- Autonomy Mode Selector -->
-        <div style="background:#10121b;border:1px solid rgba(255,255,255,0.1);padding:6px;border-radius:12px;display:flex;gap:6px;align-items:center;">
-          <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);padding-left:8px;">MODE:</span>
-          <button type="button" id="mode-btn-autonomous" onclick="setFleetOperatingMode('autonomous')" class="btn-primary" style="padding:6px 14px;font-size:0.78rem;">⚡ 24/7 Fully Autonomous</button>
-          <button type="button" id="mode-btn-copilot" onclick="setFleetOperatingMode('copilot')" class="btn-secondary" style="padding:6px 14px;font-size:0.78rem;">🛡️ Co-Pilot (Human Review)</button>
-          <button type="button" id="mode-btn-supervised" onclick="setFleetOperatingMode('supervised')" class="btn-secondary" style="padding:6px 14px;font-size:0.78rem;">👁️ Supervised</button>
+        <!-- Autonomy Mode Segmented Controls -->
+        <div style="background:#090a0f;border:1px solid rgba(255,255,255,0.12);padding:5px;border-radius:14px;display:flex;gap:5px;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+          <span style="font-size:0.72rem;font-weight:800;color:var(--text-muted);padding:0 8px;text-transform:uppercase;letter-spacing:0.04em;">FLEET MODE:</span>
+          <button type="button" id="mode-btn-autonomous" onclick="setFleetOperatingMode('autonomous')" class="btn-primary" style="padding:7px 14px;font-size:0.78rem;font-weight:700;border-radius:9px;border:none;cursor:pointer;">⚡ 24/7 Full Auto</button>
+          <button type="button" id="mode-btn-copilot" onclick="setFleetOperatingMode('copilot')" class="btn-secondary" style="padding:7px 14px;font-size:0.78rem;font-weight:700;border-radius:9px;border:none;cursor:pointer;">🛡️ Co-Pilot Assist</button>
+          <button type="button" id="mode-btn-supervised" onclick="setFleetOperatingMode('supervised')" class="btn-secondary" style="padding:7px 14px;font-size:0.78rem;font-weight:700;border-radius:9px;border:none;cursor:pointer;">👁️ Supervised</button>
         </div>
       </div>
 
-      <!-- Quick Metrics Counters -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:14px;margin-bottom:22px;">
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Total AI Workforce</div>
-          <div style="font-size:1.8rem;font-weight:800;color:#f8fafc;margin-top:4px;" id="stat-total-agents">20</div>
-          <div style="font-size:0.74rem;color:#10b981;margin-top:2px;">Across 5 Key Departments</div>
+      <!-- 4 Glowing Performance Metric Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:24px;">
+        <div style="background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;">
+          <div style="font-size:0.73rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;justify-content:space-between;">
+            <span>Total AI Workforce</span>
+            <span style="font-size:1.1rem;">👥</span>
+          </div>
+          <div style="font-size:2rem;font-weight:800;color:#f8fafc;margin-top:6px;line-height:1;" id="stat-total-agents">20</div>
+          <div style="font-size:0.74rem;color:#38bdf8;margin-top:5px;font-weight:600;">5 Specialized Departments</div>
         </div>
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Active on Live WhatsApp</div>
-          <div style="font-size:1.8rem;font-weight:800;color:#10b981;margin-top:4px;" id="stat-active-agents">20</div>
-          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">0 Standby | 100% Operational</div>
+
+        <div style="background:linear-gradient(180deg, rgba(16,185,129,0.05) 0%, rgba(16,185,129,0.01) 100%);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;">
+          <div style="font-size:0.73rem;color:#10b981;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;justify-content:space-between;">
+            <span>Active on WhatsApp</span>
+            <span style="font-size:1.1rem;">🟢</span>
+          </div>
+          <div style="font-size:2rem;font-weight:800;color:#10b981;margin-top:6px;line-height:1;" id="stat-active-agents">20</div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:5px;font-weight:600;">100% Operational Readiness</div>
         </div>
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Average Decision Speed</div>
-          <div style="font-size:1.8rem;font-weight:800;color:#38bdf8;margin-top:4px;">0.4s</div>
-          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">Powered by Google Gemini</div>
+
+        <div style="background:linear-gradient(180deg, rgba(56,189,248,0.05) 0%, rgba(56,189,248,0.01) 100%);border:1px solid rgba(56,189,248,0.2);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;">
+          <div style="font-size:0.73rem;color:#38bdf8;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;justify-content:space-between;">
+            <span>Decision Latency</span>
+            <span style="font-size:1.1rem;">⚡</span>
+          </div>
+          <div style="font-size:2rem;font-weight:800;color:#38bdf8;margin-top:6px;line-height:1;">&lt; 0.3s</div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:5px;font-weight:600;">Google Gemini 2.5 Flash</div>
         </div>
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Autonomous Accuracy</div>
-          <div style="font-size:1.8rem;font-weight:800;color:#a855f7;margin-top:4px;">99.4%</div>
-          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">Floor Price Margin Guard Active</div>
+
+        <div style="background:linear-gradient(180deg, rgba(168,85,247,0.05) 0%, rgba(168,85,247,0.01) 100%);border:1px solid rgba(168,85,247,0.2);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;">
+          <div style="font-size:0.73rem;color:#a855f7;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;justify-content:space-between;">
+            <span>Floor Price Guard</span>
+            <span style="font-size:1.1rem;">🛡️</span>
+          </div>
+          <div style="font-size:2rem;font-weight:800;color:#a855f7;margin-top:6px;line-height:1;">100%</div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-top:5px;font-weight:600;">Zero Under-Margin Selling</div>
         </div>
       </div>
 
-      <!-- Department Filter Pills -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="dept-filter-bar">
-        <button type="button" class="btn-primary" onclick="filterAgentDept('all')" id="dept-btn-all" style="padding:6px 14px;font-size:0.78rem;">All Departments (20)</button>
-        <button type="button" class="btn-secondary" onclick="filterAgentDept('Sales & Revenue')" id="dept-btn-sales" style="padding:6px 14px;font-size:0.78rem;">🎯 Sales & Revenue (5)</button>
-        <button type="button" class="btn-secondary" onclick="filterAgentDept('Customer Support')" id="dept-btn-support" style="padding:6px 14px;font-size:0.78rem;">🤝 Customer Support (4)</button>
-        <button type="button" class="btn-secondary" onclick="filterAgentDept('Logistics & Finance')" id="dept-btn-logistics" style="padding:6px 14px;font-size:0.78rem;">🚚 Logistics & Finance (4)</button>
-        <button type="button" class="btn-secondary" onclick="filterAgentDept('Marketing & Growth')" id="dept-btn-marketing" style="padding:6px 14px;font-size:0.78rem;">📢 Marketing & Growth (4)</button>
-        <button type="button" class="btn-secondary" onclick="filterAgentDept('Intelligence & Supervision')" id="dept-btn-supervision" style="padding:6px 14px;font-size:0.78rem;">🛡️ Intelligence & SRE (3)</button>
+      <!-- Department Filter Pills Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:0.86rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;">
+          <span>📋</span> <span>Filter by Department:</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="dept-filter-bar">
+          <button type="button" class="btn-primary" onclick="filterAgentDept('all')" id="dept-btn-all" style="padding:6px 14px;font-size:0.78rem;border-radius:20px;font-weight:700;">All (20)</button>
+          <button type="button" class="btn-secondary" onclick="filterAgentDept('Sales & Revenue')" id="dept-btn-sales" style="padding:6px 14px;font-size:0.78rem;border-radius:20px;font-weight:600;">🎯 Sales (5)</button>
+          <button type="button" class="btn-secondary" onclick="filterAgentDept('Customer Support')" id="dept-btn-support" style="padding:6px 14px;font-size:0.78rem;border-radius:20px;font-weight:600;">🤝 Support (4)</button>
+          <button type="button" class="btn-secondary" onclick="filterAgentDept('Logistics & Finance')" id="dept-btn-logistics" style="padding:6px 14px;font-size:0.78rem;border-radius:20px;font-weight:600;">🚚 Logistics (4)</button>
+          <button type="button" class="btn-secondary" onclick="filterAgentDept('Marketing & Growth')" id="dept-btn-marketing" style="padding:6px 14px;font-size:0.78rem;border-radius:20px;font-weight:600;">📢 Marketing (4)</button>
+          <button type="button" class="btn-secondary" onclick="filterAgentDept('Intelligence & Supervision')" id="dept-btn-supervision" style="padding:6px 14px;font-size:0.78rem;border-radius:20px;font-weight:600;">🛡️ Intelligence (3)</button>
+        </div>
       </div>
 
       <!-- 20-Agent Cards Grid -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;margin-bottom:28px;" id="agent-cards-container">
-        <!-- Rendered via JavaScript -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(310px, 1fr));gap:16px;margin-bottom:30px;" id="agent-cards-container">
+        <!-- Rendered dynamically via renderAgentCards() -->
       </div>
 
-      <!-- Interactive Live Agent Intent Tester & Chain-of-Thought Stream -->
+      <!-- Interactive Sandbox & Decision Stream (Bottom Row) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-        <!-- Live Dispatch Tester -->
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
-          <h4 style="font-size:0.95rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-            <span>⚡</span> Interactive Agent Dispatch Tester
-          </h4>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;">
-            පාරිභෝගිකයෙකු එවන ඕනෑම පණිවිඩයක් මෙහි Type කර Test කරන්න. ඒජන්තවරුන් 20 දෙනා අතරින් වඩාත්ම සුදුසු ඒජන්තයා ස්වයංක්‍රීයව තෝරාගන්නා ආකාරය සජීවීව බලාගන්න.
-          </p>
-          <div style="display:flex;gap:10px;margin-bottom:12px;">
-            <input type="text" id="test-agent-input" class="form-input" placeholder="උදා: mata frame eka aduwata ganna puluwanda? (or) tracking eka denna..." onkeydown="if(event.key==='Enter') executeAgentTest()">
-            <button type="button" class="btn-primary" onclick="executeAgentTest()" style="padding:0 18px;font-size:0.84rem;white-space:nowrap;">Test Route</button>
+        <!-- Live Dispatch Sandbox -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <h4 style="font-size:0.95rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
+                <span>⚡</span> Interactive Agent Dispatch Sandbox
+              </h4>
+              <span style="font-size:0.7rem;background:rgba(56,189,248,0.15);color:#38bdf8;padding:2px 8px;border-radius:6px;font-weight:700;">Live Tester</span>
+            </div>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.4;">
+              පාරිභෝගිකයෙකු එවනු ඇතැයි සිතන ඕනෑම පණිවිඩයක් මෙහි Type කර හෝ පහත සාම්පල ක්ලික් කර Test කරන්න:
+            </p>
+
+            <!-- Quick Clickable Chips -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+              <button type="button" onclick="setQuickTestMessage('Mata meka aduwata ganna puluwanda?')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:4px 9px;border-radius:8px;font-size:0.72rem;cursor:pointer;">💬 "Aduwata oneda"</button>
+              <button type="button" onclick="setQuickTestMessage('Mage parcel eka thama awe na. Tracking number eka denna')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:4px 9px;border-radius:8px;font-size:0.72rem;cursor:pointer;">🚚 "Tracking eka denna"</button>
+              <button type="button" onclick="setQuickTestMessage('Menna mama bank slip eka damma')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:4px 9px;border-radius:8px;font-size:0.72rem;cursor:pointer;">🧾 "Bank slip damma"</button>
+              <button type="button" onclick="setQuickTestMessage('Shop ekata wholesale ganna puluwanda?')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:4px 9px;border-radius:8px;font-size:0.72rem;cursor:pointer;">🏢 "Wholesale mila"</button>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-bottom:12px;">
+              <input type="text" id="test-agent-input" class="form-input" placeholder="Type customer text to route..." onkeydown="if(event.key==='Enter') executeAgentTest()">
+              <button type="button" class="btn-primary" onclick="executeAgentTest()" style="padding:0 20px;font-size:0.84rem;white-space:nowrap;font-weight:700;">Test Route</button>
+            </div>
           </div>
-          <div id="test-agent-result" class="hidden" style="background:#05070e;border:1px solid rgba(56,189,248,0.3);border-radius:10px;padding:14px;font-size:0.82rem;"></div>
+
+          <div id="test-agent-result" class="hidden" style="background:#05070e;border:1px solid rgba(56,189,248,0.3);border-radius:12px;padding:14px;font-size:0.82rem;margin-top:6px;"></div>
         </div>
 
-        <!-- Live Chain-of-Thought Decision Audit Stream -->
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <!-- Live Chain-of-Thought Stream -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <h4 style="font-size:0.95rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
               <span>📜</span> Live Decision Stream (Chain-of-Thought)
             </h4>
             <button type="button" class="btn-secondary" onclick="fetchAgentDecisions()" style="padding:3px 10px;font-size:0.75rem;">🔄 Refresh</button>
           </div>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;">
-            සැබෑ WhatsApp පාරිභෝගිකයින් හා සංවාද වලදී ඒජන්තයින් ගත් ස්වයංක්‍රීය තීරණ සහ Action Logs.
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+            සැබෑ WhatsApp පාරිභෝගිකයින් හා සංවාද වලදී ඒජන්තයින් ගත් තීරණ සහ Action Logs:
           </p>
-          <div id="agent-decisions-stream" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;">
+          <div id="agent-decisions-stream" style="max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;">
             <div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:20px;">Loading live decision stream...</div>
           </div>
         </div>
       </div>
     </section>
+  
 
     <section id="tab-orders" class="glass-card hidden">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
@@ -4758,46 +4826,78 @@ function filterAgentDept(dept) {
   renderAgentCards(dept);
 }
 
+function setQuickTestMessage(txt) {
+  const input = document.getElementById('test-agent-input');
+  if (input) {
+    input.value = txt;
+    executeAgentTest();
+  }
+}
+
 function renderAgentCards(deptFilter = 'all') {
   const container = document.getElementById('agent-cards-container');
   if (!container) return;
   const filtered = deptFilter === 'all' ? allFleetAgents : allFleetAgents.filter(a => a.dept === deptFilter);
 
-  container.innerHTML = filtered.map(agent => `
-    <div style="background:#10121b;border:1px solid ${agent.active ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.2)'};border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;transition:transform 0.2s;box-shadow:0 4px 16px rgba(0,0,0,0.4);" onmouseover="this.style.borderColor='rgba(56,189,248,0.3)'" onmouseout="this.style.borderColor='${agent.active ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.2)'}'">
+  const deptColors = {
+    'Sales & Revenue': { border: 'rgba(16,185,129,0.25)', badge: 'rgba(16,185,129,0.15)', text: '#34d399' },
+    'Customer Support': { border: 'rgba(56,189,248,0.25)', badge: 'rgba(56,189,248,0.15)', text: '#38bdf8' },
+    'Logistics & Finance': { border: 'rgba(245,158,11,0.25)', badge: 'rgba(245,158,11,0.15)', text: '#fbbf24' },
+    'Marketing & Growth': { border: 'rgba(236,72,153,0.25)', badge: 'rgba(236,72,153,0.15)', text: '#f472b6' },
+    'Intelligence & Supervision': { border: 'rgba(244,63,94,0.25)', badge: 'rgba(244,63,94,0.15)', text: '#fb7185' }
+  };
+
+  container.innerHTML = filtered.map(agent => {
+    const col = deptColors[agent.dept] || { border: 'rgba(255,255,255,0.1)', badge: 'rgba(255,255,255,0.06)', text: '#94a3b8' };
+    return `
+    <div style="background:#0a0c14;border:1px solid ${agent.active ? col.border : 'rgba(239,68,68,0.2)'};border-radius:16px;padding:18px;display:flex;flex-direction:column;justify-content:space-between;transition:all 0.25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);position:relative;overflow:hidden;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 25px rgba(0,0,0,0.7)';" onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.5)';">
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-size:1.6rem;width:42px;height:42px;background:rgba(255,255,255,0.05);border-radius:10px;display:flex;align-items:center;justify-content:center;">${agent.avatar}</div>
+        <!-- Top Row: Avatar, Title & Toggle Switch -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:1.75rem;width:46px;height:46px;background:${col.badge};border:1px solid ${col.border};border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px ${col.badge};">
+              ${agent.avatar}
+            </div>
             <div>
-              <div style="font-weight:700;font-size:0.95rem;color:#f8fafc;">${agent.name}</div>
-              <div style="font-size:0.75rem;color:#38bdf8;font-weight:600;">${agent.title}</div>
+              <div style="font-weight:800;font-size:0.98rem;color:#f8fafc;letter-spacing:-0.01em;">${agent.name}</div>
+              <div style="font-size:0.75rem;color:${col.text};font-weight:700;margin-top:2px;">${agent.title}</div>
             </div>
           </div>
-          <label style="position:relative;display:inline-block;width:38px;height:22px;cursor:pointer;">
+          <!-- Sleek iOS Style Toggle -->
+          <label style="position:relative;display:inline-block;width:40px;height:24px;cursor:pointer;flex-shrink:0;">
             <input type="checkbox" ${agent.active ? 'checked' : ''} onchange="toggleAgentActive('${agent.id}', this.checked)" style="opacity:0;width:0;height:0;">
-            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:${agent.active ? '#10b981' : '#475569'};transition:0.3s;border-radius:24px;"></span>
-            <span style="position:absolute;content:'';height:16px;width:16px;left:3px;bottom:3px;background-color:white;transition:0.3s;border-radius:50%;transform:${agent.active ? 'translateX(16px)' : 'none'};"></span>
+            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:${agent.active ? '#10b981' : '#334155'};transition:0.3s;border-radius:24px;box-shadow:${agent.active ? '0 0 10px rgba(16,185,129,0.4)' : 'none'};"></span>
+            <span style="position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:0.3s;border-radius:50%;transform:${agent.active ? 'translateX(16px)' : 'none'};"></span>
           </label>
         </div>
 
-        <div style="display:inline-block;background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:6px;font-size:0.72rem;color:var(--text-muted);font-weight:600;margin-bottom:8px;">
-          🏷️ ${agent.dept}
+        <!-- Dept Tag & Live Status Badge -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="background:${col.badge};color:${col.text};border:1px solid ${col.border};padding:3px 9px;border-radius:20px;font-size:0.7rem;font-weight:700;">
+            🏷️ ${agent.dept}
+          </span>
+          <span style="font-size:0.72rem;color:${agent.active ? '#10b981' : '#94a3b8'};font-weight:700;display:flex;align-items:center;gap:5px;">
+            <span style="width:6px;height:6px;border-radius:50%;background:${agent.active ? '#10b981' : '#64748b'};display:inline-block;"></span>
+            ${agent.active ? 'Active' : 'Standby'}
+          </span>
         </div>
 
-        <p style="font-size:0.8rem;color:#cbd5e1;line-height:1.4;margin-bottom:12px;">
+        <!-- Sinhala Description -->
+        <p style="font-size:0.81rem;color:#cbd5e1;line-height:1.45;margin-bottom:14px;min-height:38px;">
           ${agent.description}
         </p>
       </div>
 
-      <div>
-        <div style="font-size:0.72rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">Autonomous Tools</div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          ${(agent.allowedTools || []).map(t => `<span style="background:#07080c;color:#a855f7;border:1px solid rgba(168,85,247,0.3);padding:2px 7px;border-radius:6px;font-size:0.7rem;font-family:'JetBrains Mono',monospace;">${t}</span>`).join('')}
+      <!-- Autonomous Tools Badges -->
+      <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;margin-top:auto;">
+        <div style="font-size:0.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.03em;">Autonomous Tools:</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${(agent.allowedTools || []).map(t => `<span style="background:#05070e;color:#a855f7;border:1px solid rgba(168,85,247,0.3);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-family:'JetBrains Mono',monospace;font-weight:600;">${t}</span>`).join('')}
         </div>
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 async function toggleAgentActive(agentId, state) {
@@ -4924,6 +5024,7 @@ function showTab(tabName) {
     renderStoresHub();
   }
 
+  if (tabName === 'agents') loadAgentFleet();
   if (tabName === 'overview') fetchOverview();
   if (tabName === 'inbox') fetchInbox();
   if (tabName === 'orders') fetchOrders();
@@ -4944,6 +5045,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isAuth = await checkAdminAuth();
   if (isAuth) {
     await fetchBusinesses();
+    loadAgentFleet(); // Preload 20-Agent Fleet
     fetchOverview();
     setInterval(fetchOverview, 10000);
   }
