@@ -47,6 +47,14 @@ if (!fs.existsSync(DATA_DIR)) {
   try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
 }
 
+let BUILTIN_DATASET = '';
+try {
+  const dsPath = path.join(__dirname, 'dataset.txt');
+  if (fs.existsSync(dsPath)) {
+    BUILTIN_DATASET = fs.readFileSync(dsPath, 'utf8');
+  }
+} catch (_) {}
+
 // ─── Business Presets ─────────────────────────────────────────────────────────
 const DEFAULT_BUSINESSES = [
   {
@@ -60,25 +68,7 @@ const DEFAULT_BUSINESSES = [
     deliveryPolicy: 'Instant Digital Delivery of License Keys and Cloud Activation.',
     currency: 'Rs.',
     welcomeMessage: 'ආයුබෝවන්! OmniSix AI වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?',
-    dataset: `Store: OmniSix AI Software Solutions
-Owner: D T Rajapaksha (Tharindu)
-BOC Bank Account: 92949122
-Contact / WhatsApp: 076 210 7801
-
-SOFTWARE PRODUCTS & PLANS:
-- 3-Day Free Trial: Rs. 0
-- 1 Month PRO License: Rs. 800
-- 3 Months PRO License: Rs. 2,000
-- 6 Months PRO License: Rs. 3,500
-- 1 Year VIP License: Rs. 5,500
-
-CORE CAPABILITIES:
-- 24/7 Autonomous AI Sales & Support Agent
-- WhatsApp Multi-Device & Meta Cloud API Dual Engine
-- Number Warmer Anti-Ban P2P Simulator
-- Multi-Channel Inbox & Kanban Deals Pipeline
-- Gemini HD Natural Voice Notes (30 Voices)
-- Bank Slip Vision Scanner & Sri Lankan Couriers Tracking`,
+    dataset: BUILTIN_DATASET || `Store: OmniSix AI Software Solutions`,
     isActive: true
   }
 ];
@@ -181,6 +171,14 @@ class Database {
           this.data.leads = parsed.leads || [];
           if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
           if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
+
+          // Automatically sync master dataset from dataset.txt
+          if (BUILTIN_DATASET && this.data.businesses.length > 0) {
+            const primary = this.data.businesses.find(b => b.id === 'weddingarts') || this.data.businesses[0];
+            if (primary) {
+              primary.dataset = BUILTIN_DATASET;
+            }
+          }
         }
       } else {
         this.save();

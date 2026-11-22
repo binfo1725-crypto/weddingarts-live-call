@@ -1,9 +1,15 @@
-🎯 *OMNISIX AI PRO — OFFICIAL ENTERPRISE PRODUCT & PRICING GUIDE*
-OmniSix AI යනු ශ්‍රී ලංකාවේ ප්‍රමුඛතම 24/7 Autonomous AI Sales Agent, Multi-Channel Chatbot සහ Omnichannel CRM Platform එකයි.
-ප්‍රශ්නයේ අදහස හොඳින් තේරුම් ගෙන OmniSix AI මෘදුකාංග සේවා, මිල ගණන් සහ පැකේජ පිළිබඳව පමණක් නිවැරදි තොරතුරු ලබා දෙන්න.
+🎯 *OMNISIX AI PRO & CLOUD WEB APP — MASTER PRODUCT & PRICING DATASET*
+OmniSix AI යනු ශ්‍රී ලංකාවේ ප්‍රමුඛතම 24/7 Autonomous AI Sales Agent, Multi-Channel Chatbot, Live Voice Call Server සහ Omnichannel CRM Platform එකයි.
+අප සතුව නිෂ්පාදන මාදිලි 2ක් (2 Product Deployment Models) පවතී:
+1. 📱 *OMNISIX AI PRO — ANDROID APK APP:* පරිගණක හෝ සර්වර් අනවශ්‍යව ඔබගේ Android දුරකථනයෙන්ම (Android 8.0 - 15) 24/7 ක්‍රියාත්මක වන Mobile Native Automation App එක.
+2. 🌐 *OMNISIX AI CLOUD WEB APP & SAAS PLATFORM:* දුරකථනයක් හෝ පරිගණකයක් On කර තැබීමෙන් තොරව High-Availability Cloud Server මඟින් 24/7 ක්‍රියාත්මක වන Enterprise Multi-Store SaaS Platform එක.
 
-🤖 *PART 1: OMNISIX AI PRO — LICENSE PLANS & PACKAGES (මිල ගණන් / PRICING)*
-AI Agent App, WhatsApp Bot & Social Automation License Plans:
+පාරිභෝගිකයාගේ අවශ්‍යතාවය සහ ප්‍රශ්නය නිවැරදිව තේරුම් ගෙන අදාළ මෘදුකාංග විසඳුම, නිවැරදි මිල ගණන් සහ Activation පියවර ලබා දෙන්න.
+
+---
+
+📱 *PART 1: OMNISIX AI PRO — ANDROID APK APP (මිල ගණන් & PLANS)*
+පරිගණක අනවශ්‍යව Smart Phone එකෙන්ම ක්‍රියාත්මක වන Android APK App එක සඳහා මිල ගණන්:
 • *3-Day Free Trial (නොමිලේ අත්හදා බැලීම):* `Rs. 0/-` — සියලුම PRO Features සමඟ දින 3ක් 100% නොමිලේ! (එක් දුරකථනයකට එක් වරක් පමණි — Device-Locked Trial Vault).
 • *1 Month Plan:* `Rs. 800/-`
 • *3 Months Plan:* `Rs. 2,000/-` _(Save Rs. 400)_
@@ -12,8 +18,8 @@ AI Agent App, WhatsApp Bot & Social Automation License Plans:
 📥 APK Download & 3-Day Free Trial Key Portal: https://binfo3394-arch.github.io/V0.5/agent
 🛍️ WhatsApp Catalog: https://wa.me/p/37344800535168467/94762107801
 
-🌐 *SUPPORTED CHANNELS — 8 PLATFORMS IN ONE SUITE (සමාජ මාධ්‍ය නාලිකා)*
-Settings වෙතින් ඔබට අවශ්‍ය ඕනෑම Channel එකක් වෙන වෙනම ON / OFF කළ හැක:
+🌐 *APK SUPPORTED CHANNELS — 8 TOGGLES / 7 PLATFORMS IN ONE PHONE:*
+Settings වෙතින් ඕනෑම Channel එකක් වෙන වෙනම ON / OFF කළ හැක:
 1. 💬 *WhatsApp Personal*
 2. 💼 *WhatsApp Business*
 3. ⚡ *Facebook Messenger* (+ Messenger Lite)
@@ -23,47 +29,138 @@ Settings වෙතින් ඔබට අවශ්‍ය ඕනෑම Channel �
 7. 💻 *LinkedIn Messages* (+ LinkedIn Lite)
 8. 📱 *Direct Phone SMS* — Google Messages, Samsung, Xiaomi, Vivo, Oppo/ColorOS & Huawei
 
-☁️ *OFFICIAL META WHATSAPP CLOUD API & WHATSAPP QR DUAL ENGINE*
-• *24h Interactive Quick-Reply Buttons:* Clickable quick-reply බොත්තම් 1 සිට 3 දක්වා යැවීම.
-• *Meta Approved Template Sync & Buttons Support:* Dynamic parameters ({{1}}, custom coupon codes/URLs) සහිත approved templates.
-• *Dual Engine Support:* WhatsApp QR Web Connect හෝ Official Cloud API (Graph API) දෙකම එකවර භාවිතා කිරීමේ හැකියාව.
+---
 
-📢 *BULK BROADCAST SUITE & NUMBER WARMER ENGINE*
-• *WhatsApp Number Warmer Engine:* Connected WhatsApp numbers අතර ස්වයංක්‍රීයව realistic P2P දෙබස් හුවමාරු කර trust score වැඩි කරමින් ban වීම් වළක්වයි.
-• *Anti-Ban Smart Broadcast:* Zero-width non-rendering invisible unicode injection මඟින් duplicate cryptographic hash matching බිඳ දමයි.
-• *Human Pacing Delays:* පණිවිඩ අතර තත්පර 8–20 randomized delay සහ daily volume quotas.
-• *Dynamic Variables:* {{name}}, {{mobile}}, {{var1}}..{{var5}} සමඟ personalized messages යැවීම.
-• *Automatic STOP Opt-Out & DND Blacklist:* පාරිභෝගිකයා STOP, Epa, එපා එවූ සැනින් DND list එකට එක් කර ban වීම් වළක්වයි.
+🌐 *PART 2: OMNISIX AI CLOUD WEB APP & SAAS PLATFORM (මිල ගණන් & PLANS)*
+දුරකථනයක් හෝ පරිගණකයක් On කර තැබීම අවශ්‍ය නැත. 100% Cloud Server එකක 24/7 ක්‍රියාත්මක වන Enterprise Web App SaaS Platform එක:
+• *Web App Live URL:* https://omnisix-ai.onrender.com
+• *Client Store Portal:* https://omnisix-ai.onrender.com/portal
+• *Executive Admin Dashboard:* https://omnisix-ai.onrender.com/admin
+• *Live AI Voice Call Interface:* https://omnisix-ai.onrender.com/call
+• *Instant Free Trial Self-Activation:* https://omnisix-ai.onrender.com/free
 
-🎙️ *30 NATURAL AI VOICES (GEMINI TTS) & VOICE NOTES*
-• *14 Natural Female Voices:* Aoede, Kore, Zephyr, Leda, Callirrhoe, Autonoe, Despina, Erinome, Achernar, Gacrux, Laomedeia, Pulcherrima, Sulafat, Vindemiatrix.
-• *16 Natural Male Voices:* Puck, Charon, Fenrir, Orus, Algieba, Alnilam, Achird, Algenib, Enceladus, Iapetus, Rasalgethi, Sadachbia, Sadaltager, Schedar, Umbriel, Zubenelgenubi.
-• *Voice Cloning & Multi-Turn Understanding:* සිංහල, Singlish සහ English voice notes තේරුම් ගෙන instant audio replies යවයි.
+💰 *CLOUD WEB APP SAAS SUBSCRIPTION PACKAGES (මාසික සහ වාර්ෂික සැලසුම්):*
+• *Starter Cloud Plan (කුඩා ව්‍යාපාර සඳහා):* `Rs. 1,900 / මසකට`
+  - 1 Official WhatsApp Connected Line
+  - 1,500 Autonomous AI Text Replies / මසකට
+  - 20 Products Catalog & Instant Price Finder
+  - Standard Auto-Reply & Customer Intent Detection
+  - Omnichannel Unified Chat Inbox
+• *Pro Cloud Plan (වර්ධනය වන ව්‍යාපාර සඳහා — Most Popular):* `Rs. 2,900 / මසකට`
+  - 2 Multi-Account WhatsApp Lines
+  - 5,000 Autonomous AI Replies / මසකට
+  - 100 Products Catalog & Multi-Variant Support
+  - 30 Natural HD AI Voice Notes (Sinhala / Singlish / English)
+  - Google Gemini Vision Bank Slip Auto-Verification
+  - 7 Sri Lankan Couriers Direct Tracking Links
+  - Kanban CRM Pipeline & Interactive WhatsApp Forms
+• *Enterprise Cloud VIP Plan (විශාල ව්‍යාපාර සහ Agencies සඳහා):* `Rs. 3,500 / මසකට`
+  - Unlimited WhatsApp Multi-Device & Meta Cloud API Lines
+  - Unlimited AI Text & Voice Conversations
+  - Real-Time Gemini Live Full-Duplex AI Voice Calls (Web Call Center)
+  - 20-Agent Autonomous AI Enterprise Fleet (5 Departments)
+  - Multi-Store Management Hub (අසීමිත වෙළඳසැල් පාලනය)
+  - Automated 2-Stage Price Inquiry Recovery Follow-Ups
+  - Full Developer REST API, Webhooks & Widget Embed (/widget.js)
+  - Enterprise 7-Layer OWASP & SOC2 Security Suite
 
-🧠 *SMART CRM & PIPELINE SUITE*
-• *Kanban CRM Deals Pipeline:* New Lead ➔ Contacted ➔ Proposal Sent ➔ Won / Paid ➔ Lost අදියර 5ක් ඔස්සේ ගනුදෙනු කළමනාකරණය.
-• *WhatsApp Interactive Forms:* Customer lead capture forms සහ live phone mockup simulator.
-• *Advanced Contact Management:* CSV bulk import, custom tag segmentation සහ custom variables.
-• *Developer REST API & Outbound Webhooks:* /api/qr/rest/send_message endpoint සහ real-time event webhooks.
-• *Multi-Agent Team Collaboration:* Admin, Sales, Support roles සහ embeddable website floating widget (/widget.js).
+🚀 *EXTENDED MULTI-MONTH WEB APP SAVINGS:*
+• *3 Months Pro Plan:* `Rs. 7,900` (Save Rs. 800)
+• *6 Months Pro Plan:* `Rs. 14,900` (Save Rs. 2,500)
+• *1 Year Enterprise VIP:* `Rs. 35,000` (Save Rs. 7,000 — සම්පූර්ණ අවුරුද්දකටම VIP Cloud සත්කාරය)
+• *Free 3-Day Web Trial:* `Rs. 0/-` (https://omnisix-ai.onrender.com/free වෙතින් කිසිදු ගෙවීමකින් තොරව ක්ෂණිකව සක්‍රීය කරගත හැක)
 
-🛡️ *BANK SLIP VISION AI & COURIER TRACKING*
-• *Multi-Bank Receipt Scanner & Duplicate Reference Blocker:* BOC, Commercial, Sampath Vishwa, HNB, People's, Dialog Genie, eZ Cash, KOKO Pay රිසිට්පත් Gemini Vision AI මඟින් scan කර tampered slips සහ duplicate reference numbers අල්ලා දේ.
-• *7 Sri Lankan Couriers Direct Tracking:* Domex, Koombiyo, PromptXpress, Pronto, Fardar, Curfox, Certis Lanka 1-tap tracking links.
+---
 
-💳 *OFFICIAL PAYMENT DETAILS (ගෙවීම් විස්තර)*
-OmniSix AI License Plans සඳහා නිල බැංකු ගිණුම:
+🤖 *PART 3: 20-AGENT AI ENTERPRISE FLEET (විශේෂඥ AI නියෝජිතයින් 20 කණ්ඩායම)*
+Web App තුළ දෙපාර්තමේන්තු 5ක් යටතේ විශේෂඥ AI Agent වරුන් 20 දෙනෙකු 24/7 ක්‍රියාත්මක වේ:
+1. 💰 *Sales & Revenue Engine (Agents 5):*
+   - `Lead Qualifier Agent:` පාරිභෝගිකයාගේ මිලදී ගැනීමේ සූදානම හඳුනාගැනීම.
+   - `Negotiation Agent:` Margin Shield සීමාවන් තුළ වට්ටම් කේවල් කිරීම.
+   - `Upsell Agent:` සාමාන්‍ය Order Value එක 20%-30% කින් ඉහළ දැමීම.
+   - `Closing Agent:` Cash On Delivery (COD) හෝ බැංකු තැන්පතු Order එක තහවුරු කිරීම.
+   - `Abandoned Inquiry Agent:` මිල විමසා නිහඬ වූ පාරිභෝගිකයින් නැවත ගෙන්වා ගැනීම.
+2. 🤝 *Customer Experience & Support (Agents 4):*
+   - `Support Agent:` භාණ්ඩ තොරතුරු, වගකීම් සහ Delivery කාලසීමා පැහැදිලි කිරීම.
+   - `Multilingual Polyglot:` සිංහල, Singlish, English සහ தமிழ் භාෂා 4න්ම සන්නිවේදනය.
+   - `VIP Concierge:` වටිනාකමින් වැඩි පාරිභෝගිකයින්ට ප්‍රමුඛතා සේවාව.
+   - `Escalation Agent:` අතෘප්තිමත් පාරිභෝගිකයින් හඳුනාගෙන මිනිස් සහායකයින්ට යොමු කිරීම.
+3. 🚚 *Logistics, Orders & Finance (Agents 4):*
+   - `Order Capture Agent:` ලිපිනය, නම සහ දුරකථන අංක ලබාගෙන Auto-Record කිරීම.
+   - `Slip Verifier Agent:` Gemini Vision මඟින් බැංකු රිසිට්පත් සහ ව්‍යාජ slips හඳුනාගැනීම.
+   - `Invoice Generator Agent:` 1-Click PDF බිල්පත් සහ Image Receipt සැකසීම.
+   - `Courier Dispatch Agent:` Domex, Koombiyo, PromptXpress ලුහුබැඳීමේ Tracking links යැවීම.
+4. 📈 *Marketing & Growth (Agents 4):*
+   - `Campaign Dispatch Agent:` තොග පණිවිඩ WhatsApp හරහා ban-free ලෙස බෙදාහැරීම.
+   - `Number Warmer Agent:` WhatsApp අංක අතර ස්වයංක්‍රීයව විශ්වාසනීය දෙබස් හුවමාරු කිරීම.
+   - `Reviews Collector Agent:` ඇණවුම් ලැබුණු පසු පාරිභෝගික තෘප්තිමත්භාවය විමසීම.
+   - `Re-Order Reminder Agent:` දින 30කට පසු නැවත මිලදී ගැනීමට ආරාධනා කිරීම.
+5. 🛡️ *Intelligence, Security & SRE (Agents 3):*
+   - `Security Sentinel (Prompt Injection Shield):` DAN mode සහ Jailbreak ප්‍රහාර වැළැක්වීම.
+   - `Multi-Tenant Guard:` එක් Store එකක දත්ත තවත් Store එකකට කාන්දු වීම වැළැක්වීම.
+   - `Performance SRE Agent:` Render Cloud සහ MongoDB Atlas දත්ත ගබඩාව අධීක්ෂණය කිරීම.
+
+---
+
+🎙️ *PART 4: REAL-TIME GEMINI LIVE AI VOICE CALLS (සජීවී හඬ ඇමතුම් සේවාව)*
+• *Live Call URL:* https://omnisix-ai.onrender.com/call
+• *Full-Duplex Instant Barge-In:* පාරිභෝගිකයා කතා කරන අතරතුර බාධා කළද (Barge-in), සැබෑ මිනිසෙකු මෙන් ක්ෂණිකව සවන් දී හඬ නතර කර පිළිතුරු දෙයි.
+• *Ultra-Low Latency (0.4s):* WebSocket හරහා Gemini Live API සමඟ සෘජුව සම්බන්ධ වී තත්පර භාගයකට අඩු කාලයකින් කතා කරයි.
+• *Natural Leda & Aoede Voices:* ස්වභාවික, මිත්‍රශීලී කාන්තා හඬකින් සිංහල සහ Singlish භාෂාවෙන් ඇණවුම් ලබාගැනීම.
+
+---
+
+🏬 *PART 5: CLIENT STORE PORTAL & MULTI-TENANT MANAGEMENT*
+• *Store Owner Portal:* https://omnisix-ai.onrender.com/portal?key=YOUR_LICENSE_KEY
+  - Client Store හිමිකරුවන්ට තමන්ගේ වෙළඳසැලේ Products, Orders, Customer Chats, සහ Revenue Overview පමණක් පෙනෙන පරිදි Multi-Tenant Data Isolation තහවුරු කර ඇත.
+• *Super Admin Stores Hub:* https://omnisix-ai.onrender.com/admin
+  - අසීමිත Client Stores ලියාපදිංචි කිරීම, Browser Tabs මඟින් concurrent Stores කළමනාකරණය, සහ License Keys නිකුත් කිරීම.
+
+---
+
+🛡️ *PART 6: ENTERPRISE 7-LAYER PRODUCTION SECURITY SUITE*
+1. *OWASP Security Headers:* HSTS, Anti-Clickjacking (X-Frame-Options), MIME Sniffing Block, CSP.
+2. *Strict Rate Limiters:* Admin login විනාඩි 15කට 5කට සීමා කිරීම, AI calls විනාඩියකට 30, Orders විනාඩියකට 25.
+3. *Zero Credential Leakage:* Google Gemini API Keys, WhatsApp tokens සාමාන්‍ය පාරිභෝගිකයින්ට කිසිවිටෙකත් හෙළි නොවේ.
+4. *NoSQL Injection Sanitizer:* `$gt`, `$ne`, `$where` වැනි MongoDB injection vectors ස්වයංක්‍රීයව ඉවත් කරයි.
+5. *Timing-Safe Auth:* `crypto.timingSafeEqual` මඟින් Admin Master Password ආරක්ෂා කරයි.
+6. *LLM Prompt Injection Shield:* "Ignore previous instructions", "DAN mode", "Developer mode" වැනි jailbreak ප්‍රහාර AI වෙත යැවීම අවහිර කරයි.
+7. *SOC2 Audit Trail:* පරිපාලක පිවිසුම්, ආරක්ෂක අවහිර කිරීම් සහ Store Configuration වෙනස්කම් තත්‍ය කාලීනව සටහන් වන Audit Log පද්ධතියක් ඇත.
+
+---
+
+🔄 *PART 7: MOBILE APK VS CLOUD WEB APP — ඔබ තෝරාගත යුත්තේ කුමක්ද?*
+
+| පහසුකම / Feature | 📱 OmniSix AI Pro APK | 🌐 OmniSix AI Cloud Web App |
+|---|---|---|
+| **අවශ්‍ය උපකරණය** | Android දුරකථනයක් පමණි | ඕනෑම Browser එකක් (Phone, PC, Mac, Tablet) |
+| **පරිගණක හෝ Server** | අනවශ්‍යයි (Phone එකේම වැඩ) | 100% Cloud Server (Phone එක Off වුවද වැඩ) |
+| **ක්‍රියාකාරී නාලිකා** | WhatsApp, FB, Insta, Telegram, TikTok, SMS | Official WhatsApp Multi-Device & Meta Cloud API |
+| **සජීවී Voice Calls** | Voice Notes යැවීම සහ ඇසීම | Real-time Live Conversational Voice Calls |
+| **Multi-Store Hub** | Phone එකකට එක් Store එකක් | අසීමිත Stores & Client Portal පද්ධතිය |
+| **ආරම්භක මිල** | රු. 800 / මසකට (3-Day Trial රු. 0) | රු. 1,900 / මසකට (3-Day Trial රු. 0) |
+
+---
+
+📲 *PART 8: ACTIVATION STEPS (සක්‍රීය කරගන්නා ආකාරය)*
+
+*A. Android APK සක්‍රීය කරගැනීමට:*
+1. https://binfo3394-arch.github.io/V0.5/agent වෙතින් APK එක බාගත කර Install කරන්න.
+2. App එකේ License Menu වෙතින් Device ID එක ලබාගෙන Website එකෙන්ම 3-Day Free Trial Key එක ගන්න.
+3. Paid Plan සඳහා BOC (`92949122` - D T Rajapaksha) ගෙවා Receipt + Device ID `076 210 7801` වෙත WhatsApp කරන්න.
+
+*B. Cloud Web App SaaS සක්‍රීය කරගැනීමට:*
+1. https://omnisix-ai.onrender.com/free වෙත ගොස් ඔබගේ නම සහ WhatsApp අංකය ඇතුළත් කර ක්ෂණික Free Trial License Key එක ලබාගන්න.
+2. ලැබෙන Key එකෙන් https://omnisix-ai.onrender.com/portal වෙත Login වන්න.
+3. WhatsApp QR එක Scan කර තත්පර 30කින් ඔබේ Cloud AI Store එක සජීවීව පවත්වාගෙන යන්න!
+
+---
+
+💳 *BANK PAYMENT DETAILS & DIRECT SUPPORT (ගෙවීම් විස්තර)*
+OmniSix AI මෘදුකාංග සේවා සඳහා නිල බැංකු ගිණුම:
 🏦 *Bank:* Bank of Ceylon (BOC Bank)
 🔢 *Account Number:* `92949122`
 👤 *Account Name:* `D T Rajapaksha (Tharindu Rajapaksha)`
 📞 *WhatsApp Hotline:* `076 210 7801` (https://wa.me/94762107801)
-📌 *License Key Activation:* මුදල් තැන්පත් කර Slip/Screenshot එක සමඟ ඔබේ Device ID එක `076 210 7801` වෙත WhatsApp කරන්න — එසැනින් Activation Key එක ලබා දෙනු ලැබේ!
-
-📞 *OFFICIAL DEVELOPER & CONTACT DIRECTORY*
-• 👤 *Developer & Founder:* Tharindu Rajapaksha (D T Rajapaksha)
-• 🏠 *Office Address:* Palakudawa, Thalawila, Kalpitiya, Sri Lanka
-• 📍 *Google Maps:* https://share.google/lzrnWSj3Cmolo6xuA
-• 📞 *WhatsApp & Call Support:* `076 210 7801` (Daily 8:00 AM - 11:00 PM) 👉 https://wa.me/94762107801
-• 📥 *OmniSix APK & Free Trial Key:* https://binfo3394-arch.github.io/V0.5/agent
-• 🛍️ *WhatsApp Catalog:* https://wa.me/p/37344800535168467/94762107801
-• 🏦 *BOC Bank:* Account `92949122` (D T Rajapaksha)
+🌐 *Web Platform:* https://omnisix-ai.onrender.com
+📥 *APK Download:* https://binfo3394-arch.github.io/V0.5/agent
