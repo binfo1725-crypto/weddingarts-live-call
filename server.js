@@ -30,12 +30,62 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[CRITICAL-GUARD] Unhandled Promise Rejection at:', promise, 'reason:', reason && reason.stack ? reason.stack : reason);
 });
 
-process.on('SIGTERM', () => {
-  console.log('[SYSTEM] SIGTERM received. Gracefully maintaining state before shutdown...');
-});
-process.on('SIGINT', () => {
-  console.log('[SYSTEM] SIGINT received. Gracefully maintaining state before shutdown...');
-});
+let isShuttingDown = false;
+async function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`\n🛑 [SYSTEM] ${signal} signal received. Initiating enterprise graceful shutdown...`);
+
+  const forceTimer = setTimeout(() => {
+    console.error('⚠️ [SYSTEM] Graceful shutdown timeout (10s). Forcing process exit.');
+    process.exit(1);
+  }, 10000);
+  forceTimer.unref();
+
+  try {
+    if (typeof server !== 'undefined' && server && server.close) {
+      server.close(() => console.log('✅ [SYSTEM] HTTP & WebSocket servers stopped accepting new connections.'));
+    }
+  } catch (_) {}
+
+  try {
+    for (const [id, s] of sessions.entries()) {
+      try {
+        if (s.browserWs && s.browserWs.readyState === WebSocket.OPEN) {
+          s.browserWs.close(1001, 'Server shutting down');
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  try {
+    console.log('💾 [SYSTEM] Flushing state to MongoDB Atlas...');
+    await db.syncToMongo();
+    if (waEngine && waEngine.manager) {
+      for (const acc of waEngine.manager.sessions.values()) {
+        try {
+          await db.backupBaileysAuthToMongo(acc.id, acc.authDir);
+        } catch (_) {}
+      }
+    }
+    console.log('✅ [SYSTEM] All database state and credentials flushed.');
+  } catch (err) {
+    console.error('⚠️ [SYSTEM] Error flushing state on shutdown:', err.message);
+  }
+
+  if (db.mongoClient) {
+    try {
+      await db.mongoClient.close();
+      console.log('✅ [SYSTEM] MongoDB connection closed cleanly.');
+    } catch (_) {}
+  }
+
+  console.log('🏁 [SYSTEM] Enterprise Graceful Shutdown completed. Exiting.');
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 const express = require('express');
 const http = require('http');
@@ -266,14 +316,41 @@ const datasetUploadLimiter = createRateLimiter({
 });
 
 app.use(express.json({ limit: '10mb' }));
+
+// ─── 🛡️ Deep NoSQL Injection & MongoDB Operator Sanitizer ────────────────────
+function sanitizeNoSql(payload) {
+  if (!payload || typeof payload !== 'object') return payload;
+  if (Array.isArray(payload)) return payload.map(sanitizeNoSql);
+  const clean = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (key.startsWith('$') || key.includes('.')) continue;
+    clean[key] = sanitizeNoSql(value);
+  }
+  return clean;
+}
+
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') req.body = sanitizeNoSql(req.body);
+  if (req.query && typeof req.query === 'object') req.query = sanitizeNoSql(req.query);
+  if (req.params && typeof req.params === 'object') req.params = sanitizeNoSql(req.params);
+  next();
+});
+
+// Production Static Asset Caching vs Dynamic Route No-Cache
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // 24h client-side caching for assets (JS, CSS, SVGs, PNGs)
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600');
+    }
   }
 }));
 
+// ─── 📊 Production Observability & Health Probes ─────────────────────────────
 app.get('/health', (req, res) => {
   if (!db.isMongoConnected) {
     db.initMongo().catch(() => {});
@@ -287,6 +364,55 @@ app.get('/health', (req, res) => {
     datasetChars: (activeBiz.dataset || BUILTIN_DATASET).length,
     time: new Date().toISOString()
   });
+});
+
+// Kubernetes / Render Readiness Probe
+app.get('/health/ready', (req, res) => {
+  res.status(200).json({
+    ready: true,
+    database: db.isMongoConnected ? 'MongoDB Atlas Connected' : 'Local JSON Fallback',
+    stores: (db.data.businesses || []).length
+  });
+});
+
+// Kubernetes / Render Liveness Probe
+app.get('/health/live', (req, res) => {
+  res.status(200).json({ live: true, uptime: Math.floor(process.uptime()) });
+});
+
+// Production System Metrics Endpoint
+app.get('/api/metrics', (req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    ok: true,
+    uptimeSeconds: Math.floor(process.uptime()),
+    nodeVersion: process.version,
+    memory: {
+      rssMb: Math.round(mem.rss / 1024 / 1024),
+      heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
+      heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024)
+    },
+    database: {
+      connected: db.isMongoConnected,
+      ordersCount: (db.data.orders || []).length,
+      productsCount: (db.data.products || []).length,
+      storesCount: (db.data.businesses || []).length
+    },
+    whatsapp: {
+      totalAccounts: waEngine && waEngine.manager ? waEngine.manager.sessions.size : 0,
+      connectedAccounts: waEngine && waEngine.manager ? Array.from(waEngine.manager.sessions.values()).filter(s => s.connected).length : 0
+    },
+    activeVoiceSessions: sessions.size,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Enterprise Audit Trail Log Endpoint
+app.get('/api/audit-logs', requireSessionAuth, (req, res) => {
+  const bizId = req.query.businessId || null;
+  const limit = Math.min(100, parseInt(req.query.limit, 10) || 50);
+  const logs = db.getAuditLogs(bizId, limit);
+  res.json({ ok: true, logs });
 });
 
 // ─── SaaS Multi-Tenant Routes & Omnichannel UI ─────────────────────────────
@@ -403,17 +529,45 @@ function requireAdminAuth(req, res, next) {
 
 app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
   const { password } = req.body || {};
+  const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const clientIp = String(rawIp).split(',')[0].trim();
+
   if (!password) {
+    db.logAuditEvent({
+      type: 'ADMIN_LOGIN_EMPTY_ATTEMPT',
+      actor: 'Unknown',
+      ip: clientIp,
+      status: 'FAILED',
+      details: { reason: 'No password provided' }
+    });
     return res.status(401).json({ ok: false, error: 'Security Password is required.' });
   }
+
   const inputBuf = Buffer.from(String(password).trim());
   const masterBuf = Buffer.from(ADMIN_MASTER_PASSWORD);
   const isValid = inputBuf.length === masterBuf.length && crypto.timingSafeEqual(inputBuf, masterBuf);
   if (!isValid) {
+    db.logAuditEvent({
+      type: 'ADMIN_LOGIN_FAILED',
+      actor: 'Unknown',
+      ip: clientIp,
+      status: 'FAILED',
+      details: { reason: 'Incorrect Master Security PIN' }
+    });
     return res.status(401).json({ ok: false, error: 'වැරදි Master Security Password එකක්. නැවත උත්සාහ කරන්න.' });
   }
+
   const token = 'adm_' + crypto.randomBytes(32).toString('hex');
   activeAdminSessions.set(token, Date.now() + ADMIN_SESSION_DURATION);
+
+  db.logAuditEvent({
+    type: 'ADMIN_LOGIN_SUCCESS',
+    actor: 'Super Admin',
+    ip: clientIp,
+    status: 'SUCCESS',
+    details: { authMethod: 'Master PIN' }
+  });
+
   res.json({ ok: true, token, message: 'Super Admin Security Access Granted' });
 });
 

@@ -196,6 +196,7 @@ class Database {
     this.saveToDiskSync();
     this.scheduleMongoSync();
     this.syncToCloud().catch(() => {});
+    this.checkSnapshotRotation();
   }
 
   saveToDiskSync() {
@@ -277,6 +278,7 @@ class Database {
       this.mongoOrdersCol = this.mongoDb.collection('orders');
       this.mongoProductsCol = this.mongoDb.collection('products');
       this.mongoBaileysCol = this.mongoDb.collection('baileys_auth');
+      this.mongoAuditCol = this.mongoDb.collection('audit_logs');
       this.isMongoConnected = true;
       this.isMongoConnecting = false;
       this.mongoError = null;
@@ -347,6 +349,7 @@ class Database {
         await this.syncToMongo();
         console.log('🌱 [MongoDB Atlas] Initialized and seeded cloud database with baseline records.');
       }
+      await this.ensureIndexes();
     } catch (err) {
       if (client) {
         try { await client.close(); } catch (_) {}
@@ -376,6 +379,95 @@ class Database {
       );
     } catch (err) {
       console.warn('[db] Error syncing state to MongoDB Atlas:', err.message);
+    }
+  }
+
+  // ─── 🚀 Enterprise MongoDB Indexing Engine ──────────────────────────────────
+  async ensureIndexes() {
+    if (!this.mongoDb || !this.isMongoConnected) return;
+    try {
+      if (this.mongoOrdersCol) {
+        await this.mongoOrdersCol.createIndex({ businessId: 1, createdAt: -1 });
+        await this.mongoOrdersCol.createIndex({ customerPhone: 1 });
+        await this.mongoOrdersCol.createIndex({ status: 1 });
+      }
+      if (this.mongoProductsCol) {
+        await this.mongoProductsCol.createIndex({ businessId: 1, id: 1 });
+      }
+      if (this.mongoBaileysCol) {
+        await this.mongoBaileysCol.createIndex({ accountId: 1, filename: 1 });
+      }
+      if (this.mongoAuditCol) {
+        await this.mongoAuditCol.createIndex({ timestamp: -1 });
+        await this.mongoAuditCol.createIndex({ businessId: 1, timestamp: -1 });
+        await this.mongoAuditCol.createIndex({ type: 1 });
+        await this.mongoAuditCol.createIndex({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600 });
+      }
+      console.log('🍃 [MongoDB Atlas] Production indexes created and verified successfully.');
+    } catch (e) {
+      console.warn('[db] ensureIndexes note:', e.message);
+    }
+  }
+
+  // ─── 🛡️ Enterprise Audit Logging Engine ─────────────────────────────────────
+  logAuditEvent(event) {
+    if (!this.data.auditLogs) this.data.auditLogs = [];
+    const auditItem = {
+      id: 'aud_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      type: event.type || 'SYSTEM_INFO',
+      businessId: event.businessId || 'global',
+      actor: event.actor || 'System',
+      ip: event.ip || '127.0.0.1',
+      details: event.details || {},
+      status: event.status || 'SUCCESS',
+      timestamp: new Date().toISOString(),
+      createdAt: new Date()
+    };
+
+    this.data.auditLogs.unshift(auditItem);
+    if (this.data.auditLogs.length > 250) {
+      this.data.auditLogs = this.data.auditLogs.slice(0, 250);
+    }
+
+    if (this.mongoAuditCol && this.isMongoConnected) {
+      this.mongoAuditCol.insertOne(auditItem).catch(() => {});
+    }
+    return auditItem;
+  }
+
+  getAuditLogs(businessId = null, limit = 50) {
+    let logs = this.data.auditLogs || [];
+    if (businessId && businessId !== 'all') {
+      logs = logs.filter(l => l.businessId === businessId || l.businessId === 'global');
+    }
+    return logs.slice(0, limit);
+  }
+
+  // ─── 📦 Automated Database Snapshot Rotation ────────────────────────────────
+  checkSnapshotRotation() {
+    const now = Date.now();
+    if (!this._lastSnapshotTime || now - this._lastSnapshotTime > 6 * 3600 * 1000) {
+      this._lastSnapshotTime = now;
+      this.createSnapshot().catch(() => {});
+    }
+  }
+
+  async createSnapshot() {
+    try {
+      const backupDir = path.join(DATA_DIR, 'backups');
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+      const filename = `snapshot_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      const target = path.join(backupDir, filename);
+      fs.writeFileSync(target, JSON.stringify(this.data, null, 2), 'utf8');
+
+      // Keep only 10 latest snapshots
+      const files = fs.readdirSync(backupDir).filter(f => f.startsWith('snapshot_')).sort();
+      while (files.length > 10) {
+        const oldest = files.shift();
+        try { fs.unlinkSync(path.join(backupDir, oldest)); } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[db] Snapshot creation failed:', e.message);
     }
   }
 
@@ -841,6 +933,12 @@ class Database {
     };
 
     chat.messages.push(msgObj);
+    if (chat.messages.length > 100) {
+      chat.messages = chat.messages.slice(-100);
+    }
+    if (this.data.chats.length > 1000) {
+      this.data.chats = this.data.chats.slice(0, 1000);
+    }
     chat.lastTime = new Date().toISOString();
     chat.lastMessage = text;
     if (sender === 'customer') {

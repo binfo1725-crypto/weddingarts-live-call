@@ -196,6 +196,15 @@ class WhatsAppAccountSession {
             const remoteJid = msg.key.remoteJid;
             if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') continue;
 
+            // WhatsApp Message Deduplication (drops replayed events on reconnect)
+            const msgId = msg.key?.id;
+            if (msgId && this.manager && this.manager.isMessageProcessed(msgId)) {
+              continue;
+            }
+            if (msgId && this.manager) {
+              this.manager.markMessageProcessed(msgId);
+            }
+
             const audioMsg = msg.message?.audioMessage;
             const isVoiceNote = !!audioMsg;
             let rawAudioBuffer = null;
@@ -351,6 +360,16 @@ class WhatsAppAccountSession {
                 aiReply = injectionCheck.safeReply;
                 isQuickActionHandled = true;
                 console.warn(`🚨 [SECURITY SENTINEL] Prompt injection neutralized from ${senderPhone}: ${injectionCheck.pattern}`);
+                try {
+                  db.logAuditEvent({
+                    type: 'PROMPT_INJECTION_DEFENSE',
+                    businessId: activeBiz.id,
+                    actor: `WhatsApp User (+${senderPhone})`,
+                    ip: senderPhone,
+                    status: 'BLOCKED',
+                    details: { pattern: injectionCheck.pattern, preview: cleanText.slice(0, 80) }
+                  });
+                } catch (_) {}
               }
             }
 
@@ -839,10 +858,33 @@ class WhatsAppAccountSession {
 class MultiAccountWhatsAppManager {
   constructor() {
     this.sessions = new Map();
+    this.processedMessageIds = new Map(); // Sliding deduplication cache
     this.aiReplyHandler = null;
     this.orderCheckHandler = null;
     this.audioTranscribeHandler = null;
     this.voiceSynthesizeHandler = null;
+
+    // Auto-clean deduplication cache every 5 minutes
+    setInterval(() => {
+      const now = Date.now();
+      for (const [id, ts] of this.processedMessageIds.entries()) {
+        if (now - ts > 10 * 60 * 1000) this.processedMessageIds.delete(id);
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  isMessageProcessed(msgId) {
+    if (!msgId) return false;
+    return this.processedMessageIds.has(msgId);
+  }
+
+  markMessageProcessed(msgId) {
+    if (!msgId) return;
+    if (this.processedMessageIds.size > 10000) {
+      const firstKey = this.processedMessageIds.keys().next().value;
+      if (firstKey) this.processedMessageIds.delete(firstKey);
+    }
+    this.processedMessageIds.set(msgId, Date.now());
   }
 
   setHandlers({ aiReplyHandler, orderCheckHandler, audioTranscribeHandler, voiceSynthesizeHandler }) {
