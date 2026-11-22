@@ -1827,6 +1827,122 @@ table tr:hover td {
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* ════════ RESPONSIVE SIDEBAR COLLAPSE & SPLIT-SCREEN FIXES ════════ */
+.sidebar {
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s ease !important;
+}
+.sidebar.collapsed {
+  width: 66px !important;
+  min-width: 66px !important;
+  padding: 14px 6px !important;
+}
+.sidebar.collapsed .whatzi-brand-title,
+.sidebar.collapsed .whatzi-search-box,
+.sidebar.collapsed .whatzi-nav-category,
+.sidebar.collapsed .tab-btn > span,
+.sidebar.collapsed .whatzi-badge-new,
+.sidebar.collapsed .whatzi-sidebar-footer {
+  display: none !important;
+}
+.sidebar.collapsed .tab-btn {
+  justify-content: center !important;
+  padding: 10px 0 !important;
+  width: 100% !important;
+}
+.sidebar.collapsed .whatzi-sidebar-brand {
+  justify-content: center !important;
+  padding: 4px 0 14px 0 !important;
+}
+.sidebar.collapsed .whatzi-collapse-btn {
+  transform: rotate(180deg) !important;
+}
+
+/* Fluid Main Stage Container for Split-Screen (50/50 Desktop & Laptops) */
+.dashboard-container {
+  display: flex !important;
+  flex-direction: row !important;
+  padding: 14px 18px !important;
+  gap: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+.main-stage {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.glass-card {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+.table-responsive {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: block !important;
+  border-radius: 12px !important;
+}
+
+.table-responsive table {
+  width: 100% !important;
+  min-width: 720px !important;
+}
+
+/* Responsive Top Navbar */
+.navbar {
+  min-height: 60px !important;
+  height: auto !important;
+  padding: 8px 18px !important;
+  flex-wrap: wrap !important;
+  gap: 8px 14px !important;
+}
+.nav-left {
+  flex-wrap: wrap !important;
+  gap: 8px 12px !important;
+}
+.nav-right {
+  flex-wrap: wrap !important;
+  gap: 6px 8px !important;
+}
+
+@media (max-width: 1280px) {
+  .dashboard-container {
+    padding: 12px 14px !important;
+    gap: 12px !important;
+  }
+  .sidebar {
+    width: 235px !important;
+  }
+  .whatzi-breadcrumb {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .sidebar {
+    width: 215px !important;
+    padding: 12px 8px !important;
+  }
+  .sidebar .tab-btn {
+    padding: 7px 10px !important;
+    font-size: 0.81rem !important;
+  }
+  #nav-cloud-status,
+  #audio-label {
+    display: none !important;
+  }
+}
+</style>
 </head>
 <body style="background:#07080c;color:#f8fafc;">
 
@@ -5714,7 +5830,7 @@ async function renderStoresHub() {
         <td>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn-primary" style="padding:4px 9px;font-size:0.76rem;" onclick="switchBusiness(\'${escapeHtml(b.id)}\')">🔄 Switch</button>
-            <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;background:#eff6ff;color:#1e40af;border-color:#bfdbfe;" onclick="openStoreInNewTab(\'${escapeHtml(b.id)}\')">🌐 Open in New Tab</button>
+            <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;background:#eff6ff;color:#1e40af;border-color:#bfdbfe;" onclick="openStoreInNewTab(\'${escapeHtml(b.id)}\')">🌐 Open</button>
             <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;" onclick="openClientPortalInNewTab(\'${escapeHtml(b.id)}\')">📱 Portal</button>
             <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;" onclick="openEditStoreModal(\'${escapeHtml(b.id)}\')">✏️ Edit</button>
             <button class="btn-secondary" style="padding:4px 9px;font-size:0.76rem;color:#dc2626;border-color:#fecaca;" onclick="deleteSpecificStore(\'${escapeHtml(b.id)}\')">🗑️</button>
