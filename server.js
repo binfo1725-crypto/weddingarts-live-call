@@ -897,6 +897,150 @@ app.get('/api/export/orders.csv', (req, res) => {
 });
 
 // ─── 🚚 Automated Courier Waybill Bulk Export (Koombiyo, Domex, Prompt X, Fardar) ──
+
+// ─── 📱 vCard (.vcf) Phonebook Export (Feature 20) ──────────────────────────
+app.get('/api/export/contacts.vcf', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const chats = db.getChats(bId);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+
+  let vcfLines = [];
+  chats.forEach(c => {
+    let rawPhone = c.customerPhone || c.id || '';
+    let digits = rawPhone.replace(/\D/g, '');
+    if (digits.length >= 9) {
+      if (!digits.startsWith('94') && digits.startsWith('0')) digits = '94' + digits.slice(1);
+      if (!digits.startsWith('+') && !digits.startsWith('94')) digits = '94' + digits;
+      const formattedPhone = '+' + digits.replace(/^\+/, '');
+      const name = c.customerName || 'Customer ' + digits.slice(-4);
+
+      vcfLines.push('BEGIN:VCARD');
+      vcfLines.push('VERSION:3.0');
+      vcfLines.push(`FN:${name}`);
+      vcfLines.push(`TEL;TYPE=CELL:${formattedPhone}`);
+      vcfLines.push(`NOTE:OmniSix AI Customer | Store: ${biz.name} | Archetype: ${c.archetype || 'General'}`);
+      vcfLines.push('END:VCARD');
+    }
+  });
+
+  const vcfContent = vcfLines.join('\r\n');
+  const filename = `${(biz.name || 'OmniSix').replace(/[^a-zA-Z0-9]/g, '_')}_Contacts_${new Date().toISOString().split('T')[0]}.vcf`;
+  res.setHeader('Content-Type', 'text/vcard; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(vcfContent);
+});
+
+// ─── 💾 Full Database Backup Export (.json) (Feature 16) ─────────────────────
+app.get('/api/export/backup.json', (req, res) => {
+  try {
+    const backupData = {
+      exportDate: new Date().toISOString(),
+      platform: 'OmniSix AI Enterprise Cloud',
+      version: '6.3.0',
+      businesses: db.getAllBusinesses(),
+      products: db.data.products || [],
+      orders: db.data.orders || [],
+      chats: db.data.chats || [],
+      licenses: db.data.licenses || [],
+      broadcasts: db.data.broadcasts || [],
+      customFlows: db.data.customFlows || [],
+      settings: db.getSettings(),
+      agentFleet: db.getAgentFleet()
+    };
+    const filename = `OmniSix_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(backupData, null, 2));
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── 🛡️ Customer Blacklist Engine (Feature 6) ─────────────────────────────────
+app.get('/api/blacklist', (req, res) => {
+  res.json({ ok: true, blacklist: db.getBlacklist() });
+});
+
+app.post('/api/blacklist/toggle', (req, res) => {
+  const { phone, reason } = req.body;
+  if (!phone) return res.status(400).json({ ok: false, error: 'Phone is required' });
+  const result = db.toggleBlacklist(phone, reason);
+  res.json({ ok: true, ...result });
+});
+
+// ─── 📝 Private Staff Notes (Feature 10) ─────────────────────────────────────
+app.get('/api/notes/:phone', (req, res) => {
+  const notes = db.getCustomerNotes(req.params.phone);
+  res.json({ ok: true, notes });
+});
+
+app.post('/api/notes/:phone', (req, res) => {
+  const { text, author } = req.body;
+  if (!text) return res.status(400).json({ ok: false, error: 'Note text required' });
+  const note = db.addCustomerNote(req.params.phone, text, author);
+  res.json({ ok: true, note });
+});
+
+app.delete('/api/notes/:phone/:noteId', (req, res) => {
+  const success = db.deleteCustomerNote(req.params.phone, req.params.noteId);
+  res.json({ ok: success });
+});
+
+// ─── 📊 Daily End-of-Day (EOD) Operations Summary (Feature 12) ───────────────
+app.get('/api/eod-report', (req, res) => {
+  const bId = resolveReqBusinessId(req);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+  const allOrders = db.getOrders(bId);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const todayOrders = allOrders.filter(o => (o.createdAt || '').startsWith(todayStr));
+  const confirmed = todayOrders.filter(o => ['Confirmed', 'Slip Verified', 'In Production', 'Dispatched', 'Delivered'].includes(o.status));
+  const totalRevenue = confirmed.reduce((sum, o) => sum + (parseFloat(String(o.amount || '0').replace(/[^0-9.]/g, '')) || 0), 0);
+  const slipsCount = todayOrders.filter(o => o.status === 'Slip Verified').length;
+  const dispatchedCount = todayOrders.filter(o => o.status === 'Dispatched').length;
+
+  res.json({
+    ok: true,
+    store: biz.name,
+    date: todayStr,
+    todayOrdersCount: todayOrders.length,
+    confirmedCount: confirmed.length,
+    totalRevenueLKR: totalRevenue,
+    slipsVerified: slipsCount,
+    dispatchedCount: dispatchedCount,
+    pendingAction: todayOrders.filter(o => o.status === 'Pending').length
+  });
+});
+
+// ─── 🚚 Sri Lankan Delivery Rate Calculator (Feature 3) ──────────────────────
+app.post('/api/calculator/shipping', (req, res) => {
+  const { city, orderTotal } = req.body;
+  const c = String(city || '').toLowerCase().trim();
+  const total = parseFloat(orderTotal) || 0;
+
+  // Free delivery rule: Orders over Rs. 7,500 get Free Delivery
+  if (total >= 7500) {
+    return res.json({ ok: true, city, shippingFee: 0, isFree: true, note: 'Free Delivery (Order over Rs. 7,500)' });
+  }
+
+  // Colombo 1-15: Rs. 350 | Western Province: Rs. 400 | Outstation: Rs. 450
+  let fee = 450;
+  let zone = 'Outstation / Islandwide';
+
+  if (/colombos*(1[0-5]|[1-9])|dehiwala|mount lavinia|moratuwa|kotte|nugegoda|maharagama|rajagiriya/i.test(c)) {
+    fee = 350;
+    zone = 'Colombo Greater Suburbs';
+  } else if (/gampaha|kalutara|negombo|ja-ela|wattala|kelaniya|kadawatha|panadura|horana/i.test(c)) {
+    fee = 400;
+    zone = 'Western Province';
+  } else if (/kandy|kurunegala|galle|matara|ratnapura|badulla|anuradhapura|jaffna/i.test(c)) {
+    fee = 450;
+    zone = 'Major Provincial City';
+  }
+
+  res.json({ ok: true, city, shippingFee: fee, zone, isFree: false });
+});
+
 app.get('/api/export/courier-waybill.csv', (req, res) => {
   const bId = resolveReqBusinessId(req);
   const orders = db.getOrders(bId);

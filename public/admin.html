@@ -1184,6 +1184,109 @@
     color: #ffffff !important;
   }
 
+
+/* ── High-Contrast, Polished Sidebar & Category Headings ── */
+.whatzi-nav-category {
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: #94a3b8 !important;
+  padding: 14px 10px 5px 12px !important;
+  margin-top: 6px !important;
+  user-select: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.sidebar .tab-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 9px 12px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #cbd5e1 !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-align: left !important;
+  width: 100% !important;
+  margin-bottom: 2px !important;
+  box-sizing: border-box !important;
+}
+
+.sidebar .tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+  transform: translateX(2px) !important;
+}
+
+.sidebar .tab-btn.active {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  border-left: 3px solid #22c55e !important;
+  color: #4ade80 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.12) !important;
+  transform: none !important;
+}
+
+.sidebar .tab-btn .nav-pro-icon {
+  color: #94a3b8 !important;
+  transition: color 0.2s ease !important;
+}
+.sidebar .tab-btn:hover .nav-pro-icon {
+  color: #ffffff !important;
+}
+.sidebar .tab-btn.active .nav-pro-icon {
+  color: #22c55e !important;
+}
+
+/* Custom Sleek Scrollbar */
+.sidebar::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.sidebar::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover,
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.4);
+}
+
+/* Print Styles for 4x6 Thermal Packing Slip */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #modal-packing-slip-content, #modal-packing-slip-content * {
+    visibility: visible;
+  }
+  #modal-packing-slip-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 10px;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
 </style>
   <link rel="stylesheet" href="/whatzi_suite.css">
   <style id="whatzi-theme-inline">
@@ -1763,6 +1866,33 @@ table tr:hover td {
 
   <div class="nav-right">
     <!-- Language Selector Pill -->
+    
+    <!-- Live MongoDB / Render Health Indicator (Feature 18) -->
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);padding:4px 10px;border-radius:20px;font-size:0.74rem;color:#34d399;font-weight:700;">
+      <span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;display:inline-block;"></span>
+      <span>Cloud Live</span>
+    </div>
+
+    <!-- Audio Chime Notifications Toggle (Feature 7) -->
+    <button type="button" class="btn-secondary" id="btn-audio-toggle" onclick="toggleAudioNotifications()" title="Toggle incoming sound notifications" style="padding:5px 10px;font-size:0.78rem;border-radius:8px;display:flex;align-items:center;gap:5px;">
+      <span id="audio-icon">🔊</span> <span id="audio-label">Sound</span>
+    </button>
+
+    <!-- Daily EOD Operations Summary (Feature 12) -->
+    <button type="button" class="btn-secondary" onclick="openEODReportModal()" title="View Daily EOD Revenue & Operations Summary" style="padding:5px 10px;font-size:0.78rem;border-radius:8px;display:flex;align-items:center;gap:5px;">
+      <span>📊</span> <span>EOD Summary</span>
+    </button>
+
+    <!-- Theme Switcher (Feature 14) -->
+    <div class="whatzi-nav-btn" style="padding:0 8px;" title="Switch Color Theme">
+      <span style="font-size:0.85rem;">🎨</span>
+      <select id="ui-theme-switcher" onchange="changeColorTheme(this.value)" style="background:transparent;color:#cbd5e1;border:none;font-weight:600;font-size:0.78rem;cursor:pointer;outline:none;">
+        <option value="oled" style="background:#07080c;color:#fff;">OLED Midnight</option>
+        <option value="cyber" style="background:#0b0f19;color:#fff;">Slate Cyber</option>
+        <option value="carbon" style="background:#12141a;color:#fff;">Deep Carbon</option>
+      </select>
+    </div>
+
     <div class="whatzi-nav-btn" style="padding: 0 8px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
       <select id="ui-lang-switcher" onchange="changeUILanguage(this.value)" style="background:transparent;color:#cbd5e1;border:none;font-weight:600;font-size:0.78rem;cursor:pointer;outline:none;">
@@ -1872,8 +2002,8 @@ table tr:hover td {
     <input type="text" placeholder="Search menu..." oninput="filterSidebarMenu(this.value)" />
   </div>
 
-  <!-- Category 1: WHATSAPP QR PLUGIN -->
-  <div class="whatzi-nav-category">WhatsApp QR Plugin</div>
+  <!-- Category 1: WHATSAPP & COMMUNICATIONS -->
+  <div class="whatzi-nav-category">WhatsApp Connect</div>
   <button class="tab-btn" onclick="showTab('whatsapp')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
@@ -1892,52 +2022,69 @@ table tr:hover td {
     </div>
     <span>QR Bulk Campaign</span>
   </button>
-  <button class="tab-btn" onclick="showTab('developer')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-    </div>
-    <span>Rest API</span>
-  </button>
-
-  <!-- Category 2: WA META CONNECT -->
-  <div class="whatzi-nav-category">WA Meta Connect</div>
   <button class="tab-btn" onclick="showTab('whatsapp')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
     </div>
-    <span>Link Meta WhatsApp</span>
+    <span>Meta Cloud API</span>
+  </button>
+  <button class="tab-btn" onclick="showTab('walinks')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </div>
+    <span>WA Link & QR Builder</span>
+    <span class="whatzi-badge-new" style="background:#0ea5e9;">NEW</span>
   </button>
 
-  <!-- Category 3: AUTOMATION & BOTS -->
-  <div class="whatzi-nav-category">Automation &amp; Bots</div>
+  <!-- Category 2: AI WORKFORCE & VOICE -->
+  <div class="whatzi-nav-category">AI Workforce &amp; Voice</div>
+  <button class="tab-btn" onclick="showTab('agents')" id="nav-btn-agents">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+    </div>
+    <span>20 AI Agents</span>
+    <span class="whatzi-badge-new" style="background:#10b981;">20 LIVE</span>
+  </button>
+  <button class="tab-btn" onclick="showTab('settings')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+    </div>
+    <span>AI Bot Persona</span>
+  </button>
+  <button class="tab-btn" onclick="showTab('calls')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    </div>
+    <span>AI Voice Call Logs</span>
+    <span class="whatzi-badge-new">NEW</span>
+  </button>
   <button class="tab-btn" onclick="showTab('flows')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg>
     </div>
     <span>Automation Flows</span>
   </button>
-  <button class="tab-btn" onclick="showTab('settings')">
+  <button class="tab-btn" onclick="showTab('roi')">
     <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
     </div>
-    <span>WA Chatbot</span>
-  </button>
-  <button class="tab-btn" onclick="showTab('calls')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-    </div>
-    <span>WA Call Logs</span>
-    <span class="whatzi-badge-new">NEW</span>
+    <span>ROI & Growth Calc</span>
+    <span class="whatzi-badge-new" style="background:#a855f7;">TOOL</span>
   </button>
 
-  <!-- Category 4: CRM & DEALS PIPELINE -->
-  <div class="whatzi-nav-category">CRM &amp; Deals Pipeline</div>
+  <!-- Category 3: CRM & PIPELINES -->
+  <div class="whatzi-nav-category">CRM &amp; Pipelines</div>
+  <button class="tab-btn" onclick="showTab('inbox')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+    </div>
+    <span>Omnichannel Inbox</span>
+  </button>
   <button class="tab-btn" onclick="showTab('kanban')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="4" y="5" rx="1"/><rect width="6" height="10" x="14" y="5" rx="1"/></svg>
     </div>
     <span>Kanban Board</span>
-    <span class="whatzi-badge-new">NEW</span>
   </button>
   <button class="tab-btn" onclick="showTab('forms')">
     <div class="nav-pro-icon">
@@ -1952,33 +2099,8 @@ table tr:hover td {
     <span>Contacts Book</span>
   </button>
 
-  <!-- Category 5: LIVE INBOX & TEAM -->
-    <!-- Category: 20-AGENT AI WORKFORCE -->
-  <div class="whatzi-nav-category">AI Workforce</div>
-  <button class="tab-btn" onclick="showTab('agents')" id="nav-btn-agents" style="position:relative;overflow:hidden;">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
-    </div>
-    <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">20 AI Agents</span>
-    <span class="whatzi-badge-new" style="background:linear-gradient(135deg, #10b981, #059669);white-space:nowrap;padding:2px 7px;font-size:0.65rem;border:1px solid rgba(16,185,129,0.3);box-shadow:0 0 8px rgba(16,185,129,0.25);">20 LIVE</span>
-  </button>
-
-  <div class="whatzi-nav-category">Live Inbox &amp; Team</div>
-  <button class="tab-btn" onclick="showTab('inbox')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-    </div>
-    <span>Omnichannel Inbox</span>
-  </button>
-  <button class="tab-btn" onclick="showTab('team')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    </div>
-    <span>Team &amp; Live Widget</span>
-  </button>
-
-  <!-- Category 6: STORE & COMMERCE -->
-  <div class="whatzi-nav-category">Commerce &amp; Catalog</div>
+  <!-- Category 4: COMMERCE & FULFILLMENT -->
+  <div class="whatzi-nav-category">Commerce &amp; Dispatch</div>
   <button class="tab-btn" onclick="showTab('orders')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -1997,10 +2119,16 @@ table tr:hover td {
     </div>
     <span>Business Dataset</span>
   </button>
+  <button class="tab-btn" onclick="showTab('team')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <span>Team &amp; Live Widget</span>
+  </button>
 
-  <!-- Category 7: ADMINISTRATION -->
+  <!-- Category 5: ADMINISTRATION -->
   <div class="whatzi-nav-category">Administration</div>
-  <button class="tab-btn active" onclick="showTab('overview')">
+  <button class="tab-btn" onclick="showTab('overview')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1.5"/><rect width="7" height="5" x="14" y="3" rx="1.5"/><rect width="7" height="9" x="14" y="12" rx="1.5"/><rect width="7" height="5" x="3" y="16" rx="1.5"/></svg>
     </div>
@@ -2010,7 +2138,7 @@ table tr:hover td {
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
     </div>
-    <span>Stores Management</span>
+    <span>Stores Hub</span>
   </button>
   <button class="tab-btn" onclick="showTab('licenses')">
     <div class="nav-pro-icon">
@@ -2018,8 +2146,14 @@ table tr:hover td {
     </div>
     <span>License KeyGen</span>
   </button>
+  <button class="tab-btn" onclick="showTab('developer')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </div>
+    <span>REST API Docs</span>
+  </button>
 
-  <!-- Sidebar Footer -->
+
   <div class="whatzi-sidebar-footer">
     <span class="whatzi-footer-title">OmniSix AI CRM</span>
     <span class="whatzi-version-pill">v6.2.0</span>
@@ -2397,6 +2531,7 @@ table tr:hover td {
           <button class="btn-secondary" onclick="openFollowUpsModal()" style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;padding:7px 12px;">
             ⏰ Follow-Up Leads
           </button>
+          <a href="/api/export/contacts.vcf" class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download>📱 Export Phonebook (vCard .vcf)</a>
           <a href="/api/export/contacts.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;padding:7px 12px;" download>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Export Contacts (CSV)
           </a>
@@ -2410,6 +2545,13 @@ table tr:hover td {
 
         <div class="chat-main">
           <div class="chat-header">
+            <!-- Live Chat Message Search Filter (Feature 8) -->
+            <div style="position:relative;width:100%;margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+              <input type="text" id="chat-msg-search" placeholder="🔍 Search chat history (e.g. slip, tracking, address)..." oninput="filterChatMessages(this.value)" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;color:#f8fafc;font-size:0.78rem;outline:none;">
+              <button type="button" class="btn-secondary" id="btn-chat-blacklist" onclick="toggleCurrentChatBlacklist()" style="padding:5px 10px;font-size:0.75rem;white-space:nowrap;border-radius:8px;" title="Flag high-risk fake customer">🛡️ Blacklist</button>
+              <button type="button" class="btn-secondary" id="btn-chat-notes" onclick="toggleStaffNotesDrawer()" style="padding:5px 10px;font-size:0.75rem;white-space:nowrap;border-radius:8px;" title="Internal Staff Sticky Notes">📝 Notes</button>
+            </div>
+
             <div style="display:flex;align-items:center;gap:10px;">
               <button type="button" class="btn-secondary mobile-back-to-chats" onclick="mobileBackToChats()" style="display:none;padding:5px 12px;font-size:0.78rem;font-weight:700;border-radius:8px;">← Chats</button>
               <div>
@@ -2432,6 +2574,13 @@ table tr:hover td {
             </div>
           </div>
 
+          <!-- Quick Canned Snippets (Feature 9) -->
+          <div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px 0;" id="canned-snippets-bar">
+            <button type="button" onclick="insertCannedSnippet('/bank')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:3px 8px;border-radius:6px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">🏦 Bank Details</button>
+            <button type="button" onclick="insertCannedSnippet('/cod')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:3px 8px;border-radius:6px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">📦 COD Policy</button>
+            <button type="button" onclick="insertCannedSnippet('/dispatch')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:3px 8px;border-radius:6px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">🚚 Courier Time</button>
+            <button type="button" onclick="insertCannedSnippet('/thanks')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;padding:3px 8px;border-radius:6px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">🙏 Sthuthiyi</button>
+          </div>
           <div class="chat-footer" style="gap:8px;">
             <input type="text" class="chat-input" id="chat-reply-input" placeholder="Type agent reply directly to WhatsApp..." onkeydown="if(event.key==='Enter') sendAgentReply()">
             <button class="chat-send-btn" onclick="sendAgentReply()">Send</button>
@@ -2586,6 +2735,111 @@ table tr:hover td {
       </div>
     </section>
   
+
+    
+    <!-- 📈 TAB: ROI & REVENUE CALCULATOR (Feature 1) -->
+    <section id="tab-roi" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;">📈 Interactive ROI & Revenue Growth Calculator</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);margin-top:4px;">
+            OmniSix 20-Agent AI Workforce මඟින් ඉතිරි කර දෙන මානව වැටුප් පිරිවැය සහ Recover වන ආදායම ගණනය කරන්න.
+          </p>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+        <div style="background:#10121b;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
+          <h4 style="font-size:0.95rem;font-weight:700;color:#f8fafc;margin-bottom:16px;">⚙️ Store Operational Parameters</h4>
+          
+          <div class="form-group">
+            <label class="form-label" style="display:flex;justify-content:space-between;">
+              <span>Monthly WhatsApp Leads / Conversations:</span>
+              <strong id="roi-disp-leads" style="color:#38bdf8;">1,500</strong>
+            </label>
+            <input type="range" id="roi-input-leads" min="100" max="10000" step="100" value="1500" class="form-input" oninput="calculateROI()" style="accent-color:#38bdf8;cursor:pointer;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex;justify-content:space-between;">
+              <span>Average Order Value (LKR):</span>
+              <strong id="roi-disp-aov" style="color:#10b981;">Rs. 3,500</strong>
+            </label>
+            <input type="range" id="roi-input-aov" min="500" max="25000" step="250" value="3500" class="form-input" oninput="calculateROI()" style="accent-color:#10b981;cursor:pointer;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex;justify-content:space-between;">
+              <span>Human Staff Equivalent Monthly Salary (LKR):</span>
+              <strong id="roi-disp-salary" style="color:#fbbf24;">Rs. 50,000 / staff</strong>
+            </label>
+            <input type="range" id="roi-input-salary" min="30000" max="150000" step="5000" value="50000" class="form-input" oninput="calculateROI()" style="accent-color:#fbbf24;cursor:pointer;">
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg, rgba(16,185,129,0.08), rgba(56,189,248,0.05));border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <h4 style="font-size:0.95rem;font-weight:700;color:#10b981;margin-bottom:14px;">💰 Estimated Monthly Business Impact</h4>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Human Staff Cost Saved (2 Agents Replaced):</div>
+              <div style="font-size:1.6rem;font-weight:800;color:#f8fafc;" id="roi-res-saved">Rs. 100,000</div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Recovered Lost Sales (Cart Recovery Agent):</div>
+              <div style="font-size:1.6rem;font-weight:800;color:#38bdf8;" id="roi-res-recovered">Rs. 367,500</div>
+            </div>
+            <div>
+              <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Net Monthly Profit Increase:</div>
+              <div style="font-size:2.2rem;font-weight:900;color:#10b981;text-shadow:0 0 20px rgba(16,185,129,0.4);" id="roi-res-net">Rs. 464,000 / mo</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:14px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+            💡 OmniSix Enterprise Plan (රු. 3,500) මඟින් ඔබේ ව්‍යාපාරයට ලැබෙන සාමාන්‍ය ROI අගය <strong>13,000%+</strong> කි.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 🔗 TAB: WHATSAPP CLICK-TO-CHAT & QR BUILDER (Feature 2) -->
+    <section id="tab-walinks" class="glass-card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;">🔗 WhatsApp Link & QR Code Generator</h2>
+          <p style="font-size:0.84rem;color:var(--text-secondary);margin-top:4px;">
+            Facebook/TikTok Ads, Packaging Stickers, සහ වෙබ් අඩවි සඳහා Direct Click-to-Chat Shortlinks සහ QR Codes සාදන්න.
+          </p>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div style="background:#10121b;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
+          <div class="form-group">
+            <label class="form-label">WhatsApp Number (with country code):</label>
+            <input type="text" id="walink-phone" class="form-input" value="94762107801" oninput="generateWALink()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pre-filled Customer Message:</label>
+            <textarea id="walink-msg" class="form-input" style="height:80px;" oninput="generateWALink()">Hi OmniSix AI! I want to check products and place an order.</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Generated Click-to-Chat URL:</label>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="walink-url" class="form-input" readonly style="color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:0.8rem;">
+              <button type="button" class="btn-primary" onclick="copyWALink()" style="padding:0 16px;white-space:nowrap;">📋 Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#10121b;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <div id="walink-qr-box" style="background:#ffffff;padding:14px;border-radius:14px;display:inline-block;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+            <img id="walink-qr-img" src="" style="width:160px;height:160px;display:block;" alt="WhatsApp QR">
+          </div>
+          <div style="font-size:0.84rem;font-weight:700;color:#f8fafc;margin-bottom:4px;">Print-Ready WhatsApp QR</div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:12px;">Scan with any phone camera to start conversation directly</p>
+          <button type="button" class="btn-secondary" onclick="downloadWAQR()" style="padding:8px 18px;font-size:0.82rem;">⬇️ Download QR Image</button>
+        </div>
+      </div>
+    </section>
 
     <section id="tab-orders" class="glass-card hidden">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
@@ -3204,6 +3458,20 @@ table tr:hover td {
         </div>
       </div>
 
+
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-weight:700;color:#f8fafc;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+            <span>💾</span> Full Store Database Backup Archive (JSON)
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+            ඔබගේ සියලුම Orders, Catalog, Customer Chats, සහ AI Settings සම්පූර්ණ Backup ගොනුවක් ලෙස බාගත කරන්න.
+          </div>
+        </div>
+        <a href="/api/export/backup.json" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-size:0.84rem;white-space:nowrap;" download>
+          <span>⬇️</span> Download Full Backup (.json)
+        </a>
+      </div>
 <button type="submit" class="btn-primary" style="margin-top:16px;">💾 Save AI Settings</button>
       </form>
     </section>
@@ -4980,6 +5248,8 @@ function showTab(tabName) {
   const omnisixTitles = {
     overview: 'Executive Dashboard',
     agents: 'Autonomous 20-Agent Enterprise Fleet',
+    roi: 'ROI & Revenue Growth Simulator',
+    walinks: 'WhatsApp Link & QR Code Builder',
     whatsapp: 'WhatsApp QR Multi-Account Hub',
     warmer: 'WhatsApp Number Warmer Engine',
     broadcast: 'QR Bulk Marketing Campaigns',
@@ -5025,6 +5295,8 @@ function showTab(tabName) {
   }
 
   if (tabName === 'agents') loadAgentFleet();
+  if (tabName === 'roi') calculateROI();
+  if (tabName === 'walinks') generateWALink();
   if (tabName === 'overview') fetchOverview();
   if (tabName === 'inbox') fetchInbox();
   if (tabName === 'orders') fetchOrders();
@@ -7880,6 +8152,42 @@ function renderCallLogsEnhanced(logs) {
           <button type="submit" class="btn-primary">Save Staff Member</button>
         </div>
       </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL: 4x6 Thermal Packing Slip & Courier Label Preview (Feature 5) -->
+  <div id="modal-packing-slip" class="modal-overlay hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#ffffff;color:#000000;border-radius:12px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.9);overflow:hidden;">
+      <div style="background:#f1f5f9;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #cbd5e1;">
+        <strong style="color:#0f172a;font-size:0.9rem;">📦 Courier Packing Label (4x6 Thermal)</strong>
+        <div style="display:flex;gap:8px;">
+          <button type="button" onclick="window.print()" style="background:#0f172a;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-weight:700;cursor:pointer;font-size:0.78rem;">🖨️ Print Label</button>
+          <button type="button" onclick="closePackingSlipModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#64748b;">✕</button>
+        </div>
+      </div>
+      <div id="modal-packing-slip-content" style="padding:24px;font-family:sans-serif;line-height:1.4;">
+        <!-- Injected via openPackingSlipModal(orderId) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Daily End-of-Day (EOD) Operations Summary (Feature 12) -->
+  <div id="modal-eod-report" class="modal-overlay hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#10121b;border:1px solid rgba(255,255,255,0.15);border-radius:18px;width:100%;max-width:520px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.9);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:1.15rem;font-weight:800;color:#f8fafc;margin:0;display:flex;align-items:center;gap:8px;">
+          <span>📊</span> Daily Operations EOD Summary
+        </h3>
+        <button type="button" onclick="closeEODReportModal()" style="background:none;border:none;color:#94a3b8;font-size:1.2rem;cursor:pointer;">✕</button>
+      </div>
+      <div id="eod-report-body" style="font-size:0.86rem;color:#cbd5e1;line-height:1.6;margin-bottom:20px;">
+        Loading EOD summary...
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn-secondary" onclick="closeEODReportModal()">Close</button>
+        <button type="button" class="btn-primary" onclick="copyEODReportText()">📋 Copy WhatsApp Report</button>
+      </div>
     </div>
   </div>
 

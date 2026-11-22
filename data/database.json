@@ -12,48 +12,6 @@
       "currency": "Rs.",
       "welcomeMessage": "ආයුබෝවන්! OmniSix AI වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
       "isActive": true
-    },
-    {
-      "id": "test_starter_store",
-      "name": "Test Starter Store",
-      "category": "other",
-      "subscriptionPlan": "starter",
-      "ownerName": "Test Starter Store",
-      "phone": "0711111111",
-      "whatsappPhone": "0711111111",
-      "bankDetails": "",
-      "deliveryPolicy": "Islandwide delivery available.",
-      "currency": "Rs.",
-      "welcomeMessage": "ආයුබෝවන්! Test Starter Store වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
-      "isActive": false
-    },
-    {
-      "id": "test_pro_store",
-      "name": "Test Pro Store",
-      "category": "other",
-      "subscriptionPlan": "pro",
-      "ownerName": "Test Pro Store",
-      "phone": "0722222222",
-      "whatsappPhone": "0722222222",
-      "bankDetails": "",
-      "deliveryPolicy": "Islandwide delivery available.",
-      "currency": "Rs.",
-      "welcomeMessage": "ආයුබෝවන්! Test Pro Store වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
-      "isActive": false
-    },
-    {
-      "id": "test_ent_store",
-      "name": "Test Ent Store",
-      "category": "other",
-      "subscriptionPlan": "enterprise",
-      "ownerName": "Test Ent Store",
-      "phone": "0733333333",
-      "whatsappPhone": "0733333333",
-      "bankDetails": "",
-      "deliveryPolicy": "Islandwide delivery available.",
-      "currency": "Rs.",
-      "welcomeMessage": "ආයුබෝවන්! Test Ent Store වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
-      "isActive": false
     }
   ],
   "products": [],

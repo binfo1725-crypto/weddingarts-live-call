@@ -136,7 +136,7 @@ class Database {
         const parsed = JSON.parse(raw);
         if (parsed.businesses && parsed.businesses.length > 0) {
           // Remove mock demo stores: urbanstyle, royalcakes, techzone, glamour_salon
-          const demoIds = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon'];
+          const demoIds = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon', 'test_starter_store', 'test_pro_store', 'test_ent_store', 'boutique', 'salon', 'restaurant'];
           this.data.businesses = parsed.businesses.filter(b => !demoIds.includes(b.id));
           if (this.data.businesses.length === 0) {
             this.data.businesses = [...DEFAULT_BUSINESSES];
@@ -300,7 +300,8 @@ class Database {
             if (!bizMap.has(cb.id)) bizMap.set(cb.id, cb);
           }
         }
-        this.data.businesses = Array.from(bizMap.values());
+        const demoIdsSync = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon', 'test_starter_store', 'test_pro_store', 'test_ent_store', 'boutique', 'salon', 'restaurant'];
+        this.data.businesses = Array.from(bizMap.values()).filter(b => !demoIdsSync.includes(b.id));
 
         // Merge Settings
         if (cloudData.settings) {
@@ -499,6 +500,11 @@ class Database {
   }
 
   getAllBusinesses() {
+    const demoIds = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon', 'test_starter_store', 'test_pro_store', 'test_ent_store', 'boutique', 'salon', 'restaurant'];
+    this.data.businesses = (this.data.businesses || []).filter(b => !demoIds.includes(b.id));
+    if (this.data.businesses.length === 0) {
+      this.data.businesses = [...DEFAULT_BUSINESSES];
+    }
     return this.data.businesses;
   }
 
@@ -1933,6 +1939,74 @@ class Database {
     this.data[key] = val;
     this.save();
     return val;
+  }
+
+
+  // ─── 🛡️ Blacklist Engine & Private Staff Sticky Notes ─────────────────────────
+  getCustomerNotes(phone) {
+    this.initDefaults();
+    if (!this.data.customerNotes) this.data.customerNotes = {};
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    return this.data.customerNotes[cleanPhone] || [];
+  }
+
+  addCustomerNote(phone, text, author = 'Staff') {
+    this.initDefaults();
+    if (!this.data.customerNotes) this.data.customerNotes = {};
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    if (!this.data.customerNotes[cleanPhone]) this.data.customerNotes[cleanPhone] = [];
+    const note = {
+      id: 'note_' + Date.now(),
+      text: String(text || '').trim(),
+      author: String(author || 'Staff'),
+      timestamp: new Date().toISOString()
+    };
+    this.data.customerNotes[cleanPhone].unshift(note);
+    this.save();
+    return note;
+  }
+
+  deleteCustomerNote(phone, noteId) {
+    this.initDefaults();
+    if (!this.data.customerNotes) return false;
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    if (!this.data.customerNotes[cleanPhone]) return false;
+    this.data.customerNotes[cleanPhone] = this.data.customerNotes[cleanPhone].filter(n => n.id !== noteId);
+    this.save();
+    return true;
+  }
+
+  isBlacklisted(phone) {
+    this.initDefaults();
+    if (!this.data.blacklist) this.data.blacklist = [];
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    return this.data.blacklist.some(b => String(b.phone || '').replace(/\D/g, '') === cleanPhone);
+  }
+
+  toggleBlacklist(phone, reason = 'Suspected Fake Orders / Returns') {
+    this.initDefaults();
+    if (!this.data.blacklist) this.data.blacklist = [];
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    const idx = this.data.blacklist.findIndex(b => String(b.phone || '').replace(/\D/g, '') === cleanPhone);
+    let blacklisted = false;
+    if (idx !== -1) {
+      this.data.blacklist.splice(idx, 1);
+      blacklisted = false;
+    } else {
+      this.data.blacklist.push({
+        phone: cleanPhone,
+        reason,
+        timestamp: new Date().toISOString()
+      });
+      blacklisted = true;
+    }
+    this.save();
+    return { blacklisted, phone: cleanPhone, reason };
+  }
+
+  getBlacklist() {
+    this.initDefaults();
+    return this.data.blacklist || [];
   }
 
   updateBusinessPlan(businessId, planId) {
