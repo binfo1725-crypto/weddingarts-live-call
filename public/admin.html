@@ -5245,32 +5245,83 @@ async function fetchAgentDecisions() {
 }
 
 function showTab(tabName) {
-  const omnisixTitles = {
-    overview: 'Executive Dashboard',
-    agents: 'Autonomous 20-Agent Enterprise Fleet',
-    roi: 'ROI & Revenue Growth Simulator',
-    walinks: 'WhatsApp Link & QR Code Builder',
-    whatsapp: 'WhatsApp QR Multi-Account Hub',
-    warmer: 'WhatsApp Number Warmer Engine',
-    broadcast: 'QR Bulk Marketing Campaigns',
-    developer: 'Developer REST API & Webhooks',
-    flows: 'Autonomous Automation Flows',
-    settings: 'AI Settings & Store Persona',
-    calls: 'Live Voice Call Logs & AI Transcripts',
-    kanban: 'Kanban CRM Deals Pipeline',
-    forms: 'Interactive WhatsApp Forms',
-    contacts: 'Contacts & Advanced Phonebook',
-    inbox: 'Omnichannel Live Chat Inbox',
-    team: 'Team Collaboration & Web Widget',
-    orders: 'Orders & Payment Slips',
-    products: 'Products & Services Catalog',
-    business: 'Business Dataset & Knowledge',
-    stores: 'Multi-Store Management Hub',
-    licenses: 'License KeyGen & SaaS Clients'
+  const omnisixTitlesByLang = {
+    en: {
+      overview: 'Executive Business Overview',
+      agents: 'Autonomous 20-Agent AI Fleet',
+      roi: 'ROI & Revenue Growth Simulator',
+      walinks: 'WhatsApp Link & QR Code Builder',
+      whatsapp: 'WhatsApp QR Multi-Account Hub',
+      warmer: 'WhatsApp Number Warmer Engine',
+      broadcast: 'QR Bulk Marketing Campaigns',
+      developer: 'Developer REST API & Webhooks',
+      flows: 'Autonomous Automation Flows',
+      settings: 'AI Settings & Store Persona',
+      calls: 'Live Voice Call Logs & AI Transcripts',
+      kanban: 'Kanban CRM Deals Pipeline',
+      forms: 'Interactive WhatsApp Forms',
+      contacts: 'Contacts & Advanced Phonebook',
+      inbox: 'Omnichannel Live Chat Inbox',
+      team: 'Team Collaboration & Web Widget',
+      orders: 'Orders & Payment Slips Pipeline',
+      products: 'Products & Pricing Catalog',
+      business: 'Business Knowledge Dataset',
+      stores: 'Multi-Store Management Hub',
+      licenses: 'License KeyGen & SaaS Clients'
+    },
+    si: {
+      overview: 'ව්‍යාපාරික ප්‍රධාන දළ විශ්ලේෂණය',
+      agents: 'විශේෂඥ AI නියෝජිතයින් 20 කණ්ඩායම',
+      roi: 'ROI සහ ව්‍යාපාරික ලාභ ගණකය',
+      walinks: 'WhatsApp Link සහ QR සාදනය',
+      whatsapp: 'WhatsApp QR පාලන මධ්‍යස්ථානය',
+      warmer: 'WhatsApp අංක Warmer (Anti-Ban)',
+      broadcast: 'තොග පණිවිඩ ප්‍රචාරණ ව්‍යාපාර',
+      developer: 'Developer REST API ලේඛනය',
+      flows: 'ස්වයංක්‍රීය පණිවිඩ Flows',
+      settings: 'AI සැකසුම් සහ වෙළඳසැල් පෞරුෂය',
+      calls: 'සජීවී ඇමතුම් වාර්තා සහ පිටපත්',
+      kanban: 'Kanban ගනුදෙනු නලමාර්ගය',
+      forms: 'අන්තර්ක්‍රියාකාරී Forms',
+      contacts: 'පාරිභෝගික දුරකථන නාමාවලිය',
+      inbox: 'සජීවී පාරිභෝගික සංවාද Inbox',
+      team: 'සේවකයින් සහ Web Widget',
+      orders: 'ඇණවුම් සහ ගෙවීම් පත්‍රිකා',
+      products: 'භාණ්ඩ සහ මිල ගණන් නාමාවලිය',
+      business: 'ව්‍යාපාරික දත්ත සහ දැනුම',
+      stores: 'වෙළඳසැල් කළමනාකරණය',
+      licenses: 'බලපත්‍ර KeyGen පද්ධතිය'
+    },
+    ta: {
+      overview: 'வணிக பிரதான மேலோட்டம்',
+      agents: '20 AI முகவர்கள் அணி',
+      roi: 'ROI & வருவாய் வளர்ச்சி கணிப்பான்',
+      walinks: 'WhatsApp இணைப்பு & QR ஜெனரேட்டர்',
+      whatsapp: 'WhatsApp QR வலை மையம்',
+      warmer: 'WhatsApp எண் வார்மர் (Anti-Ban)',
+      broadcast: 'மொத்த சந்தைப்படுத்தல் பிரச்சாரங்கள்',
+      developer: 'Developer REST API ஆவணங்கள்',
+      flows: 'தானியங்கி செய்தி ஓட்டங்கள்',
+      settings: 'AI அமைப்புகள் & ஸ்டோர் ஆளுமை',
+      calls: 'நேரலை அழைப்பு பதிவுகள்',
+      kanban: 'கன்பன் டீல்ஸ் பைப்லைன்',
+      forms: 'ஊடாடும் படிவங்கள்',
+      contacts: 'தொடர்புகள் தொலைபேசி புத்தகம்',
+      inbox: 'நேரலை வாடிக்கையாளர் அரட்டை',
+      team: 'குழு & வலை விட்ஜெட்',
+      orders: 'ஆர்டர்கள் & ரசீதுகள் பைப்லைன்',
+      products: 'தயாரிப்புகள் & விலை பட்டியல்',
+      business: 'வணிக அறிவுத் தரவுத்தளம்',
+      stores: 'கடைகள் மேலாண்மை மையம்',
+      licenses: 'உரிம சாவி ஜெனரேட்டர்'
+    }
   };
+  const curLang = localStorage.getItem('omnisix_ui_lang') || 'en';
+  const langTitles = omnisixTitlesByLang[curLang] || omnisixTitlesByLang['en'];
+  applyFullPageLanguage(); // Re-apply language on tab change
   const bTitle = document.getElementById('whatzi-cur-page-title');
   if (bTitle) {
-    bTitle.textContent = omnisixTitles[tabName] || (tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    bTitle.textContent = langTitles[tabName] || (tabName.charAt(0).toUpperCase() + tabName.slice(1));
   }
 
   currentTab = tabName;
@@ -7674,26 +7725,329 @@ const I18N_DICT = {
   }
 };
 
-function changeUILanguage(lang) {
-  if (!I18N_DICT[lang]) lang = 'si';
+
+// ─── 🌐 OmniSix AI Comprehensive Full-Page Translation Engine (Sinhala / Tamil / English) ───
+const OMNISIX_TRANSLATIONS = {
+  si: {
+    // Categories & Navigation
+    "WHATSAPP CONNECT": "වට්ස්ඇප් සබඳතා",
+    "AI WORKFORCE & VOICE": "AI කාර්ය මණ්ඩලය සහ හඬ",
+    "CRM & DEALS PIPELINE": "CRM සහ ගනුදෙනු නලමාර්ගය",
+    "LIVE INBOX & TEAM": "සජීවී සංවාද සහ කාර්ය මණ්ඩලය",
+    "COMMERCE & CATALOG": "වෙළඳාම සහ නාමාවලිය",
+    "COMMERCE & DISPATCH": "වෙළඳාම සහ බෙදාහැරීම්",
+    "ADMINISTRATION": "පරිපාලන අංශය",
+    "AUTOMATION & BOTS": "ස්වයංක්‍රීයකරණය සහ බොට්ස්",
+
+    // Sidebar items
+    "Add WhatsApp by QR": "QR මඟින් WhatsApp එක් කරන්න",
+    "WhatsApp Warmer": "WhatsApp අංක Warmer (Anti-Ban)",
+    "QR Bulk Campaign": "තොග පණිවිඩ ප්‍රචාරණ",
+    "Meta Cloud API": "Meta Cloud API සම්බන්ධතාව",
+    "Link Meta WhatsApp": "Meta WhatsApp සම්බන්ධ කරන්න",
+    "WA Link & QR Builder": "WhatsApp Link සහ QR සාදනය",
+    "Autonomous Flows": "ස්වයංක්‍රීය පණිවිඩ Flows",
+    "Automation Flows": "ස්වයංක්‍රීය පණිවිඩ Flows",
+    "WA Chatbot": "WhatsApp ස්වයංක්‍රීය Chatbot",
+    "AI Bot Persona": "AI පෞරුෂය සහ සැකසුම්",
+    "WA Call Logs": "සජීවී ඇමතුම් වාර්තා",
+    "Kanban Board": "Kanban ගනුදෙනු පුවරුව",
+    "Interactive Forms": "අන්තර්ක්‍රියාකාරී Forms",
+    "Contacts Book": "පාරිභෝගික නාමාවලිය",
+    "20 AI Agents": "විශේෂඥ AI නියෝජිතයින් 20",
+    "Omnichannel Inbox": "සජීවී පාරිභෝගික සංවාද",
+    "Team & Live Widget": "සේවකයින් සහ Web Widget",
+    "Orders & Slips": "ඇණවුම් සහ ගෙවීම් පත්‍රිකා",
+    "Product Catalog": "භාණ්ඩ සහ මිල නාමාවලිය",
+    "Business Dataset": "ව්‍යාපාරික දත්ත සහ දැනුම",
+    "Overview": "ප්‍රධාන දළ විශ්ලේෂණය",
+    "Multi-Store Hub": "වෙළඳසැල් පාලන මධ්‍යස්ථානය",
+    "Licenses & KeyGen": "බලපත්‍ර සහ KeyGen",
+    "Developer REST API": "Developer REST API ලේඛනය",
+    "ROI Simulator": "ROI සහ ලාභ ගණකය",
+    "Thermal 4x6 Slips": "තාප මුද්‍රණ Slip මුද්‍රණය",
+    "COD Blacklist": "ව්‍යාජ COD කළු ලැයිස්තුව",
+
+    // Top Bar & Controls
+    "Plans & Pricing": "මිල ගණන් සහ පැකේජ",
+    "EOD Summary": "දවසේ සාරාංශය",
+    "Live Call": "සජීවී ඇමතුම",
+    "Sound": "ශබ්දය",
+    "Add New Store": "නව වෙළඳසැලක් එක් කරන්න",
+    "Refresh Stores": "වෙළඳසැල් යාවත්කාලීන කරන්න",
+    "Active Store:": "සක්‍රීය වෙළඳසැල:",
+    "Search menu...": "මෙනුව සොයන්න...",
+
+    // Overview Cards & Metrics
+    "Executive Business Overview": "ව්‍යාපාරික ප්‍රධාන දළ විශ්ලේෂණය",
+    "Actual Revenue": "සත්‍ය ආදායම",
+    "ACTUAL REVENUE": "සත්‍ය ආදායම",
+    "Total Orders": "මුළු ඇණවුම්",
+    "TOTAL ORDERS": "මුළු ඇණවුම්",
+    "Customer Leads": "පාරිභෝගික ලීඩ්ස්",
+    "CUSTOMER LEADS": "පාරිභෝගික ලීඩ්ස්",
+    "Live Voice Calls": "සජීවී හඬ ඇමතුම්",
+    "LIVE VOICE CALLS": "සජීවී හඬ ඇමතුම්",
+    "From verified & confirmed orders": "තහවුරු කළ ඇණවුම් වලින්",
+    "WhatsApp & Voice Call pipeline": "WhatsApp සහ හඬ ඇමතුම් මඟින්",
+    "Active customer conversations": "ක්‍රියාකාරී පාරිභෝගික සාකච්ඡා",
+    "Gemini Live Leda Voice Active": "Gemini Live හඬ සක්‍රීයයි",
+    "AI Sales Conversion & ROI Proof Analytics": "AI විකුණුම් පරිවර්තනය සහ ROI සාධක",
+    "AI Agents Handled": "AI නියෝජිතයින් විසඳූ සංවාද",
+    "AI Closed Conversion": "AI හරහා සාර්ථක වූ විකුණුම්",
+    "AI Gross Revenue": "AI මඟින් උපයාදුන් ආදායම",
+    "Human Agent Time Saved": "ඉතිරි වූ මිනිස් ශ්‍රම කාලය",
+    "WhatsApp & Calls Handled 24/7": "24/7 හැසිරවූ ඇමතුම් සහ චැට්",
+    "Inquiry -> Paid Order Conversion": "විමසීම් -> මුදල් ගෙවූ ඇණවුම් බවට",
+    "Orders closed directly by AI": "AI මඟින් කෙලින්ම නිමකළ ඇණවුම්",
+    "hrs / 100+ automation savings": "පැය / 100+ ස්වයංක්‍රීය ඉතිරියක්",
+
+    // 20-Agent AI Enterprise Fleet
+    "20-Agent AI Enterprise Fleet": "විශේෂඥ AI නියෝජිතයින් 20 කණ්ඩායම",
+    "Autonomous Enterprise Mesh": "ස්වයංක්‍රීය Enterprise Mesh",
+    "Interactive Agent Dispatch Tester": "නියෝජිත පරීක්ෂණ පද්ධතිය",
+    "Live Decision Stream (Chain-of-Thought)": "සජීවී AI තීරණ දාමය (Chain-of-Thought)",
+    "TOTAL AI WORKFORCE": "මුළු AI ශ්‍රම බලකාය",
+    "ACTIVE ON LIVE WHATSAPP": "WhatsApp හි සක්‍රීය නියෝජිතයින්",
+    "AVERAGE DECISION SPEED": "සාමාන්‍ය තීරණ ගැනීමේ වේගය",
+    "AUTONOMOUS ACCURACY": "ස්වයංක්‍රීය නිරවද්‍යතාව",
+    "All Departments": "සියලුම දෙපාර්තමේන්තු",
+    "Sales & Revenue": "විකුණුම් සහ ආදායම්",
+    "Customer Support": "පාරිභෝගික සහාය",
+    "Logistics & Finance": "බෙදාහැරීම් සහ මූල්‍ය",
+    "Marketing & Growth": "ප්‍රචාරණය සහ වර්ධනය",
+    "Intelligence & SRE": "බුද්ධි තොරතුරු සහ විශ්ලේෂණ",
+    "Across 5 Key Departments": "ප්‍රධාන දෙපාර්තමේන්තු 5ක් හරහා",
+    "0 Standby | 100% Operational": "0 පොරොත්තු | 100% ක්‍රියාකාරී",
+    "Floor Price Margin Guard Active": "අවම මිල ආරක්ෂණ පද්ධතිය සක්‍රීයයි",
+
+    // Stores & Licenses
+    "Multi-Store Management Hub": "වෙළඳසැල් කළමනාකරණ මධ්‍යස්ථානය",
+    "TOTAL REGISTERED STORES": "ලියාපදිංචි මුළු වෙළඳසැල්",
+    "ACTIVE WORKING STORE (THIS TAB)": "ක්‍රියාකාරී වෙළඳසැල (මෙම Tab එක)",
+    "ACTIVE LICENSE KEYS": "සක්‍රීය බලපත්‍ර යතුරු",
+    "STORE NAME & ID": "වෙළඳසැල් නම සහ ID",
+    "CATEGORY": "කාණ්ඩය",
+    "PLAN TIER": "පැකේජය",
+    "OWNER & CONTACT": "හිමිකරු සහ දුරකථනය",
+    "ACTIVE LICENSE": "බලපත්‍ර තත්ත්වය",
+    "ORDERS / STATS": "ඇණවුම් / සංඛ්‍යාලේඛන",
+    "TAB & MANAGEMENT ACTIONS": "ක්‍රියාමාර්ග සහ කළමනාකරණය",
+    "Switch": "මාරු වන්න",
+    "Open in New Tab": "නව Tab එකකින් අරින්න",
+    "Portal": "පාරිභෝගික Portal",
+    "Edit": "සංස්කරණය"
+  },
+  ta: {
+    // Categories & Navigation
+    "WHATSAPP CONNECT": "வாட்ஸ்அப் இணைப்பு",
+    "AI WORKFORCE & VOICE": "AI பணியாளர்கள் & குரல்",
+    "CRM & DEALS PIPELINE": "CRM & ஒப்பந்த பைப்லைன்",
+    "LIVE INBOX & TEAM": "நேரலை அரட்டை & குழு",
+    "COMMERCE & CATALOG": "வணிகம் & பட்டியல்",
+    "COMMERCE & DISPATCH": "வணிகம் & அனுப்புதல்",
+    "ADMINISTRATION": "நிர்வாகம்",
+    "AUTOMATION & BOTS": "தானியங்கு & போட்கள்",
+
+    // Sidebar items
+    "Add WhatsApp by QR": "QR மூலம் WhatsApp சேர்க்கவும்",
+    "WhatsApp Warmer": "WhatsApp எண் வார்மர் (Anti-Ban)",
+    "QR Bulk Campaign": "மொத்த பிரச்சாரங்கள்",
+    "Meta Cloud API": "Meta Cloud API இணைப்பு",
+    "Link Meta WhatsApp": "Meta WhatsApp இணைக்கவும்",
+    "WA Link & QR Builder": "WhatsApp இணைப்பு & QR ஜெனரேட்டர்",
+    "Autonomous Flows": "தானியங்கி செய்தி ஓட்டங்கள்",
+    "Automation Flows": "தானியங்கி செய்தி ஓட்டங்கள்",
+    "WA Chatbot": "WhatsApp தானியங்கி சாட்போட்",
+    "AI Bot Persona": "AI ஆளுமை & அமைப்புகள்",
+    "WA Call Logs": "நேரலை அழைப்பு பதிவுகள்",
+    "Kanban Board": "கன்பன் போர்டு",
+    "Interactive Forms": "ஊடாடும் படிவங்கள்",
+    "Contacts Book": "தொடர்புகள் புத்தகம்",
+    "20 AI Agents": "20 AI முகவர்கள் அணி",
+    "Omnichannel Inbox": "நேரலை வாடிக்கையாளர் அரட்டை",
+    "Team & Live Widget": "குழு & வலை விட்ஜெட்",
+    "Orders & Slips": "ஆர்டர்கள் & ரசீதுகள்",
+    "Product Catalog": "தயாரிப்புகள் பட்டியல்",
+    "Business Dataset": "வணிக அறிவுத் தரவுத்தளம்",
+    "Overview": "பிரதான மேலோட்டம்",
+    "Multi-Store Hub": "கடைகள் மேலாண்மை மையம்",
+    "Licenses & KeyGen": "உரிம சாவி ஜெனரேட்டர்",
+    "Developer REST API": "Developer REST API ஆவணங்கள்",
+    "ROI Simulator": "ROI & லாப கணிப்பான்",
+    "Thermal 4x6 Slips": "தெர்மல் ஸ்லிப் அச்சு",
+    "COD Blacklist": "போலி COD தடுப்புப்பட்டியல்",
+
+    // Top Bar & Controls
+    "Plans & Pricing": "திட்டங்கள் & விலை",
+    "EOD Summary": "நாள் இறுதி சுருக்கம்",
+    "Live Call": "நேரலை அழைப்பு",
+    "Sound": "ஒலி",
+    "Add New Store": "புதிய கடையைச் சேர்க்கவும்",
+    "Refresh Stores": "கடைகளைப் புதுப்பிக்கவும்",
+    "Active Store:": "செயலில் உள்ள கடை:",
+    "Search menu...": "மெனுவைத் தேடுங்கள்...",
+
+    // Overview Cards & Metrics
+    "Executive Business Overview": "வணிக பிரதான மேலோட்டம்",
+    "Actual Revenue": "உண்மையான வருவாய்",
+    "ACTUAL REVENUE": "உண்மையான வருவாய்",
+    "Total Orders": "மொத்த ஆர்டர்கள்",
+    "TOTAL ORDERS": "மொத்த ஆர்டர்கள்",
+    "Customer Leads": "வாடிக்கையாளர் லீட்ஸ்",
+    "CUSTOMER LEADS": "வாடிக்கையாளர் லீட்ஸ்",
+    "Live Voice Calls": "நேரலை குரல் அழைப்புகள்",
+    "LIVE VOICE CALLS": "நேரலை குரல் அழைப்புகள்",
+    "From verified & confirmed orders": "உறுதிப்படுத்தப்பட்ட ஆர்டர்களில் இருந்து",
+    "WhatsApp & Voice Call pipeline": "WhatsApp & குரல் அழைப்பு பைப்லைன்",
+    "Active customer conversations": "செயலில் உள்ள வாடிக்கையாளர் உரையாடல்கள்",
+    "Gemini Live Leda Voice Active": "Gemini Live குரல் செயலில் உள்ளது",
+    "AI Sales Conversion & ROI Proof Analytics": "AI விற்பனை மாற்றம் & ROI பகுப்பாய்வு",
+    "AI Agents Handled": "AI முகவர்கள் கையாண்டவை",
+    "AI Closed Conversion": "AI நிறைவு செய்த விற்பனை",
+    "AI Gross Revenue": "AI மூலம் ஈட்டிய வருவாய்",
+    "Human Agent Time Saved": "சேமிக்கப்பட்ட மனித உழைப்பு நேரம்",
+    "WhatsApp & Calls Handled 24/7": "24/7 கையாளப்பட்ட அழைப்புகள் & அரட்டைகள்",
+    "Inquiry -> Paid Order Conversion": "விசாரணை -> கட்டண ஆர்டர் மாற்றம்",
+    "Orders closed directly by AI": "AI நேரடியாக முடித்த ஆர்டர்கள்",
+    "hrs / 100+ automation savings": "மணிநேரம் / 100+ தானியங்கி சேமிப்பு",
+
+    // 20-Agent AI Enterprise Fleet
+    "20-Agent AI Enterprise Fleet": "20 AI முகவர்கள் அணி",
+    "Autonomous Enterprise Mesh": "தானியங்கி Enterprise Mesh",
+    "Interactive Agent Dispatch Tester": "முகவர்கள் சோதனை அமைப்பு",
+    "Live Decision Stream (Chain-of-Thought)": "நேரலை AI முடிவு ஓட்டம் (Chain-of-Thought)",
+    "TOTAL AI WORKFORCE": "மொத்த AI பணியாளர்கள்",
+    "ACTIVE ON LIVE WHATSAPP": "WhatsApp இல் செயலில் உள்ள முகவர்கள்",
+    "AVERAGE DECISION SPEED": "சராசரி முடிவு வேகம்",
+    "AUTONOMOUS ACCURACY": "தானியங்கி துல்லியம்",
+    "All Departments": "அனைத்து துறைகள்",
+    "Sales & Revenue": "விற்பனை & வருவாய்",
+    "Customer Support": "வாடிக்கையாளர் ஆதரவு",
+    "Logistics & Finance": "தளவாடங்கள் & நிதி",
+    "Marketing & Growth": "சந்தைப்படுத்தல் & வளர்ச்சி",
+    "Intelligence & SRE": "நுண்ணறிவு & நிலைத்தன்மை",
+    "Across 5 Key Departments": "முக்கிய 5 துறைகளில்",
+    "0 Standby | 100% Operational": "0 காத்திருப்பு | 100% இயங்குகிறது",
+    "Floor Price Margin Guard Active": "குறைந்தபட்ச விலை பாதுகாப்பு செயலில் உள்ளது",
+
+    // Stores & Licenses
+    "Multi-Store Management Hub": "கடைகள் மேலாண்மை மையம்",
+    "TOTAL REGISTERED STORES": "பதிவு செய்யப்பட்ட மொத்த கடைகள்",
+    "ACTIVE WORKING STORE (THIS TAB)": "செயலில் உள்ள கடை (இந்த தாவல்)",
+    "ACTIVE LICENSE KEYS": "செயலில் உள்ள உரிம சாவிகள்",
+    "STORE NAME & ID": "கடையின் பெயர் & ID",
+    "CATEGORY": "வகை",
+    "PLAN TIER": "திட்டம்",
+    "OWNER & CONTACT": "உரிமையாளர் & தொடர்பு",
+    "ACTIVE LICENSE": "உரிம நிலை",
+    "ORDERS / STATS": "ஆர்டர்கள் / புள்ளிவிவரங்கள்",
+    "TAB & MANAGEMENT ACTIONS": "செயல்கள் & மேலாண்மை",
+    "Switch": "மாறவும்",
+    "Open in New Tab": "புதிய தாவலில் திறக்கவும்",
+    "Portal": "போர்டல்",
+    "Edit": "திருத்து"
+  }
+};
+
+function applyFullPageLanguage(lang) {
+  if (!lang) lang = localStorage.getItem('omnisix_ui_lang') || 'en';
   localStorage.setItem('omnisix_ui_lang', lang);
+  
   const switcher = document.getElementById('ui-lang-switcher');
   if (switcher && switcher.value !== lang) switcher.value = lang;
 
-  const dict = I18N_DICT[lang];
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (dict[key]) {
-      el.textContent = dict[key];
-    }
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (dict[key]) {
-      el.setAttribute('placeholder', dict[key]);
+  // 1. Sidebar Categories
+  document.querySelectorAll('.whatzi-nav-category').forEach(el => {
+    if (!el.getAttribute('data-orig-text')) el.setAttribute('data-orig-text', el.innerText.trim());
+    const orig = el.getAttribute('data-orig-text');
+    if (lang === 'en') {
+      el.innerText = orig;
+    } else if (OMNISIX_TRANSLATIONS[lang] && OMNISIX_TRANSLATIONS[lang][orig]) {
+      el.innerText = OMNISIX_TRANSLATIONS[lang][orig];
     }
   });
 
+  // 2. Sidebar Navigation Button text
+  document.querySelectorAll('.sidebar .tab-btn').forEach(btn => {
+    const span = Array.from(btn.children).find(c => c.tagName === 'SPAN' && !c.classList.contains('whatzi-badge-new'));
+    if (span) {
+      if (!span.getAttribute('data-orig-text')) span.setAttribute('data-orig-text', span.innerText.trim());
+      const orig = span.getAttribute('data-orig-text');
+      if (lang === 'en') {
+        span.innerText = orig;
+      } else if (OMNISIX_TRANSLATIONS[lang] && OMNISIX_TRANSLATIONS[lang][orig]) {
+        span.innerText = OMNISIX_TRANSLATIONS[lang][orig];
+      }
+    }
+  });
+
+  // 3. Search Menu Placeholder
+  const searchInput = document.getElementById('sidebar-search-input') || document.querySelector('.sidebar input[type="text"]');
+  if (searchInput) {
+    if (!searchInput.getAttribute('data-orig-ph')) searchInput.setAttribute('data-orig-ph', searchInput.getAttribute('placeholder') || 'Search menu...');
+    const origPh = searchInput.getAttribute('data-orig-ph');
+    if (lang === 'en') {
+      searchInput.setAttribute('placeholder', origPh);
+    } else if (OMNISIX_TRANSLATIONS[lang] && OMNISIX_TRANSLATIONS[lang][origPh]) {
+      searchInput.setAttribute('placeholder', OMNISIX_TRANSLATIONS[lang][origPh]);
+    }
+  }
+
+  // 4. Metric Titles, Subtitles, Headings, and General Text
+  const textSelectors = [
+    '.metric-title',
+    '.metric-subtitle',
+    '#tab-overview h2',
+    '.stat-label',
+    '.whatzi-roi-banner h3',
+    '.whatzi-roi-banner button',
+    'th',
+    '.btn-primary',
+    '.btn-secondary'
+  ];
+
+  document.querySelectorAll(textSelectors.join(',')).forEach(el => {
+    if (el.children.length === 0 || (el.children.length === 1 && el.children[0].tagName === 'SPAN')) {
+      const textToMatch = el.getAttribute('data-orig-text') || el.innerText.trim();
+      if (!el.getAttribute('data-orig-text') && textToMatch) {
+        el.setAttribute('data-orig-text', textToMatch);
+      }
+      const orig = el.getAttribute('data-orig-text');
+      if (lang === 'en') {
+        if (orig) el.innerText = orig;
+      } else if (OMNISIX_TRANSLATIONS[lang] && OMNISIX_TRANSLATIONS[lang][orig]) {
+        el.innerText = OMNISIX_TRANSLATIONS[lang][orig];
+      }
+    }
+  });
+
+  // 5. Breadcrumb & Title Sync
+  if (typeof currentTab !== 'undefined' && typeof omnisixTitlesByLang !== 'undefined') {
+    const langTitles = omnisixTitlesByLang[lang] || omnisixTitlesByLang['en'];
+    const bTitle = document.getElementById('whatzi-cur-page-title');
+    if (bTitle && langTitles[currentTab]) {
+      bTitle.textContent = langTitles[currentTab];
+    }
+  }
+
+  // 6. Support [data-i18n] for modals and guides
+  if (typeof I18N_DICT !== 'undefined' && I18N_DICT[lang]) {
+    const dict = I18N_DICT[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict[key]) el.textContent = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (dict[key]) el.setAttribute('placeholder', dict[key]);
+    });
+  }
+}
+
+function changeUILanguage(lang) {
+  if (!lang) lang = 'si';
+  applyFullPageLanguage(lang);
   updateGuideStepView(currentGuideStep);
 }
 
