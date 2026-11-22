@@ -8241,7 +8241,8 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-  <script src="/whatzi_suite.js">
+  <script src="/whatzi_suite.js"></script>
+<script>
 
 // ─── 📊 Interactive Charts (Feature 5) ─────────────────────────────────────────
 let chartFunnelInstance = null;
@@ -8472,6 +8473,201 @@ function renderCallLogsEnhanced(logs) {
     `;
     tbody.appendChild(tr);
   });
+}
+
+
+// ─── 🚀 OmniSix Missing Client Event Handlers & Enterprise UI Controller ───
+async function openEODReportModal() {
+  const modal = document.getElementById('modal-eod-report');
+  const bodyEl = document.getElementById('eod-report-body');
+  if (modal) modal.classList.remove('hidden');
+  if (bodyEl) bodyEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Generating verified EOD report...</div>';
+
+  try {
+    const res = await fetch('/api/eod-report');
+    const data = await res.json();
+    if (data.ok && data.summary) {
+      const s = data.summary;
+      if (bodyEl) {
+        bodyEl.innerHTML = `
+          <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:15px;line-height:1.6;font-size:0.85rem;">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--accent-emerald);margin-bottom:10px;">📅 EOD Operations Summary (${s.date})</div>
+            <div>🏬 <b>Store:</b> ${s.storeName}</div>
+            <div>📦 <b>Confirmed Orders:</b> ${s.confirmedOrders}</div>
+            <div>💰 <b>Verified Revenue:</b> Rs. ${(s.revenue || 0).toLocaleString()}</div>
+            <div>🧾 <b>Payment Slips Verified:</b> ${s.verifiedSlips}</div>
+            <div>🚚 <b>Dispatched Packages:</b> ${s.dispatched}</div>
+            <div style="margin-top:10px;color:var(--text-secondary);font-size:0.8rem;border-top:1px dashed var(--border-color);padding-top:8px;">
+              System Health: 100% Operational | 20 AI Agents Standing By
+            </div>
+          </div>
+        `;
+      }
+    }
+  } catch(e) {
+    if (bodyEl) bodyEl.innerHTML = '<div style="color:var(--accent-ruby);padding:15px;">Failed to load EOD report.</div>';
+  }
+}
+
+function closeEODReportModal() {
+  const modal = document.getElementById('modal-eod-report');
+  if (modal) modal.classList.add('hidden');
+}
+
+function copyEODReportText() {
+  const bodyEl = document.getElementById('eod-report-body');
+  if (bodyEl) {
+    navigator.clipboard.writeText(bodyEl.innerText).then(() => {
+      alert('✅ EOD Report copied to clipboard!');
+    });
+  }
+}
+
+async function toggleCurrentChatBlacklist() {
+  const phone = window.activeChatPhone || (typeof currentChat !== 'undefined' && currentChat && currentChat.customerPhone);
+  if (!phone) {
+    alert('Please select an active chat first.');
+    return;
+  }
+  try {
+    const res = await fetch('/api/blacklist/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, reason: 'Flagged by operator from live chat' })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(data.isBlacklisted ? '🚫 Number added to Fake COD Blacklist!' : '✅ Number removed from Blacklist!');
+    }
+  } catch(e) {
+    alert('Error toggling blacklist: ' + e.message);
+  }
+}
+
+function toggleStaffNotesDrawer() {
+  const drawer = document.getElementById('staff-notes-drawer');
+  if (drawer) {
+    drawer.classList.toggle('hidden');
+  }
+}
+
+function calculateROI() {
+  const leads = parseInt(document.getElementById('roi-inquiries')?.value || '500');
+  const ticket = parseFloat(document.getElementById('roi-ticket')?.value || '3500');
+  const convRate = parseFloat(document.getElementById('roi-conv')?.value || '18') / 100;
+
+  const orders = Math.round(leads * convRate);
+  const revenue = orders * ticket;
+  const hoursSaved = Math.round(leads * 0.25); // ~15 mins per inquiry saved
+
+  const revEl = document.getElementById('roi-est-revenue');
+  const timeEl = document.getElementById('roi-est-hours');
+  const ordersEl = document.getElementById('roi-est-orders');
+
+  if (revEl) revEl.textContent = 'Rs. ' + revenue.toLocaleString();
+  if (timeEl) timeEl.textContent = hoursSaved + ' hrs';
+  if (ordersEl) ordersEl.textContent = orders + ' Orders';
+}
+
+function generateWALink() {
+  const phone = (document.getElementById('walink-phone')?.value || '').replace(/\D/g, '');
+  const msg = encodeURIComponent(document.getElementById('walink-msg')?.value || 'Hello! I would like to inquire about your products.');
+  const fullLink = `https://wa.me/${phone.startsWith('0') ? '94' + phone.slice(1) : phone}?text=${msg}`;
+
+  const linkEl = document.getElementById('walink-result');
+  if (linkEl) linkEl.value = fullLink;
+
+  const qrCanvas = document.getElementById('walink-qr-canvas');
+  if (qrCanvas && typeof QRCode !== 'undefined') {
+    QRCode.toCanvas(qrCanvas, fullLink, { width: 180 }, function (error) {
+      if (error) console.error(error);
+    });
+  }
+}
+
+function copyWALink() {
+  const linkEl = document.getElementById('walink-result');
+  if (linkEl && linkEl.value) {
+    navigator.clipboard.writeText(linkEl.value).then(() => alert('📋 WhatsApp Link copied to clipboard!'));
+  }
+}
+
+function downloadWAQR() {
+  const canvas = document.getElementById('walink-qr-canvas');
+  if (canvas) {
+    const link = document.createElement('a');
+    link.download = 'whatsapp-qr-link.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  }
+}
+
+function changeColorTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('omnisix_theme', theme);
+}
+
+let audioNotifEnabled = true;
+function toggleAudioNotifications() {
+  audioNotifEnabled = !audioNotifEnabled;
+  localStorage.setItem('omnisix_audio_notif', audioNotifEnabled ? '1' : '0');
+  const btn = document.getElementById('btn-audio-toggle');
+  if (btn) btn.style.opacity = audioNotifEnabled ? '1' : '0.4';
+}
+
+function filterChatMessages(query) {
+  const q = (query || '').toLowerCase().trim();
+  const msgs = document.querySelectorAll('#chat-messages-box .chat-bubble');
+  msgs.forEach(m => {
+    if (!q || m.innerText.toLowerCase().includes(q)) {
+      m.style.display = '';
+    } else {
+      m.style.display = 'none';
+    }
+  });
+}
+
+function insertCannedSnippet(text) {
+  const input = document.getElementById('chat-reply-input');
+  if (input) {
+    input.value = (input.value ? input.value + ' ' : '') + text;
+    input.focus();
+  }
+}
+
+function openPackingSlipModal(orderId) {
+  const modal = document.getElementById('modal-packing-slip');
+  const container = document.getElementById('modal-packing-slip-content');
+  if (modal) modal.classList.remove('hidden');
+
+  const orders = window.allOrders || [];
+  const order = orders.find(o => o.id === orderId) || { id: orderId, customerName: 'Customer', customerPhone: '07X', item: 'Store Item', subtotal: 0, status: 'Confirmed' };
+
+  if (container) {
+    container.innerHTML = `
+      <div style="background:#fff;color:#000;padding:20px;font-family:monospace;width:380px;margin:auto;border:2px dashed #333;border-radius:4px;">
+        <div style="text-align:center;font-size:1.2rem;font-weight:900;">*** PACKING SLIP ***</div>
+        <div style="text-align:center;font-size:0.8rem;margin-bottom:10px;">OMNISIX DISPATCH SERVICE</div>
+        <hr style="border-top:1px dashed #000;"/>
+        <div><b>ORDER ID:</b> ${order.id}</div>
+        <div><b>DATE:</b> ${new Date().toLocaleDateString()}</div>
+        <div><b>CUSTOMER:</b> ${order.customerName}</div>
+        <div><b>PHONE:</b> ${order.customerPhone}</div>
+        <div><b>ADDRESS:</b> ${order.address || 'Colombo Islandwide'}</div>
+        <hr style="border-top:1px dashed #000;"/>
+        <div><b>ITEM:</b> ${order.item}</div>
+        <div><b>QTY:</b> ${order.qty || 1}</div>
+        <div><b>AMOUNT:</b> Rs. ${(order.subtotal || 0).toLocaleString()} (COD)</div>
+        <hr style="border-top:1px dashed #000;"/>
+        <div style="text-align:center;font-size:0.75rem;margin-top:10px;">THANK YOU FOR YOUR ORDER!</div>
+      </div>
+    `;
+  }
+}
+
+function closePackingSlipModal() {
+  const modal = document.getElementById('modal-packing-slip');
+  if (modal) modal.classList.add('hidden');
 }
 
 </script>

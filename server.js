@@ -1,3 +1,20 @@
+
+function renderFollowUpTemplate(template, lead, biz) {
+  const hasRealName = lead.customerName && lead.customerName !== 'Customer' && !/^\d+$/.test(lead.customerName);
+  const customerGreeting = hasRealName ? lead.customerName : 'ඔබ';
+  const prodName = lead.productName || 'භාණ්ඩය';
+
+  let rendered = template
+    .replace(/{customer}/gi, customerGreeting)
+    .replace(/{name}/gi, customerGreeting)
+    .replace(/{store}/gi, biz.name || 'OmniSix Store')
+    .replace(/{product}/gi, prodName)
+    .replace(/{inquiry}/gi, (lead.lastInquiryText || '').replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '').slice(0, 50));
+
+  rendered = rendered.replace(/\*\s*\*|\*\*/g, '').replace(/Hi\s*!\s*👋/i, 'Hi! 👋');
+  return rendered;
+}
+
 // OmniSix Live AI Call Server
 // Real-time Voice Call Server for WEDDING ARTS & OMNISIX AI PRO
 // Full Dataset Integration + Instant Full-Duplex Barge-in + Gemini 3.5 Flash & Aoede Voice
@@ -578,7 +595,7 @@ app.get('/api/business', (req, res) => {
   });
 });
 
-app.post('/api/business/select', (req, res) => {
+app.post(['/api/business/select', '/api/business/switch'], (req, res) => {
   const { id } = req.body;
   const active = db.setActiveBusiness(id);
   res.json({ ok: true, active });
@@ -700,7 +717,7 @@ app.get('/api/orders', (req, res) => {
   });
 });
 
-app.post('/api/orders/status', async (req, res) => {
+app.post(['/api/orders/status', '/api/orders/update-status'], async (req, res) => {
   const { id, status, trackingNumber } = req.body;
   const order = db.updateOrderStatus(id, status, trackingNumber);
 
@@ -1228,7 +1245,7 @@ app.get('/api/agents/decisions', (req, res) => {
   res.json({ ok: true, decisions: agentFleet.getRecentDecisions(limit) });
 });
 
-app.post('/api/agents/test-route', (req, res) => {
+app.post(['/api/agents/dispatch-test', '/api/agents/test-route'], (req, res) => {
   const { text, phone } = req.body;
   const agent = agentFleet.resolveBestAgent(text, { phone });
   const decision = agentFleet.recordDecision(
@@ -3199,25 +3216,27 @@ setInterval(async () => {
       if (!dueLeads || dueLeads.length === 0) continue;
 
       const settings = db.getTenantSettings(biz.id) || db.getSettings();
-      for (const lead of dueLeads.slice(0, 3)) { // send max 3 per cycle to prevent bursts
+      const accounts = waEngine.getAccounts(biz.id);
+      const connectedAcc = accounts.find(a => a.connected);
+      let targetAccId = connectedAcc ? connectedAcc.id : null;
+
+      for (const lead of dueLeads.slice(0, 3)) {
         const isStage2 = lead.isFollowUpSent;
         const template = isStage2 ? (settings.followUpStage2Message || settings.followUpMessage) : settings.followUpMessage;
-        const msg = template
-          .replace(/{customer}/gi, lead.customerName || 'Customer')
-          .replace(/{name}/gi, lead.customerName || 'Customer')
-          .replace(/{store}/gi, biz.name || 'Store')
-          .replace(/{inquiry}/gi, (lead.lastInquiryText || '').slice(0, 50));
-
-        let targetAccId = null;
-        const accounts = waEngine.getAccounts(biz.id);
-        if (accounts.length > 0 && accounts[0].connected) targetAccId = accounts[0].id;
+        const msg = renderFollowUpTemplate(template, lead, biz);
 
         const res = await waEngine.sendTextMessage(lead.customerPhone, msg, targetAccId);
         if (res.ok) {
           db.markFollowUpSent(lead.id, isStage2 ? 2 : 1);
           db.addChatMessage(lead.customerPhone, 'ai', msg, lead.customerName, lead.customerPhone, biz.id);
-          console.log(`[followup-engine] Automated Stage ${isStage2 ? 2 : 1} follow-up sent to ${lead.customerPhone} for ${biz.name}`);
+          console.log(`[followup-engine] Automated Stage ${isStage2 ? 2 : 1} sent to ${lead.customerPhone} for ${biz.name}`);
+        } else {
+          lead.retryCount = (lead.retryCount || 0) + 1;
+          lead.lastAttemptTimestamp = Date.now();
+          db.save();
+          console.warn(`[followup-engine] Failed to send follow-up to ${lead.customerPhone} (Attempt ${lead.retryCount}): ${res.error}`);
         }
+        await new Promise(r => setTimeout(r, 2000)); // 2-second anti-ban burst spacing
       }
     }
   } catch(e) {

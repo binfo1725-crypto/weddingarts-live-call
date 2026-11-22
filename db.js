@@ -1,3 +1,29 @@
+
+// ─── 💰 Price Inquiry & Customer Intent Detection Engine ──────────────────────
+const PriceInquiryEngine = {
+  PRICE_KEYWORDS: [
+    'keeyada', 'keeyad', 'kiyada', 'kiyad', 'keeyakda', 'gana', 'gaana', 'mila', 'ganan',
+    'milaganang', 'price', 'rate', 'cost', 'how much', 'discount', 'wasi', 'adu', 'aduwata',
+    'adu karanna', 'last price', 'best price', 'special price', 'cheaper', 'catalog', 'menu',
+    'කීයද', 'මිල', 'ගණන්', 'ගාන', 'මිල කීයද', 'ගාන කීයද', 'ඩිස්කවුන්ට්', 'වට්ටම්', 'අඩු',
+    'අඩු කරන්න', 'විස්තර සහ මිල', 'මිල ගණන්', 'vilai', 'evvalavu', 'evalavu', 'rate enna', 'price enna', 'cost enna'
+  ],
+
+  isPriceInquiry(text, aiReply = '', matchedProduct = null) {
+    if (!text && !aiReply) return false;
+    const lower = (text || '').toLowerCase();
+    const isUserAsking = this.PRICE_KEYWORDS.some(kw => lower.includes(kw));
+    const isPriceQuotedInReply = !!(matchedProduct && matchedProduct.price) || /මිල:s*rs|rs.?s*\d+/i.test(aiReply);
+    return isUserAsking || isPriceQuotedInReply;
+  },
+
+  extractProduct(text, products = []) {
+    if (!text || !products || products.length === 0) return null;
+    const lower = text.toLowerCase();
+    return products.find(p => p.name && lower.includes(p.name.toLowerCase())) || null;
+  }
+};
+
 // ─── Universal Multi-Business Database Engine (Production Clean) ─────────────
 // Real Production Database for Omnichannel AI Agent
 // Supports Multi-Business, Products Catalog, Custom Keyword Flows, Orders Pipeline,
@@ -84,10 +110,10 @@ const DEFAULT_SETTINGS = {
   // Automated Follow-Up Engine
   isFollowUpEnabled: true,
   followUpDelayHours: 2,
-  followUpMessage: 'Hi *{customer}*! 👋\n\nඔබ අපෙන් විමසූ විස්තර පිළිබඳ තව මොනවාද දැනගන්න අවශ්‍ය? 😊\n_අදම ඇණවුම් කළහොත් ඉක්මනින්ම ඔබට Delivery කරගත හැක!_ 📦✨',
+  followUpMessage: 'Hi {customer}! 👋 ඔබ අපෙන් විමසූ {product} පිළිබඳ වැඩිදුර විස්තර හෝ මිල ගණන් දැනගැනීමට අවශ්‍යද? ඕනෑම ප්‍රශ්නයක් ඇත්නම් අපව අමතන්න, උදව් කිරීමට අපි සූදානම්! 😊✨',
   isFollowUpStage2Enabled: true,
   followUpStage2DelayHours: 24,
-  followUpStage2Message: 'හෙලෝ *{customer}*, ඔබ විමසූ භාණ්ඩයේ තොග සීමිතව පවතී. අද දිනය තුළ Order කළහොත් විශේෂ වට්ටමක් ලබා දිය හැක. 😊',
+  followUpStage2Message: 'හෙලෝ {customer}! ඔබ විමසූ {product} සඳහා අද දිනයේ විශේෂ Discount එකක් හෝ Free Delivery ලබාදිය හැක. අවශ්‍ය නම් අදම Order එක තහවුරු කරගන්න! 📦🎁',
   // Owner Instant Alerts
   ownerAlertPhone: '',
   isOwnerAlertEnabled: true,
@@ -495,8 +521,9 @@ class Database {
 
   // ─── Business Methods ────────────────────────────────────────────────────────
   getActiveBusiness() {
-    const active = this.data.businesses.find(b => b.isActive);
-    return active || this.data.businesses[0];
+    const businesses = this.getAllBusinesses();
+    const active = businesses.find(b => b.isActive);
+    return active || businesses[0] || DEFAULT_BUSINESSES[0];
   }
 
   getAllBusinesses() {
@@ -1179,7 +1206,7 @@ class Database {
   }
 
   // ─── Automated Follow-Up & Leads Engine ────────────────────────────────────
-  registerLead({ customerName, customerPhone, inquiryText, businessId }) {
+  registerLead({ customerName, customerPhone, inquiryText, businessId, inquiryType = 'general', productName = null }) {
     if (!this.data.leads) this.data.leads = [];
     const cleanPhone = (customerPhone || '').replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 8) return null;
@@ -1187,27 +1214,46 @@ class Database {
     const bId = businessId || this.getActiveBusiness().id;
     let existing = this.data.leads.find(l => (l.customerPhone || '').replace(/\D/g, '') === cleanPhone && l.businessId === bId);
 
+    const isPrice = inquiryType === 'price_inquiry' || PriceInquiryEngine.isPriceInquiry(inquiryText);
+
     if (existing) {
-      if (!existing.isConfirmed) {
-        existing.lastInquiryText = inquiryText || existing.lastInquiryText;
-        existing.lastInquiryTimestamp = Date.now();
-        this.save();
+      const isNewCycle = isPrice && (existing.isConfirmed || existing.isFollowUpSent || existing.isStage2FollowUpSent);
+
+      existing.lastInquiryText = inquiryText || existing.lastInquiryText;
+      existing.lastInquiryTimestamp = Date.now();
+      if (customerName && customerName !== 'Customer') existing.customerName = customerName;
+      if (productName) existing.productName = productName;
+      if (isPrice) existing.inquiryType = 'price_inquiry';
+
+      if (isNewCycle) {
+        existing.isConfirmed = false;          // Fresh inquiry cycle
+        existing.isFollowUpSent = false;       // Enable Stage 1
+        existing.followUpSentTimestamp = 0;
+        existing.isStage2FollowUpSent = false; // Enable Stage 2
+        existing.stage2SentTimestamp = 0;
+        existing.retryCount = 0;
+        existing.lastAttemptTimestamp = 0;
       }
+      this.save();
       return existing;
     }
 
     const newLead = {
       id: 'lead_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
       businessId: bId,
-      customerName: customerName || 'Customer',
+      customerName: (customerName && customerName !== 'Customer') ? customerName : '',
       customerPhone: cleanPhone,
       lastInquiryText: inquiryText || '',
       lastInquiryTimestamp: Date.now(),
+      inquiryType: isPrice ? 'price_inquiry' : 'general',
+      productName: productName || '',
       isConfirmed: false,
       isFollowUpSent: false,
       followUpSentTimestamp: 0,
       isStage2FollowUpSent: false,
-      stage2SentTimestamp: 0
+      stage2SentTimestamp: 0,
+      retryCount: 0,
+      lastAttemptTimestamp: 0
     };
     this.data.leads.push(newLead);
     this.save();
@@ -1263,16 +1309,38 @@ class Database {
 
     return (this.data.leads || []).filter(lead => {
       if (lead.businessId !== bId || lead.isConfirmed) return false;
-      const chat = (this.data.chats || []).find(c => c.businessId === bId && (c.customerPhone || '').replace(/\D/g, '') === lead.customerPhone);
-      if (chat && chat.aiMuted && chat.aiMuteUntil > now) return false;
 
+      // Safety Guard 1: Blacklist
+      if (typeof this.isBlacklisted === 'function' && this.isBlacklisted(lead.customerPhone)) return false;
+
+      // Safety Guard 2: Chat status & Silence Check
+      const chat = (this.data.chats || []).find(c => c.businessId === bId && (c.customerPhone || '').replace(/\D/g, '') === lead.customerPhone);
+      if (chat) {
+        if (chat.isEscalated) return false; // Handed off to human agent
+        if (chat.aiMuted && chat.aiMuteUntil > now) return false; // Human takeover active
+
+        // Silence check: If customer messaged within last 2h, they are active!
+        const msgs = chat.messages || [];
+        const lastCustMsg = [...msgs].reverse().find(m => m.sender === 'customer');
+        if (lastCustMsg && (now - lastCustMsg.timestamp < stage1DelayMs)) {
+          return false;
+        }
+      }
+
+      // Safety Guard 3: Max retry limit to prevent queue jamming
+      if ((lead.retryCount || 0) >= 3) return false;
+
+      // Stage 1 Follow-Up: 2 Hours of silence after inquiry
       if (!lead.isFollowUpSent) {
         return (now - lead.lastInquiryTimestamp >= stage1DelayMs);
       }
+
+      // Stage 2 Follow-Up: 24 Hours of silence after inquiry / Stage 1
       if (settings.isFollowUpStage2Enabled && !lead.isStage2FollowUpSent) {
         const base = lead.followUpSentTimestamp || (lead.lastInquiryTimestamp + stage1DelayMs);
         return (now - base >= stage2DelayMs);
       }
+
       return false;
     });
   }

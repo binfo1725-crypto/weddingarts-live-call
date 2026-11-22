@@ -11,7 +11,36 @@
       "deliveryPolicy": "Instant Digital Delivery of License Keys and Cloud Activation.",
       "currency": "Rs.",
       "welcomeMessage": "ආයුබෝවන්! OmniSix AI වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?",
-      "isActive": true
+      "isActive": true,
+      "settings": {
+        "aiPersona": "FRIENDLY_CUSTOMER_CARE",
+        "aiName": "OmniSix AI Software AI",
+        "assistantTitle": "Senior Customer Support Agent",
+        "voiceProfile": "Leda",
+        "voiceReplyMode": "auto",
+        "typingDelaySeconds": 1.5,
+        "isWorkingHoursEnabled": false,
+        "openTime": "08:30",
+        "closeTime": "21:00",
+        "closedMessage": "ආයුබෝවන්! දැනට අපගේ සේවාවන් වසා ඇත. අප නැවත විවෘත වූ වහාම ඔබට පිළිතුරු ලබා දෙන්නෙමු.",
+        "humanTakeoverDurationMinutes": 30,
+        "isAntiBanSpacedBroadcast": true,
+        "isSmartUpsellEnabled": true,
+        "isSmartNegotiationEnabled": true,
+        "isArchetypeProfilingEnabled": true,
+        "isAngryEscalationEnabled": true,
+        "isFollowUpEnabled": true,
+        "followUpDelayHours": 2,
+        "followUpMessage": "Hi {customer}! 👋 ඔබ අපෙන් විමසූ {product} පිළිබඳ වැඩිදුර විස්තර හෝ මිල ගණන් දැනගැනීමට අවශ්‍යද? ඕනෑම ප්‍රශ්නයක් ඇත්නම් අපව අමතන්න, උදව් කිරීමට අපි සූදානම්! 😊✨",
+        "isFollowUpStage2Enabled": true,
+        "followUpStage2DelayHours": 24,
+        "followUpStage2Message": "හෙලෝ {customer}! ඔබ විමසූ {product} සඳහා අද දිනයේ විශේෂ Discount එකක් හෝ Free Delivery ලබාදිය හැක. අවශ්‍ය නම් අදම Order එක තහවුරු කරගන්න! 📦🎁",
+        "ownerAlertPhone": "",
+        "isOwnerAlertEnabled": true,
+        "languageReplyMode": "smart_match",
+        "isInteractiveButtonsEnabled": true,
+        "geminiApiKey": ""
+      }
     }
   ],
   "products": [],
@@ -202,7 +231,7 @@
       "role": "admin",
       "businessId": "all",
       "active": true,
-      "createdAt": "2026-11-21T16:11:53.361Z"
+      "createdAt": "2026-11-22T02:43:19.709Z"
     },
     {
       "id": "staff_supp",
@@ -212,7 +241,7 @@
       "role": "support",
       "businessId": "all",
       "active": true,
-      "createdAt": "2026-11-21T16:11:53.361Z"
+      "createdAt": "2026-11-22T02:43:19.709Z"
     },
     {
       "id": "staff_disp",
@@ -222,7 +251,7 @@
       "role": "dispatch",
       "businessId": "all",
       "active": true,
-      "createdAt": "2026-11-21T16:11:53.361Z"
+      "createdAt": "2026-11-22T02:43:19.709Z"
     }
   ],
   "ai_agent_fleet": [
@@ -509,5 +538,6 @@
       ],
       "active": true
     }
-  ]
+  ],
+  "blacklist": []
 }

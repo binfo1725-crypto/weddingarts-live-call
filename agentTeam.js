@@ -304,22 +304,39 @@ class AgentFleetManager {
   resolveBestAgent(customerText, context = {}) {
     const text = (customerText || '').toLowerCase().trim();
     const fleet = this.getFleet();
+
     const isAngry = /horu|fake|polici|police|case|boruwa|anthimayi|damage|wada na|wada karanne na|balu|chora/i.test(text);
     const isSlip = !!context.isSlip || /slip|reciept|receipt|gewwa|damma|transfer/i.test(text);
     const isTrack = /tracking|track|kohedo|koheda|deliver|domex|koombiyo|prompt|fardar|enakan|thama na/i.test(text);
-    const isBargain = /adu|discount|offer|gana wadi|last price|keeyatada|wasi/i.test(text);
+    const isBargain = /\badu\b|\baduwen\b|\baduwata\b|discount|offer|gana wadi|last price|keeyatada|\bwasi\b/i.test(text);
     const isWholesale = /wholesale|bulk|thoga|quantity|pcs|shop|resell/i.test(text);
     const isReorder = /aye ganna|aye one|kalin gaththa|iwarai/i.test(text);
     const isReview = /elakiri|supiri|harima lassanayi|sthuthiyi|badu awa|hodayi/i.test(text);
+    const isAddress = /(?:road|rd|mawatha|street|lane|st|no\.?|\d+\/\d+|nawathinna|palatha|distrikkaya)/i.test(text);
+    const isCOD = /\bcod\b|cash on delivery|athata gewanna|badu labunama/i.test(text);
+    const isCompetitor = /wena thenaka|wena shop|anith kattiya|wena thanaka|gana adui/i.test(text);
+    const isIssue = /return|maru karanna|exchange|warrenty|warranty|kadila|kedila|wada na/i.test(text);
+    const isSeasonal = /awurudu|avurudu|christmas|vesak|ramadan|payday|flash sale|black friday/i.test(text);
+    const isGreeting = /^(hi|hello|hey|ayubowan|ayubbo|vanakkam|good morning|suba dawasak)$/i.test(text);
+    const isCheckout = /order karanna|mata ona|confirm karanna|buy|ganne kohomada|danna order/i.test(text);
 
     let targetId = 'agent_closer'; // Default sales closer
     if (isAngry) targetId = 'agent_deescalator';
+    else if (isIssue) targetId = 'agent_resolver';
     else if (isSlip) targetId = 'agent_slip_auditor';
-    else if (isTrack) targetId = 'agent_logistics';
+    else if (isSeasonal) targetId = 'agent_seasonal';
+    else if (isCompetitor) targetId = 'agent_market_scout';
     else if (isWholesale) targetId = 'agent_wholesale';
     else if (isBargain) targetId = 'agent_negotiator';
+    else if (isCOD) targetId = 'agent_cod_converter';
+    else if (isTrack) targetId = 'agent_logistics';
+    else if (isAddress) targetId = 'agent_address_verifier';
     else if (isReorder) targetId = 'agent_reorder';
     else if (isReview) targetId = 'agent_feedback';
+    else if (isGreeting) targetId = 'agent_concierge';
+    else if (context.isAbandoned || context.isFollowUp) targetId = 'agent_recovery';
+    else if (context.isVip) targetId = 'agent_vip';
+    else if (isCheckout) targetId = 'agent_closer';
 
     const chosen = fleet.find(a => a.id === targetId && a.active);
     return chosen || fleet.find(a => a.id === 'agent_prime') || fleet[0];

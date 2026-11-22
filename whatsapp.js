@@ -586,6 +586,10 @@ class WhatsAppAccountSession {
     }
   }
 
+    async sendMessage(toPhone, text) {
+    return await this.sendTextMessage(toPhone, text);
+  }
+
   async sendTextMessage(toPhone, text) {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
@@ -953,7 +957,6 @@ class MultiAccountWhatsAppManager {
   async sendTextMessage(toPhone, text, accountId) {
     let session = accountId ? this.sessions.get(accountId) : null;
     if (!session) {
-      // Find any connected session
       for (const [, s] of this.sessions.entries()) {
         if (s.connected) {
           session = s;
@@ -961,78 +964,28 @@ class MultiAccountWhatsAppManager {
         }
       }
     }
+
+    let sendRes = { ok: false };
     if (session && session.connected) {
-      return await session.sendTextMessage(toPhone, text);
+      sendRes = await session.sendTextMessage(toPhone, text);
+      if (sendRes.ok) return sendRes;
+      console.warn(`[whatsapp-manager] Baileys send failed (${sendRes.error}). Triggering Meta Cloud API fallback...`);
     }
 
     // Zero-Downtime Fallback: Check if Meta Official Cloud API is configured
     try {
       const settings = db.getSettings();
       if (settings.metaCloudApi && settings.metaCloudApi.enabled && settings.metaCloudApi.phoneNumberId && settings.metaCloudApi.token) {
-        console.log('[whatsapp-manager] Baileys session disconnected. Triggering Zero-Downtime Meta Cloud API Fallback...');
+        console.log('[whatsapp-manager] Triggering Zero-Downtime Meta Cloud API Fallback for ' + toPhone);
         return await this.sendMetaCloudMessage(toPhone, text, settings.metaCloudApi);
       }
-    } catch (e) {}
-
-    return { ok: false, error: 'No connected WhatsApp account or Meta Cloud API available' };
-  }
-
-  // Meta Official Cloud Graph API Sender
-  async sendMetaCloudMessage(toPhone, text, metaConfig) {
-    if (!metaConfig || !metaConfig.phoneNumberId || !metaConfig.token) {
-      return { ok: false, error: 'Meta Cloud API credentials not configured' };
-    }
-    let clean = String(toPhone || '').replace(/\D/g, '');
-    if (clean.startsWith('0') && clean.length === 10) clean = '94' + clean.slice(1);
-    else if (clean.length === 9 && !clean.startsWith('94')) clean = '94' + clean;
-
-    try {
-      const url = `https://graph.facebook.com/v19.0/${metaConfig.phoneNumberId}/messages`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${metaConfig.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: clean,
-          type: 'text',
-          text: { preview_url: false, body: text }
-        })
-      });
-      const data = await response.json();
-      if (response.ok) {
-        console.log(`[meta-cloud-api] 🚀 Dispatched message to +${clean} via official Meta Graph API`);
-        return { ok: true, meta: data };
-      } else {
-        console.warn(`[meta-cloud-api] Meta Graph API error:`, data.error?.message);
-        return { ok: false, error: data.error?.message || 'Meta API error' };
-      }
     } catch (e) {
-      return { ok: false, error: e.message };
+      console.error('[whatsapp-manager] Meta Cloud fallback error:', e.message);
     }
+
+    return sendRes.error ? sendRes : { ok: false, error: 'No connected WhatsApp account or Meta Cloud API available' };
   }
 
-  // Send voice message (with optional accountId target or round-robin)
-  async sendVoiceMessage(toPhone, audioBuffer, accountId, ptt = true) {
-    let session = accountId ? this.sessions.get(accountId) : null;
-    if (!session) {
-      for (const [, s] of this.sessions.entries()) {
-        if (s.connected) {
-          session = s;
-          break;
-        }
-      }
-    }
-    if (!session || !session.connected) {
-      return { ok: false, error: 'No connected WhatsApp account available' };
-    }
-    return await session.sendVoiceMessage(toPhone, audioBuffer, ptt);
-  }
-
-  // Send image message (with optional accountId target or round-robin)
   async sendImageMessage(toPhone, imageInput, accountId = null, caption = '') {
     let session = accountId ? this.sessions.get(accountId) : null;
     if (!session) {
