@@ -339,9 +339,6 @@ app.use((req, res, next) => {
 // SaaS URL & Route Security Guard: Prevent bypassing access controls
 app.use((req, res, next) => {
   const p = (req.path || '').toLowerCase();
-  if (p === '/free' || p === '/free.html') {
-    return res.redirect('/login');
-  }
   if (p === '/admin.html') {
     return res.redirect('/admin');
   }
@@ -444,7 +441,7 @@ app.get('/portal', (req, res) => {
 });
 
 app.get(['/free', '/free.html'], (req, res) => {
-  res.redirect('/login');
+  res.sendFile(path.join(__dirname, 'public', 'free.html'));
 });
 
 // ─── Multi-Tenant License Authentication APIs ────────────────────────────────
@@ -485,10 +482,70 @@ app.post('/api/auth/license-login', licenseLoginLimiter, (req, res) => {
   });
 });
 
-app.post('/api/auth/free-trial', (req, res) => {
-  res.status(403).json({
-    ok: false,
-    error: 'Free self-service trial generation is disabled. Please contact Admin on WhatsApp (+94 76 210 7801) for activation.'
+app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
+  const { clientName, clientPhone } = req.body || {};
+  if (!clientName || !clientPhone) {
+    return res.status(400).json({ ok: false, error: 'Store Name and Phone number are required (නම සහ දුරකථන අංකය අවශ්‍යයි).' });
+  }
+
+  const cleanPhone = String(clientPhone).replace(/\D/g, '');
+  if (cleanPhone.length < 9) {
+    return res.status(400).json({ ok: false, error: 'Please enter a valid WhatsApp phone number (වලංගු WhatsApp අංකයක් ඇතුළත් කරන්න).' });
+  }
+
+  // Prevent multiple active trial keys for the same phone number
+  const existingTrials = (db.data.licenses || []).filter(l => 
+    (l.clientPhone || '').replace(/\D/g, '') === cleanPhone && l.plan === 'TRIAL'
+  );
+
+  if (existingTrials.length > 0) {
+    const latestTrial = existingTrials[existingTrials.length - 1];
+    return res.json({
+      ok: true,
+      license: latestTrial,
+      message: 'ඔබගේ පවතින 3-Day Free Trial License Key එක සාර්ථකව ලබා ගන්නා ලදී!'
+    });
+  }
+
+  const cleanSlug = clientName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20) || 'store_' + Date.now();
+  
+  // Register newly created store with createdAt timestamp so trial countdown starts now
+  const newBiz = {
+    id: cleanSlug,
+    name: clientName,
+    category: 'other',
+    subscriptionPlan: 'starter',
+    ownerName: clientName,
+    phone: clientPhone,
+    whatsappPhone: cleanPhone,
+    bankDetails: '',
+    deliveryPolicy: 'Islandwide delivery available.',
+    currency: 'Rs.',
+    welcomeMessage: `ආයුබෝවන්! ${clientName} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?`,
+    dataset: `Store: ${clientName}\nContact: ${clientPhone}\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery`,
+    createdAt: new Date().toISOString(),
+    isActive: false
+  };
+
+  if (!db.data.businesses) db.data.businesses = [];
+  if (db.data.businesses.some(b => b.id === cleanSlug)) {
+    newBiz.id = cleanSlug + '_' + Math.random().toString(36).slice(2, 6);
+  }
+  db.data.businesses.push(newBiz);
+
+  // Create real active 3-Day Trial License Key
+  const newLic = db.generateLicense({
+    plan: 'TRIAL',
+    clientName,
+    clientPhone,
+    businessId: newBiz.id,
+    notes: 'Free 3-Day Trial Self-Registered'
+  });
+
+  res.json({
+    ok: true,
+    license: newLic,
+    message: '🎉 Free 3-Day Trial License Activated!'
   });
 });
 
