@@ -142,6 +142,39 @@ setInterval(() => {
 // ─── Express App ─────────────────────────────────────────────────────────────
 const app = express();
 
+// ─── 🛡️ Enterprise Production Security Headers & Protection Suite ─────────────
+app.disable('x-powered-by');
+
+// 1. HTTP Security Headers (OWASP Top 10 Hardened)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
+  res.setHeader('Content-Security-Policy', "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval' wss:; font-src 'self' https: data:; img-src 'self' https: data: blob:; connect-src 'self' https: wss:; media-src 'self' https: data: blob:; frame-ancestors 'self';");
+  next();
+});
+
+// 2. Strict Origin & CORS Guard
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+  const allowed = !origin || origin.includes(host) || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('onrender.com') || origin.includes('github.io');
+  if (allowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-token, x-license-key, x-business-id, x-api-key');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+
 // ─── HTTP Security Headers & Browser Caching Control ──────────────────────────
 app.use((req, res, next) => {
   // OWASP Recommended Security Headers
@@ -191,9 +224,27 @@ function createRateLimiter({ windowMs, maxRequests, message }) {
 }
 
 const adminLoginLimiter = createRateLimiter({
-  windowMs: 5 * 60 * 1000,
+  windowMs: 15 * 60 * 1000, // 15-minute anti-brute force window
+  maxRequests: 5,           // Strict 5-attempt limit
+  message: '🚨 ආරක්ෂක අවවාදයයි: වැඩි වාර ගණනක් වැරදි Password ඇතුළත් කර ඇත. ඔබගේ IP ලිපිනය විනාඩි 15 කට තාවකාලිකව Block කර ඇත.'
+});
+
+const geminiAiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
   maxRequests: 30,
-  message: 'වැඩි වාර ගණනක් වැරදි Password ඇතුළත් කර ඇත. ආරක්ෂාව සඳහා විනාඩි 5 කින් නැවත උත්සාහ කරන්න.'
+  message: 'AI Rate limit reached. Please wait a few seconds before generating again.'
+});
+
+const orderMutationLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 25,
+  message: 'Order operations rate limit exceeded. Please wait a moment.'
+});
+
+const generalApiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 300,
+  message: 'API rate limit reached. Please wait a moment.'
 });
 
 const licenseLoginLimiter = createRateLimiter({
@@ -214,7 +265,7 @@ const datasetUploadLimiter = createRateLimiter({
   message: 'Upload rate limit reached. Please wait a few minutes before uploading again.'
 });
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
@@ -352,7 +403,13 @@ function requireAdminAuth(req, res, next) {
 
 app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
   const { password } = req.body || {};
-  if (!password || String(password).trim() !== ADMIN_MASTER_PASSWORD) {
+  if (!password) {
+    return res.status(401).json({ ok: false, error: 'Security Password is required.' });
+  }
+  const inputBuf = Buffer.from(String(password).trim());
+  const masterBuf = Buffer.from(ADMIN_MASTER_PASSWORD);
+  const isValid = inputBuf.length === masterBuf.length && crypto.timingSafeEqual(inputBuf, masterBuf);
+  if (!isValid) {
     return res.status(401).json({ ok: false, error: 'වැරදි Master Security Password එකක්. නැවත උත්සාහ කරන්න.' });
   }
   const token = 'adm_' + crypto.randomBytes(32).toString('hex');
@@ -453,6 +510,40 @@ app.post('/api/admin/db/import', requireAdminAuth, (req, res) => {
 });
 
 // ─── Client Portal Scoped Store API & SaaS Multi-Tenant Isolation ─────────────
+
+// ─── 🔒 Sensitive Credential Sanitizer & Data Shield ─────────────────────────
+function sanitizeBusinessData(b, isAdmin = false) {
+  if (!b) return null;
+  const clone = JSON.parse(JSON.stringify(b));
+  if (clone.settings) {
+    if (clone.settings.geminiApiKey) {
+      if (isAdmin) {
+        const k = clone.settings.geminiApiKey;
+        clone.settings.geminiApiKey = k.length > 10 ? (k.slice(0, 6) + '••••••••' + k.slice(-4)) : '••••••••';
+      } else {
+        delete clone.settings.geminiApiKey;
+        clone.settings.hasConfiguredApiKey = true;
+      }
+    }
+  }
+  return clone;
+}
+
+// Unified Role-Based Access Control (Admin or Valid Tenant Session)
+function requireSessionAuth(req, res, next) {
+  if (isAdminReq(req) || isTenantReq(req)) {
+    return next();
+  }
+  const apiKey = req.headers['x-api-key'] || (req.query && req.query.apiKey);
+  if (apiKey && typeof db.validateApiKey === 'function' && db.validateApiKey(apiKey)) {
+    return next();
+  }
+  return res.status(401).json({
+    ok: false,
+    error: 'ආරක්ෂිත ප්‍රවේශය අවශ්‍යයි (Authentication Required). කරුණාකර Admin PIN හෝ License Key මඟින් පිවිසෙන්න.'
+  });
+}
+
 function isAdminReq(req) {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
   const now = Date.now();
@@ -572,36 +663,57 @@ app.get('/api/portal/store', (req, res) => {
 
 // Business Profile & Preset Management
 app.get('/api/business', (req, res) => {
-  const key = req.headers['x-license-key'];
-  if (key) {
-    const lic = db.getLicenseByKey(key);
-    if (lic) {
-      const biz = db.getAllBusinesses().find(b => b.id === lic.businessId) || db.getActiveBusiness();
-      return res.json({
-        ok: true,
-        active: biz,
-        businesses: [biz]
-      });
-    }
+  const isAdmin = isAdminReq(req);
+  const isTenant = isTenantReq(req);
+  const requestedBizId = req.headers['x-business-id'] || (req.query && (req.query.store || req.query.biz || req.query.businessId));
+
+  if (isTenant) {
+    const key = req.headers['x-license-key'] || (req.query && (req.query.licenseKey || req.query.key));
+    const lic = key ? db.getLicenseByKey(key) : null;
+    const tenantBizId = lic ? lic.businessId : resolveReqBusinessId(req);
+    const tenantBiz = db.getBusiness(tenantBizId) || db.getActiveBusiness();
+    const sanitized = sanitizeBusinessData(tenantBiz, false);
+    return res.json({
+      ok: true,
+      active: sanitized,
+      businesses: [sanitized] // Multi-tenant isolation: Tenants CANNOT see other stores!
+    });
   }
 
-  const requestedBizId = req.headers['x-business-id'] || (req.query && (req.query.store || req.query.biz || req.query.businessId));
-  const scopedActive = (requestedBizId && db.getBusiness(requestedBizId)) ? db.getBusiness(requestedBizId) : db.getActiveBusiness();
+  if (isAdmin) {
+    const scopedActive = (requestedBizId && db.getBusiness(requestedBizId)) ? db.getBusiness(requestedBizId) : db.getActiveBusiness();
+    return res.json({
+      ok: true,
+      active: sanitizeBusinessData(scopedActive, true),
+      businesses: db.getAllBusinesses().map(b => sanitizeBusinessData(b, true))
+    });
+  }
 
+  // Unauthenticated public visitor: ONLY return safe public active store metadata
+  const publicActive = db.getActiveBusiness();
   res.json({
     ok: true,
-    active: scopedActive,
-    businesses: db.getAllBusinesses()
+    active: {
+      id: publicActive.id,
+      name: publicActive.name,
+      category: publicActive.category,
+      phone: publicActive.phone,
+      whatsappPhone: publicActive.whatsappPhone,
+      currency: publicActive.currency || 'Rs.',
+      welcomeMessage: publicActive.welcomeMessage,
+      deliveryPolicy: publicActive.deliveryPolicy
+    },
+    businesses: [] // Strictly empty for unauthenticated public requests!
   });
 });
 
-app.post(['/api/business/select', '/api/business/switch'], (req, res) => {
+app.post(['/api/business/select', '/api/business/switch'], requireSessionAuth, (req, res) => {
   const { id } = req.body;
   const active = db.setActiveBusiness(id);
   res.json({ ok: true, active });
 });
 
-app.post('/api/business/save', (req, res) => {
+app.post('/api/business/save', requireSessionAuth, (req, res) => {
   const bId = req.body.id || resolveReqBusinessId(req);
   const updatedData = { ...req.body, id: bId };
   const business = db.saveBusiness(updatedData);
@@ -709,7 +821,7 @@ app.post('/api/subscription/select-plan', (req, res) => {
 });
 
 // Orders Pipeline & Slips
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
@@ -774,7 +886,7 @@ app.post('/api/orders/create', (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/api/orders/delete', (req, res) => {
+app.post('/api/orders/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
   db.deleteOrder(id);
   res.json({ ok: true });
@@ -1455,7 +1567,7 @@ app.post('/api/flows/delete', (req, res) => {
 });
 
 // ─── Store & AI Persona Settings (From APK & Scoped Multi-Tenant) ─────────────
-app.get('/api/settings', (req, res) => {
+app.get('/api/settings', requireSessionAuth, (req, res) => {
   if (isTenantReq(req)) {
     const bId = resolveReqBusinessId(req);
     return res.json({ ok: true, settings: db.getTenantSettings(bId) });
@@ -1463,7 +1575,7 @@ app.get('/api/settings', (req, res) => {
   res.json({ ok: true, settings: db.getSettings() });
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', requireSessionAuth, (req, res) => {
   if (isTenantReq(req)) {
     const bId = resolveReqBusinessId(req);
     const settings = db.updateTenantSettings(bId, req.body);
@@ -1535,7 +1647,7 @@ app.post('/api/gemini/verify-key', async (req, res) => {
 });
 
 // Live Chat Inbox & Human Takeover (Strict Multi-Tenant Scoped)
-app.get('/api/chats', (req, res) => {
+app.get('/api/chats', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
@@ -1543,7 +1655,7 @@ app.get('/api/chats', (req, res) => {
   });
 });
 
-app.post('/api/chats/reply', async (req, res) => {
+app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
   const { chatId, text } = req.body;
   if (!chatId || !text) return res.status(400).json({ error: 'chatId and text required' });
 
@@ -1562,7 +1674,7 @@ app.post('/api/chats/reply', async (req, res) => {
   res.json({ ok: true, ...result });
 });
 
-app.post('/api/chats/mute', (req, res) => {
+app.post('/api/chats/mute', requireSessionAuth, (req, res) => {
   const { chatId, isMuted } = req.body;
   const chat = db.setChatAiMute(chatId, !!isMuted);
   res.json({ ok: true, chat });

@@ -305,6 +305,13 @@ class AgentFleetManager {
     const text = (customerText || '').toLowerCase().trim();
     const fleet = this.getFleet();
 
+    // 🛡️ Security Sentinel check
+    const injectionCheck = PromptInjectionShield ? PromptInjectionShield.inspect(customerText) : { isSuspicious: false };
+    if (injectionCheck.isSuspicious) {
+      const guard = fleet.find(a => a.id === 'agent_guard' && a.active);
+      if (guard) return { ...guard, isGuarded: true, safeReply: injectionCheck.safeReply };
+    }
+
     const isAngry = /horu|fake|polici|police|case|boruwa|anthimayi|damage|wada na|wada karanne na|balu|chora/i.test(text);
     const isSlip = !!context.isSlip || /slip|reciept|receipt|gewwa|damma|transfer/i.test(text);
     const isTrack = /tracking|track|kohedo|koheda|deliver|domex|koombiyo|prompt|fardar|enakan|thama na/i.test(text);

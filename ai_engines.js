@@ -417,7 +417,44 @@ const LanguageDetectionEngine = {
   }
 };
 
+// ─── 7. Production AI Prompt Injection & Jailbreak Defense Shield ─────────────
+const PromptInjectionShield = {
+  INJECTION_PATTERNS: [
+    /ignore (all )?(previous|prior|above) (instructions|directions|rules)/i,
+    /disregard (all )?(previous|prior|above) (instructions|directions|rules)/i,
+    /you are now (in )?(developer mode|unrestricted|god mode|dan)/i,
+    /\b(dan mode|jailbreak|prompt injection|dev mode|bypass filters)\b/i,
+    /pretend (you have no|there are no|to be) (filters|limits|rules|unrestricted)/i,
+    /system prompt override/i,
+    /forget (all )?(your )?(instructions|rules|prompt)/i,
+    /pretend to be an unrestricted/i,
+    /act as an adversarial/i,
+    /reveal (your )?(system prompt|initial prompt|secret key|api key)/i,
+    /output (your )?(system instructions|developer instructions)/i,
+    /approve this order (for free|with 0 amount|automatically)/i,
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i,
+    /javascript:/i,
+    /union\s+select/i
+  ],
+
+  inspect(text) {
+    if (!text || typeof text !== 'string') return { isSuspicious: false, cleanText: text };
+    const trimmed = text.trim();
+    for (const pattern of this.INJECTION_PATTERNS) {
+      if (pattern.test(trimmed)) {
+        return {
+          isSuspicious: true,
+          pattern: pattern.toString(),
+          safeReply: 'ආයුබෝවන්! අපගේ පද්ධතිය සාමාන්‍ය ව්‍යාපාරික නීතිරීති සහ පාරිභෝගික මිල ගණන් අනුව පමණක් ක්‍රියාත්මක වේ. අපගේ Products සහ Services පිළිබඳ ඕනෑම තොරතුරක් විමසිය හැක. 😊'
+        };
+      }
+    }
+    return { isSuspicious: false, cleanText: trimmed };
+  }
+};
+
 module.exports = {
+  PromptInjectionShield,
   CustomerArchetypeEngine,
   AngryCustomerEscalationEngine,
   SmartNegotiationEngine,

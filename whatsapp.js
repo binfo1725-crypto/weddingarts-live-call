@@ -344,6 +344,16 @@ class WhatsAppAccountSession {
             const cleanText = text.trim();
             const lowerText = cleanText.toLowerCase();
 
+            // 🛡️ Security Shield: Block Prompt Injections & Jailbreak Attempts
+            if (typeof PromptInjectionShield !== 'undefined') {
+              const injectionCheck = PromptInjectionShield.inspect(cleanText);
+              if (injectionCheck.isSuspicious) {
+                aiReply = injectionCheck.safeReply;
+                isQuickActionHandled = true;
+                console.warn(`🚨 [SECURITY SENTINEL] Prompt injection neutralized from ${senderPhone}: ${injectionCheck.pattern}`);
+              }
+            }
+
             // 🔘 Fast-Track Interactive Quick Actions (Buttons & Number Replies)
             if (cleanText === '1' || lowerText === 'action_catalog' || lowerText === 'catalog' || lowerText === 'menu' || lowerText === 'භාණ්ඩ' || lowerText === 'මිල ගණන්') {
               const storeProds = db.getProducts(activeBiz.id) || [];
