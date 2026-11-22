@@ -3648,19 +3648,61 @@ server.listen(PORT, () => {
   // Start WhatsApp Multi-Device Web Engine
   waEngine.start();
 
-  // Keep-alive self-ping to prevent cloud container sleep (Render Free Tier 15-min idle sleep prevention)
+  // ─── 24/7 Cloud Container Keep-Alive & Anti-Idle Heartbeat Daemon ─────────────
+  // Render Free Tier services sleep after 15 minutes of inactivity.
+  // This daemon fires external HTTP pings every 4 minutes (with jitter) to continuously keep the container awake.
   const defaultKeepAlive = 'https://omnisix-ai.onrender.com';
   const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || (CALL_SERVER_URL.startsWith('http') && !CALL_SERVER_URL.includes('localhost') ? CALL_SERVER_URL : defaultKeepAlive);
+  
   if (keepAliveUrl.startsWith('https://')) {
     const httpsModule = require('https');
-    setInterval(() => {
-      httpsModule.get(`${keepAliveUrl}/health`, (res) => {
-        // Drain response data so socket returns to agent pool
-        res.resume();
-      }).on('error', (err) => {
-        // Suppress transient DNS / network errors
-      });
-    }, 5 * 60 * 1000); // Ping every 5 minutes (Render sleep threshold is 15 minutes)
-    console.log(`⏱️ Keep-alive 24/7 self-ping configured for: ${keepAliveUrl}/health (5m interval)`);
+
+    const sendKeepAlivePing = (label = 'Periodic') => {
+      try {
+        const pingReq = httpsModule.get(`${keepAliveUrl}/health`, {
+          headers: {
+            'User-Agent': 'OmniSix-24x7-KeepAlive-Daemon/2.0',
+            'Cache-Control': 'no-cache, no-store',
+            'Connection': 'close'
+          },
+          timeout: 15000
+        }, (res) => {
+          res.resume(); // Discard data to release socket
+          const mem = process.memoryUsage();
+          const rssMb = Math.round(mem.rss / (1024 * 1024));
+          const uptimeHrs = (process.uptime() / 3600).toFixed(1);
+          if (res.statusCode === 200) {
+            console.log(`⏱️ [24/7 Keep-Alive] ${label} heartbeat OK (HTTP 200) | Uptime: ${uptimeHrs}h | RAM: ${rssMb}MB`);
+          } else {
+            console.warn(`⚠️ [24/7 Keep-Alive] Received status HTTP ${res.statusCode}`);
+          }
+        });
+
+        pingReq.on('timeout', () => {
+          pingReq.destroy();
+        });
+
+        pingReq.on('error', (err) => {
+          // Suppress transient DNS / network hiccups
+        });
+      } catch (err) {
+        // Guard against synchronous invocation errors
+      }
+    };
+
+    // Initial warm-up ping after 15 seconds
+    setTimeout(() => sendKeepAlivePing('Warm-Up'), 15000);
+
+    // Schedule recursive heartbeat with randomized jitter (3.5 to 4.5 minutes)
+    const scheduleNextPing = () => {
+      const delayMs = (3.5 * 60 * 1000) + Math.floor(Math.random() * (60 * 1000)); // 210s - 270s
+      setTimeout(() => {
+        sendKeepAlivePing('Heartbeat');
+        scheduleNextPing();
+      }, delayMs);
+    };
+    scheduleNextPing();
+
+    console.log(`⏱️ [24/7 Keep-Alive] Autonomous Heartbeat Daemon active for: ${keepAliveUrl}/health (~4 min cycle)`);
   }
 });
