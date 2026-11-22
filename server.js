@@ -336,6 +336,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// SaaS URL & Route Security Guard: Prevent bypassing access controls
+app.use((req, res, next) => {
+  const p = (req.path || '').toLowerCase();
+  if (p === '/free' || p === '/free.html') {
+    return res.redirect('/login');
+  }
+  if (p === '/admin.html') {
+    return res.redirect('/admin');
+  }
+  if (p === '/portal.html') {
+    return res.redirect('/portal');
+  }
+  next();
+});
+
 // Production Static Asset Caching vs Dynamic Route No-Cache
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
@@ -428,8 +443,8 @@ app.get('/portal', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'portal.html'));
 });
 
-app.get('/free', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'free.html'));
+app.get(['/free', '/free.html'], (req, res) => {
+  res.redirect('/login');
 });
 
 // ─── Multi-Tenant License Authentication APIs ────────────────────────────────
@@ -470,37 +485,10 @@ app.post('/api/auth/license-login', licenseLoginLimiter, (req, res) => {
   });
 });
 
-app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
-  const { clientName, clientPhone } = req.body;
-  if (!clientName || !clientPhone) {
-    return res.status(400).json({ ok: false, error: 'Store Name and Phone number are required (නම සහ දුරකථන අංකය අවශ්‍යයි).' });
-  }
-
-  const cleanPhone = clientPhone.replace(/\D/g, '');
-  const normPhone = cleanPhone.length >= 9 ? cleanPhone.slice(-9) : cleanPhone;
-  const existing = (db.data.licenses || []).find(l => {
-    const p = (l.clientPhone || '').replace(/\D/g, '');
-    return (p.length >= 9 ? p.slice(-9) : p) === normPhone;
-  });
-  if (existing) {
-    return res.status(409).json({
-      ok: false,
-      alreadyRegistered: true,
-      error: 'මෙම දුරකථන අංකයෙන් දැනටමත් ගිණුමක් ලියාපදිංචි වී ඇත. කරුණාකර ඔබගේ License Key එකෙන් Login වන්න.'
-    });
-  }
-
-  const newLic = db.generateLicense({
-    plan: 'TRIAL',
-    clientName,
-    clientPhone,
-    notes: 'Free 3-Day Trial Self-Registered'
-  });
-
-  res.json({
-    ok: true,
-    license: newLic,
-    message: '🎉 Free 3-Day Trial License Activated!'
+app.post('/api/auth/free-trial', (req, res) => {
+  res.status(403).json({
+    ok: false,
+    error: 'Free self-service trial generation is disabled. Please contact Admin on WhatsApp (+94 76 210 7801) for activation.'
   });
 });
 
@@ -683,18 +671,37 @@ function sanitizeBusinessData(b, isAdmin = false) {
   return clone;
 }
 
-// Unified Role-Based Access Control (Admin or Valid Tenant Session)
+// Unified Role-Based Access Control (Admin or Valid Active Tenant Session)
 function requireSessionAuth(req, res, next) {
-  if (isAdminReq(req) || isTenantReq(req)) {
+  if (isAdminReq(req)) {
     return next();
   }
+
+  const key = req.headers['x-license-key'] || (req.query && (req.query.licenseKey || req.query.key));
+  if (key && typeof key === 'string') {
+    const cleanKey = key.trim();
+    const lic = db.getLicenseByKey(cleanKey);
+    if (lic && lic.status === 'Active' && lic.businessId) {
+      const sub = db.isBusinessSubscriptionActive(lic.businessId);
+      if (sub && sub.active && !sub.isExpired) {
+        return next();
+      }
+      return res.status(402).json({
+        ok: false,
+        error: 'Subscription expired: නොමිලේ අත්හදා බැලීමේ කාලය (Trial) අවසන් වී ඇත. කරුණාකර Paid Plan එකක් මිලදී ගන්න.',
+        subscription: sub
+      });
+    }
+  }
+
   const apiKey = req.headers['x-api-key'] || (req.query && req.query.apiKey);
   if (apiKey && typeof db.validateApiKey === 'function' && db.validateApiKey(apiKey)) {
     return next();
   }
+
   return res.status(401).json({
     ok: false,
-    error: 'ආරක්ෂිත ප්‍රවේශය අවශ්‍යයි (Authentication Required). කරුණාකර Admin PIN හෝ License Key මඟින් පිවිසෙන්න.'
+    error: 'ආරක්ෂිත ප්‍රවේශය අවශ්‍යයි (Authentication Required). කරුණාකර වලංගු License Key එකක් හෝ Admin PIN මඟින් පිවිසෙන්න.'
   });
 }
 
@@ -706,7 +713,13 @@ function isAdminReq(req) {
 
 function isTenantReq(req) {
   if (isAdminReq(req)) return false;
-  return !!(req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key));
+  const key = req.headers['x-license-key'] || (req.query && (req.query.licenseKey || req.query.key));
+  if (!key || typeof key !== 'string') return false;
+  const cleanKey = key.trim();
+  const lic = db.getLicenseByKey(cleanKey);
+  if (!lic || lic.status !== 'Active' || !lic.businessId) return false;
+  const sub = db.isBusinessSubscriptionActive(lic.businessId);
+  return !!(sub && sub.active && !sub.isExpired);
 }
 
 function resolveReqBusinessId(req) {
@@ -766,8 +779,8 @@ function resolveReqBusinessId(req) {
     }
   }
 
-  const active = db.getActiveBusiness();
-  return active ? active.id : 'default';
+  // Unauthenticated requests MUST NOT access any private store
+  return null;
 }
 
 app.get('/api/portal/store', (req, res) => {
@@ -955,7 +968,7 @@ app.post('/api/business/delete', requireAdminAuth, (req, res) => {
 });
 
 // Real-time Business & ROI Analytics
-app.get('/api/analytics', (req, res) => {
+app.get('/api/analytics', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
@@ -1023,7 +1036,7 @@ app.get('/api/orders', requireSessionAuth, (req, res) => {
   });
 });
 
-app.post(['/api/orders/status', '/api/orders/update-status'], async (req, res) => {
+app.post(['/api/orders/status', '/api/orders/update-status'], requireSessionAuth, async (req, res) => {
   const { id, status, trackingNumber } = req.body;
   const order = db.updateOrderStatus(id, status, trackingNumber);
 
@@ -1054,7 +1067,7 @@ app.post(['/api/orders/status', '/api/orders/update-status'], async (req, res) =
   res.json({ ok: true, order });
 });
 
-app.post('/api/orders/create', (req, res) => {
+app.post('/api/orders/create', requireSessionAuth, (req, res) => {
   const bId = req.body.businessId || resolveReqBusinessId(req);
   const order = db.addOrder({
     ...req.body,
@@ -1116,7 +1129,7 @@ app.get('/api/orders/invoice/:orderId', (req, res) => {
   });
 });
 
-app.post('/api/orders/send-invoice', async (req, res) => {
+app.post('/api/orders/send-invoice', requireSessionAuth, async (req, res) => {
   try {
     const { orderId, customNote } = req.body;
     if (!orderId) return res.status(400).json({ ok: false, error: 'orderId is required' });
@@ -1193,7 +1206,7 @@ app.get('/api/orders/:orderId/invoice.pdf', async (req, res) => {
 });
 
 // ─── 📥 Export Orders & Contacts to CSV (Excel / Courier format) ─────────────
-app.get('/api/export/orders.csv', (req, res) => {
+app.get('/api/export/orders.csv', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const orders = db.getOrders(bId);
   const biz = db.getBusiness(bId) || db.getActiveBusiness();
@@ -1222,7 +1235,7 @@ app.get('/api/export/orders.csv', (req, res) => {
 // ─── 🚚 Automated Courier Waybill Bulk Export (Koombiyo, Domex, Prompt X, Fardar) ──
 
 // ─── 📱 vCard (.vcf) Phonebook Export (Feature 20) ──────────────────────────
-app.get('/api/export/contacts.vcf', (req, res) => {
+app.get('/api/export/contacts.vcf', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const chats = db.getChats(bId);
   const biz = db.getBusiness(bId) || db.getActiveBusiness();
@@ -1254,7 +1267,7 @@ app.get('/api/export/contacts.vcf', (req, res) => {
 });
 
 // ─── 💾 Full Database Backup Export (.json) (Feature 16) ─────────────────────
-app.get('/api/export/backup.json', (req, res) => {
+app.get('/api/export/backup.json', requireAdminAuth, (req, res) => {
   try {
     const backupData = {
       exportDate: new Date().toISOString(),
@@ -1280,11 +1293,11 @@ app.get('/api/export/backup.json', (req, res) => {
 });
 
 // ─── 🛡️ Customer Blacklist Engine (Feature 6) ─────────────────────────────────
-app.get('/api/blacklist', (req, res) => {
+app.get('/api/blacklist', requireSessionAuth, (req, res) => {
   res.json({ ok: true, blacklist: db.getBlacklist() });
 });
 
-app.post('/api/blacklist/toggle', (req, res) => {
+app.post('/api/blacklist/toggle', requireSessionAuth, (req, res) => {
   const { phone, reason } = req.body;
   if (!phone) return res.status(400).json({ ok: false, error: 'Phone is required' });
   const result = db.toggleBlacklist(phone, reason);
@@ -1292,25 +1305,25 @@ app.post('/api/blacklist/toggle', (req, res) => {
 });
 
 // ─── 📝 Private Staff Notes (Feature 10) ─────────────────────────────────────
-app.get('/api/notes/:phone', (req, res) => {
+app.get('/api/notes/:phone', requireSessionAuth, (req, res) => {
   const notes = db.getCustomerNotes(req.params.phone);
   res.json({ ok: true, notes });
 });
 
-app.post('/api/notes/:phone', (req, res) => {
+app.post('/api/notes/:phone', requireSessionAuth, (req, res) => {
   const { text, author } = req.body;
   if (!text) return res.status(400).json({ ok: false, error: 'Note text required' });
   const note = db.addCustomerNote(req.params.phone, text, author);
   res.json({ ok: true, note });
 });
 
-app.delete('/api/notes/:phone/:noteId', (req, res) => {
+app.delete('/api/notes/:phone/:noteId', requireSessionAuth, (req, res) => {
   const success = db.deleteCustomerNote(req.params.phone, req.params.noteId);
   res.json({ ok: success });
 });
 
 // ─── 📊 Daily End-of-Day (EOD) Operations Summary (Feature 12) ───────────────
-app.get('/api/eod-report', (req, res) => {
+app.get('/api/eod-report', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const biz = db.getBusiness(bId) || db.getActiveBusiness();
   const allOrders = db.getOrders(bId);
@@ -1565,7 +1578,7 @@ app.post(['/api/agents/dispatch-test', '/api/agents/test-route'], (req, res) => 
 
 
 
-app.get('/api/export/contacts.csv', (req, res) => {
+app.get('/api/export/contacts.csv', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const chats = db.getChats(bId);
   const biz = db.getBusiness(bId) || db.getActiveBusiness();
@@ -1587,16 +1600,16 @@ app.get('/api/export/contacts.csv', (req, res) => {
 });
 
 // ─── 🏪 17 Pre-Built Business Category Templates ─────────────────────────────
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', requireSessionAuth, (req, res) => {
   res.json({ ok: true, categories: categoryProfiles.getAllCategories() });
 });
 
-app.get('/api/categories/:id', (req, res) => {
+app.get('/api/categories/:id', requireSessionAuth, (req, res) => {
   const cat = categoryProfiles.getCategoryById(req.params.id);
   res.json({ ok: true, category: cat });
 });
 
-app.post('/api/categories/apply', (req, res) => {
+app.post('/api/categories/apply', requireSessionAuth, (req, res) => {
   const { categoryId, loadProducts } = req.body;
   const cat = categoryProfiles.getCategoryById(categoryId);
   if (!cat) return res.status(404).json({ ok: false, error: 'Category not found' });
@@ -1634,12 +1647,12 @@ app.post('/api/categories/apply', (req, res) => {
 });
 
 // ─── ⏰ Automated Follow-Up Engine APIs ───────────────────────────────────────
-app.get('/api/leads/candidates', (req, res) => {
+app.get('/api/leads/candidates', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, candidates: db.getFollowUpCandidates(bId) });
 });
 
-app.post('/api/leads/follow-up', async (req, res) => {
+app.post('/api/leads/follow-up', requireSessionAuth, async (req, res) => {
   try {
     const { leadId, customMessage } = req.body;
     if (!leadId) return res.status(400).json({ ok: false, error: 'leadId is required' });
@@ -1674,12 +1687,12 @@ app.post('/api/leads/follow-up', async (req, res) => {
 });
 
 // ─── Products Catalog CRUD (From APK) ─────────────────────────────────────────
-app.get('/api/products', (req, res) => {
+app.get('/api/products', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, products: db.getProducts(bId) });
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', requireSessionAuth, (req, res) => {
   const bId = req.body.businessId || resolveReqBusinessId(req);
   const biz = db.getBusiness(bId) || db.getActiveBusiness();
   const planId = (biz && biz.subscriptionPlan) || 'enterprise';
@@ -1695,19 +1708,19 @@ app.post('/api/products', (req, res) => {
   res.json({ ok: true, product });
 });
 
-app.post('/api/products/update', (req, res) => {
+app.post('/api/products/update', requireSessionAuth, (req, res) => {
   const { id, ...updates } = req.body;
   const product = db.updateProduct(id, updates);
   res.json({ ok: true, product });
 });
 
-app.post('/api/products/delete', (req, res) => {
+app.post('/api/products/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
   const success = db.deleteProduct(id);
   res.json({ ok: success });
 });
 
-app.post('/api/products/send-photo', async (req, res) => {
+app.post('/api/products/send-photo', requireSessionAuth, async (req, res) => {
   try {
     const { phone, productId, accountId, customCaption } = req.body;
     if (!phone || !productId) {
@@ -1737,24 +1750,24 @@ app.post('/api/products/send-photo', async (req, res) => {
 });
 
 // ─── Custom Keyword Flows CRUD (From APK) ──────────────────────────────────────
-app.get('/api/flows', (req, res) => {
+app.get('/api/flows', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, flows: db.getCustomFlows(bId) });
 });
 
-app.post('/api/flows', (req, res) => {
+app.post('/api/flows', requireSessionAuth, (req, res) => {
   const bId = req.body.businessId || resolveReqBusinessId(req);
   const flow = db.addCustomFlow({ ...req.body, businessId: bId });
   res.json({ ok: true, flow });
 });
 
-app.post('/api/flows/update', (req, res) => {
+app.post('/api/flows/update', requireSessionAuth, (req, res) => {
   const { id, ...updates } = req.body;
   const flow = db.updateCustomFlow(id, updates);
   res.json({ ok: true, flow });
 });
 
-app.post('/api/flows/delete', (req, res) => {
+app.post('/api/flows/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
   const success = db.deleteCustomFlow(id);
   res.json({ ok: success });
@@ -2155,7 +2168,7 @@ app.get('/api/whatsapp/status', (req, res) => {
   });
 });
 
-app.get('/api/whatsapp/accounts', async (req, res) => {
+app.get('/api/whatsapp/accounts', requireSessionAuth, async (req, res) => {
   if (isTenantReq(req)) {
     const bId = resolveReqBusinessId(req);
     const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
@@ -2185,7 +2198,7 @@ app.get('/api/whatsapp/accounts', async (req, res) => {
   });
 });
 
-app.post('/api/whatsapp/accounts/add', async (req, res) => {
+app.post('/api/whatsapp/accounts/add', requireSessionAuth, async (req, res) => {
   try {
     const { label } = req.body;
     let targetBizId = null;
@@ -2218,7 +2231,7 @@ app.post('/api/whatsapp/accounts/add', async (req, res) => {
   }
 });
 
-app.post('/api/whatsapp/accounts/:id/pairing-code', async (req, res) => {
+app.post('/api/whatsapp/accounts/:id/pairing-code', requireSessionAuth, async (req, res) => {
   try {
     const { phoneNumber } = req.body;
     let targetId = req.params.id;
@@ -2237,7 +2250,7 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', async (req, res) => {
   }
 });
 
-app.post('/api/whatsapp/accounts/:id/restart', async (req, res) => {
+app.post('/api/whatsapp/accounts/:id/restart', requireSessionAuth, async (req, res) => {
   try {
     let targetId = req.params.id;
     if (isTenantReq(req)) {
@@ -2255,7 +2268,7 @@ app.post('/api/whatsapp/accounts/:id/restart', async (req, res) => {
   }
 });
 
-app.post('/api/whatsapp/accounts/:id/toggle-bot', async (req, res) => {
+app.post('/api/whatsapp/accounts/:id/toggle-bot', requireSessionAuth, async (req, res) => {
   try {
     const { botActive } = req.body;
     let targetId = req.params.id;
@@ -2274,7 +2287,7 @@ app.post('/api/whatsapp/accounts/:id/toggle-bot', async (req, res) => {
   }
 });
 
-app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
+app.post('/api/whatsapp/accounts/:id/logout', requireSessionAuth, async (req, res) => {
   try {
     let targetId = req.params.id;
     if (isTenantReq(req)) {
@@ -2292,7 +2305,7 @@ app.post('/api/whatsapp/accounts/:id/logout', async (req, res) => {
   }
 });
 
-app.post('/api/whatsapp/accounts/:id/delete', async (req, res) => {
+app.post('/api/whatsapp/accounts/:id/delete', requireSessionAuth, async (req, res) => {
   try {
     const targetId = req.params.id;
     if (targetId === 'default') {
@@ -2389,7 +2402,7 @@ app.post('/api/warmer/logs/clear', (req, res) => {
 });
 
 // ─── 2. Contact Management & Advanced Phonebook API ──────────────────────────
-app.get('/api/contacts', (req, res) => {
+app.get('/api/contacts', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
@@ -2398,13 +2411,13 @@ app.get('/api/contacts', (req, res) => {
   });
 });
 
-app.post('/api/contacts', (req, res) => {
+app.post('/api/contacts', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const contact = db.saveContact({ ...req.body, businessId: bId });
   res.json({ ok: true, contact });
 });
 
-app.post('/api/contacts/bulk', (req, res) => {
+app.post('/api/contacts/bulk', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const { contacts } = req.body;
   if (!Array.isArray(contacts)) {
@@ -2414,7 +2427,7 @@ app.post('/api/contacts/bulk', (req, res) => {
   res.json(result);
 });
 
-app.delete('/api/contacts/:id', (req, res) => {
+app.delete('/api/contacts/:id', requireSessionAuth, (req, res) => {
   res.json(db.deleteContact(req.params.id));
 });
 
@@ -2424,58 +2437,58 @@ app.get('/api/contacts/groups', (req, res) => {
 });
 
 // ─── 3. Kanban CRM & Deal Pipeline API ───────────────────────────────────────
-app.get('/api/kanban/deals', (req, res) => {
+app.get('/api/kanban/deals', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, deals: db.getKanbanDeals(bId) });
 });
 
-app.post('/api/kanban/deals', (req, res) => {
+app.post('/api/kanban/deals', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const deal = db.saveKanbanDeal({ ...req.body, businessId: bId });
   res.json({ ok: true, deal });
 });
 
-app.post('/api/kanban/deals/:id/stage', (req, res) => {
+app.post('/api/kanban/deals/:id/stage', requireSessionAuth, (req, res) => {
   const { stage } = req.body;
   const deal = db.updateDealStage(req.params.id, stage);
   if (deal) res.json({ ok: true, deal });
   else res.status(404).json({ ok: false, error: 'Deal not found.' });
 });
 
-app.delete('/api/kanban/deals/:id', (req, res) => {
+app.delete('/api/kanban/deals/:id', requireSessionAuth, (req, res) => {
   res.json(db.deleteKanbanDeal(req.params.id));
 });
 
 // ─── 4. WhatsApp Interactive Forms & Flows API ──────────────────────────────
-app.get('/api/forms', (req, res) => {
+app.get('/api/forms', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, forms: db.getForms(bId) });
 });
 
-app.post('/api/forms', (req, res) => {
+app.post('/api/forms', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const form = db.saveForm({ ...req.body, businessId: bId });
   res.json({ ok: true, form });
 });
 
-app.delete('/api/forms/:id', (req, res) => {
+app.delete('/api/forms/:id', requireSessionAuth, (req, res) => {
   res.json(db.deleteForm(req.params.id));
 });
 
 // ─── 5. Developer REST API & Webhooks ────────────────────────────────────────
-app.get('/api/developer/keys', (req, res) => {
+app.get('/api/developer/keys', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, keys: db.getApiKeys(bId) });
 });
 
-app.post('/api/developer/keys', (req, res) => {
+app.post('/api/developer/keys', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const { label } = req.body;
   const key = db.createApiKey(bId, label || 'Production Key');
   res.json({ ok: true, key });
 });
 
-app.delete('/api/developer/keys/:id', (req, res) => {
+app.delete('/api/developer/keys/:id', requireAdminAuth, (req, res) => {
   res.json(db.revokeApiKey(req.params.id));
 });
 
@@ -2526,18 +2539,18 @@ app.all('/api/qr/rest/send_message', async (req, res) => {
 });
 
 // ─── 6. Team Collaboration & Agents API ──────────────────────────────────────
-app.get('/api/team/agents', (req, res) => {
+app.get('/api/team/agents', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, agents: db.getAgents(bId) });
 });
 
-app.post('/api/team/agents', (req, res) => {
+app.post('/api/team/agents', requireAdminAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const agent = db.saveAgent({ ...req.body, businessId: bId });
   res.json({ ok: true, agent });
 });
 
-app.delete('/api/team/agents/:id', (req, res) => {
+app.delete('/api/team/agents/:id', requireAdminAuth, (req, res) => {
   res.json(db.deleteAgent(req.params.id));
 });
 
@@ -2598,7 +2611,7 @@ app.get('/widget.js', (req, res) => {
 });
 
 // ─── Master Dataset Upload (.TXT & .PDF) ─────────────────────────────────────
-app.post('/api/dataset/upload', datasetUploadLimiter, async (req, res) => {
+app.post('/api/dataset/upload', requireSessionAuth, datasetUploadLimiter, async (req, res) => {
   try {
     const { fileName, fileType, fileBase64, mode } = req.body;
     if (!fileBase64) {

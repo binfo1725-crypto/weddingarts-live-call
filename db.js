@@ -1091,14 +1091,23 @@ class Database {
 
   // ─── License Keys & Multi-Tenant Management ──────────────────────────────────
   isBusinessSubscriptionActive(businessId) {
-    if (!businessId || businessId === 'weddingarts') {
+    if (!businessId || typeof businessId !== 'string') {
+      return {
+        active: false,
+        planTier: 'none',
+        isExpired: true,
+        daysLeft: 0,
+        reason: 'Missing business store identifier'
+      };
+    }
+    if (businessId === 'weddingarts') {
       return {
         active: true,
         planTier: 'enterprise',
         isExpired: false,
         daysLeft: 9999,
         planLabel: 'Enterprise Root',
-        licenseKey: 'ROOT-LIFETIME'
+        licenseKey: 'SYSTEM-ROOT'
       };
     }
 

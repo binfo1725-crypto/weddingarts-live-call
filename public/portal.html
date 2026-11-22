@@ -2154,6 +2154,12 @@ table tr:hover td {
 
 </head>
 <body style="background:#07080c;color:#f8fafc;">
+  <!-- Strict SaaS Security Gate Overlay -->
+  <div id="portal-auth-guard-overlay" style="position:fixed;inset:0;background:#07080c;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;">
+    <div style="width:50px;height:50px;border:3px solid rgba(16,185,129,0.2);border-top-color:#10b981;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <div style="margin-top:16px;font-weight:700;font-size:1.05rem;letter-spacing:-0.01em;">Verifying SaaS License & Tenant Security...</div>
+    <div style="margin-top:6px;font-size:0.8rem;color:#94a3b8;">Cryptographic Multi-Tenant Isolation Active</div>
+  </div>
 
 <svg style="display:none;">
   <defs>
@@ -4387,6 +4393,8 @@ table tr:hover td {
   function portalLogout() {
     localStorage.removeItem('omnisix_license_key');
     localStorage.removeItem('omnisix_client_name');
+    sessionStorage.removeItem('omnisix_license_key');
+    sessionStorage.removeItem('omnisix_portal_biz_id');
     window.location.replace('/login');
   }
 
@@ -4525,6 +4533,8 @@ async function fetchBusinesses() {
     const res = await fetch(`/api/portal/store?key=${encodeURIComponent(licenseKey)}`);
     const data = await res.json();
     if (data.ok && data.business) {
+      const guardOverlay = document.getElementById('portal-auth-guard-overlay');
+      if (guardOverlay) guardOverlay.style.display = 'none';
       activeBiz = data.business;
       allBusinesses = [activeBiz];
       const storeNameEl = document.getElementById('portal-store-name');
