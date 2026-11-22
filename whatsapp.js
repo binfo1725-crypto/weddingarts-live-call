@@ -196,6 +196,14 @@ class WhatsAppAccountSession {
             const remoteJid = msg.key.remoteJid;
             if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') continue;
 
+            // [WA-TRIAL-GUARD] Stop all WhatsApp automation if trial or subscription is expired
+            const storeBiz = (this.businessId && (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId))) || db.getActiveBusiness();
+            const subStatus = db.isBusinessSubscriptionActive(storeBiz.id);
+            if (!subStatus.active) {
+              console.warn(`[WA-TRIAL-GUARD] Trial or Subscription expired for store ${storeBiz.name} (${storeBiz.id}). Stopping AI auto-reply.`);
+              continue;
+            }
+
             // WhatsApp Message Deduplication (drops replayed events on reconnect)
             const msgId = msg.key?.id;
             if (msgId && this.manager && this.manager.isMessageProcessed(msgId)) {

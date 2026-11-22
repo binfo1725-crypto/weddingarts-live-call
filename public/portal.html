@@ -1158,6 +1158,44 @@
     color: #ffffff !important;
   }
 
+
+/* ── Modal Popups Mobile Touch Scrolling Fix ────────────────────────────── */
+@media (max-width: 991px) {
+  .modal-overlay {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: 14px 6px 90px 6px !important;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+  }
+  .modal-overlay.hidden {
+    display: none !important;
+  }
+  .modal-card,
+  .modal-overlay > div,
+  .whatzi-modal-content,
+  div[class*="modal-card"],
+  div[class*="modal-content"],
+  div[style*="max-width:880px"],
+  div[style*="max-width:680px"],
+  div[style*="max-width:650px"],
+  div[style*="max-width:700px"] {
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    margin: 8px auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
 </style>
   <link rel="stylesheet" href="/whatzi_suite.css">
   <style id="whatzi-theme-inline">
@@ -3769,7 +3807,7 @@ table tr:hover td {
               <li style="color:#94a3b8;">❌ Live Calls Disabled</li>
             </ul>
           </div>
-          <button id="btn-plan-starter" class="btn-secondary" onclick="chooseSubscriptionPlan('starter')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
+          <button id="btn-plan-starter" class="btn-secondary" onclick="requestPlanUpgrade('starter', 'Starter Plan', 1900)" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
         </div>
 
         <!-- Pro Plan (Popular) -->
@@ -3789,7 +3827,7 @@ table tr:hover td {
               <li>✅ Smart Order Recovery</li>
             </ul>
           </div>
-          <button id="btn-plan-pro" class="btn-primary" onclick="chooseSubscriptionPlan('pro')" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
+          <button id="btn-plan-pro" class="btn-primary" onclick="requestPlanUpgrade('pro', 'Pro Plan', 2900)" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
         </div>
 
         <!-- Enterprise Plan -->
@@ -3809,7 +3847,7 @@ table tr:hover td {
               <li>✅ VIP Priority Support</li>
             </ul>
           </div>
-          <button id="btn-plan-enterprise" class="btn-primary" onclick="chooseSubscriptionPlan('enterprise')" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
+          <button id="btn-plan-enterprise" class="btn-primary" onclick="requestPlanUpgrade('enterprise', 'Enterprise Plan', 3500)" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
         </div>
       </div>
     </div>
@@ -4396,6 +4434,39 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Business Management ──────────────────────────────────────────────────────
+
+function checkSubscriptionStatus(sub) {
+  if (sub && (sub.isExpired || !sub.active)) {
+    const expiredModal = document.getElementById('modal-trial-expired');
+    if (expiredModal) {
+      expiredModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+}
+
+async function activateLicenseKeyDirect() {
+  const keyInput = document.getElementById('trial-unlock-license-key');
+  const key = keyInput ? keyInput.value.trim() : '';
+  if (!key) {
+    alert('කරුණාකර වලංගු License Key එකක් ඇතුළත් කරන්න.');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/portal/store?key=${encodeURIComponent(key)}`);
+    const data = await res.json();
+    if (data.ok && data.subscription && data.subscription.active) {
+      alert('🎉 License Key එක සාර්ථකව සක්‍රීය කරන ලදී!');
+      localStorage.setItem('omnisix_license_key', key);
+      window.location.reload();
+    } else {
+      alert('අවලංගු හෝ කල් ඉකුත් වූ License Key එකකි. කරුණාකර Admin අමතන්න.');
+    }
+  } catch(e) {
+    alert('සක්‍රීය කිරීම අසාර්ථකයි: ' + e.message);
+  }
+}
+
 async function fetchBusinesses() {
   try {
     const res = await fetch(`/api/portal/store?key=${encodeURIComponent(licenseKey)}`);
@@ -4414,6 +4485,9 @@ async function fetchBusinesses() {
         planEl.textContent = `${data.license.plan} (● ${daysText})`;
       }
       loadBusinessForm();
+      if (data.subscription) {
+        checkSubscriptionStatus(data.subscription);
+      }
     } else {
       alert('License is expired or invalid. Please log in again.');
       portalLogout();
@@ -4550,24 +4624,47 @@ function closeSubscriptionModal() {
   if (m) m.classList.add('hidden');
 }
 
-async function chooseSubscriptionPlan(planId) {
+function requestPlanUpgrade(planId, planName, price) {
+  closeSubscriptionModal();
+  const m = document.getElementById('modal-upgrade-request');
+  if (m) {
+    document.getElementById('upgrade-plan-name').textContent = `${planName} (රු. ${price.toLocaleString()}/මසකට)`;
+    document.getElementById('upgrade-plan-id').value = planId;
+    m.classList.remove('hidden');
+  }
+}
+
+function closeUpgradeRequestModal() {
+  const m = document.getElementById('modal-upgrade-request');
+  if (m) m.classList.add('hidden');
+}
+
+async function submitUpgradeRequest(e) {
+  if (e) e.preventDefault();
+  const planId = document.getElementById('upgrade-plan-id').value;
+  const clientName = document.getElementById('upgrade-client-name')?.value || (activeBiz && activeBiz.ownerName) || '';
+  const clientPhone = document.getElementById('upgrade-client-phone')?.value || (activeBiz && activeBiz.phone) || '';
+  const notes = document.getElementById('upgrade-notes')?.value || '';
+
   try {
-    const res = await fetch('/api/subscription/select-plan', {
+    const res = await fetch('/api/subscription/request-upgrade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planId })
+      body: JSON.stringify({ planId, clientName, clientPhone, notes })
     });
     const data = await res.json();
-    if (data.ok) {
-      alert(`🎉 ${data.message}`);
-      closeSubscriptionModal();
-      fetchOverview();
-    } else {
-      alert(`Error: ${data.error}`);
-    }
+    alert(data.message || 'ඉල්ලීම සාර්ථකව යොමු කරන ලදී!');
+    closeUpgradeRequestModal();
   } catch (err) {
-    alert(`Failed to update plan: ${err.message}`);
+    alert('Failed to submit upgrade request: ' + err.message);
   }
+}
+
+function openWhatsAppUpgrade() {
+  const planName = document.getElementById('upgrade-plan-name')?.textContent || 'SaaS Plan';
+  const storeName = activeBiz ? activeBiz.name : 'OmniSix Store';
+  const text = encodeURIComponent(`Hi OmniSix AI Support, I want to upgrade my store "${storeName}" to ${planName}. Please provide payment verification.`);
+  window.open(`https://wa.me/94762107601?text=${text}`, '_blank');
 }
 
 function renderOrdersOverview(orders) {
@@ -6311,6 +6408,101 @@ window.addEventListener('resize', () => {
     <span class="mob-tab-label">Menu</span>
   </button>
 </nav>
+
+
+<!-- 🔒 TRIAL EXPIRED FULL-SCREEN PAYWALL MODAL -->
+<div id="modal-trial-expired" class="modal-overlay hidden" style="position:fixed;inset:0;background:rgba(5,7,12,0.92);backdrop-filter:blur(14px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal-card" style="max-width:680px;width:100%;background:#0d111a;border:2px solid #ff0055;border-radius:24px;box-shadow:0 25px 70px rgba(0,0,0,0.95), 0 0 50px rgba(255,0,85,0.35);padding:30px 26px;text-align:center;color:#f8fafc;">
+    <div style="width:72px;height:72px;background:rgba(255,0,85,0.15);border:2px solid #ff0055;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;font-size:2rem;">
+      🔒
+    </div>
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:#ffffff;margin-bottom:8px;">
+      දින 3ක Free Trial කාලය අවසන් වී ඇත!
+    </h2>
+    <p style="font-size:0.88rem;color:#cbd5e1;line-height:1.6;margin-bottom:22px;">
+      ඔබගේ OmniSix AI WhatsApp Agent, සජීවී Voice Calls, සහ ස්වයංක්‍රීය පද්ධති සියල්ල තාවකාලිකව නවතා ඇත. සේවාව අඛණ්ඩව පවත්වා ගැනීමට කරුණාකර Paid Plan එකක් මිලදී ගන්න.
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:24px;text-align:left;">
+      <div style="background:#131926;border:1px solid rgba(255,255,255,0.1);padding:14px;border-radius:14px;">
+        <div style="font-size:0.75rem;color:#94a3b8;font-weight:700;">STARTER</div>
+        <div style="font-size:1.3rem;font-weight:900;color:#22c55e;">රු. 1,900</div>
+        <div style="font-size:0.7rem;color:#cbd5e1;margin-top:4px;">1 WhatsApp | 1,500 Replies | 20 Products</div>
+      </div>
+      <div style="background:#131926;border:2px solid #2563eb;padding:14px;border-radius:14px;position:relative;">
+        <span style="position:absolute;top:-10px;right:10px;background:#2563eb;color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:10px;">POPULAR</span>
+        <div style="font-size:0.75rem;color:#60a5fa;font-weight:700;">PRO</div>
+        <div style="font-size:1.3rem;font-weight:900;color:#38bdf8;">රු. 2,900</div>
+        <div style="font-size:0.7rem;color:#cbd5e1;margin-top:4px;">Voice Notes + Invoices + Follow-ups</div>
+      </div>
+      <div style="background:#131926;border:1px solid #ff0055;padding:14px;border-radius:14px;">
+        <div style="font-size:0.75rem;color:#ff0055;font-weight:700;">ENTERPRISE</div>
+        <div style="font-size:1.3rem;font-weight:900;color:#ff3366;">රු. 3,500</div>
+        <div style="font-size:0.7rem;color:#cbd5e1;margin-top:4px;">Unlimited | 20 AI Fleet | Gemini Voice Calls</div>
+      </div>
+    </div>
+
+    <!-- Payment & Upgrade Action Buttons -->
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
+      <a href="https://wa.me/94762107601?text=Hi%20OmniSix%20AI%20Support,%20My%203-day%20trial%20is%20expired.%20I%20want%20to%20buy%20a%20Paid%20Plan." target="_blank" class="btn-primary" style="background:#22c55e;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;font-weight:700;">
+        💬 Pay & Upgrade via WhatsApp (076 210 7601)
+      </a>
+      <button type="button" class="btn-secondary" onclick="openSubscriptionModal()" style="padding:12px 18px;border-radius:12px;font-weight:700;">
+        🏦 Bank Details & Slip Upload
+      </button>
+    </div>
+
+    <!-- Direct License Key Entry -->
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);padding:14px;border-radius:14px;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
+      <span style="font-size:0.78rem;color:#94a3b8;">Already have a paid key?</span>
+      <input type="text" id="trial-unlock-license-key" placeholder="OMNI-PRO-XXXX-XXXX" style="background:#07080c;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.82rem;width:200px;text-transform:uppercase;">
+      <button type="button" class="btn-primary" onclick="activateLicenseKeyDirect()" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">Activate Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🏦 UPGRADE REQUEST & PAYMENT DETAILS MODAL -->
+<div id="modal-upgrade-request" class="modal-overlay hidden" style="backdrop-filter:blur(10px);z-index:999999;">
+  <div class="modal-card" style="max-width:540px;width:100%;padding:24px;border-radius:20px;background:#0d111a;border:1px solid rgba(34,197,94,0.3);box-shadow:0 25px 60px rgba(0,0,0,0.9);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#ffffff;">Plan Upgrade & Bank Details</h3>
+      <button type="button" onclick="closeUpgradeRequestModal()" style="background:none;border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+    
+    <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);padding:12px 14px;border-radius:12px;margin-bottom:16px;">
+      <div style="font-size:0.75rem;color:#86efac;font-weight:700;">SELECTED PLAN</div>
+      <div id="upgrade-plan-name" style="font-size:1.1rem;font-weight:800;color:#ffffff;margin-top:2px;">Pro Plan (රු. 2,900/මසකට)</div>
+      <input type="hidden" id="upgrade-plan-id" value="pro">
+    </div>
+
+    <div style="background:#131926;border:1px solid rgba(255,255,255,0.08);padding:14px;border-radius:12px;font-size:0.82rem;line-height:1.8;color:#cbd5e1;margin-bottom:16px;">
+      <div style="font-weight:700;color:#f8fafc;margin-bottom:4px;">🏦 Bank Deposit / Online Transfer Details:</div>
+      <div>• Bank: <strong>Commercial Bank of Ceylon</strong></div>
+      <div>• Account Name: <strong>OmniSix AI Solutions</strong></div>
+      <div>• Account Number: <strong>8010203040</strong></div>
+      <div>• Branch: <strong>Colombo City Branch</strong></div>
+    </div>
+
+    <form onsubmit="submitUpgradeRequest(event)">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.75rem;color:#94a3b8;display:block;margin-bottom:4px;">Your Contact WhatsApp Phone:</label>
+        <input type="tel" id="upgrade-client-phone" placeholder="07XXXXXXXX" required style="width:100%;background:#07080c;border:1px solid rgba(255,255,255,0.16);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.85rem;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.75rem;color:#94a3b8;display:block;margin-bottom:4px;">Payment Reference / Slip Note:</label>
+        <input type="text" id="upgrade-notes" placeholder="e.g. Paid from ComBank App ref #12345" style="width:100%;background:#07080c;border:1px solid rgba(255,255,255,0.16);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.85rem;">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn-primary" style="flex:1;padding:10px;font-weight:700;border-radius:10px;">
+          Submit Upgrade Request
+        </button>
+        <button type="button" class="btn-secondary" onclick="openWhatsAppUpgrade()" style="flex:1;background:#22c55e;color:#fff;border-color:#22c55e;padding:10px;font-weight:700;border-radius:10px;">
+          WhatsApp Slip Now
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
 </body>
 </html>

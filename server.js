@@ -960,17 +960,41 @@ app.get('/api/subscription/plans', (req, res) => {
   });
 });
 
-app.post('/api/subscription/select-plan', (req, res) => {
-  const { planId } = req.body || {};
+// Super Admin Only: Direct Plan Update
+app.post('/api/subscription/select-plan', requireSessionAuth, (req, res) => {
+  const { planId, businessId } = req.body || {};
   if (!db.SUBSCRIPTION_PLANS[planId]) {
     return res.status(400).json({ ok: false, error: 'Invalid subscription plan' });
   }
-  const bId = resolveReqBusinessId(req);
+  const bId = businessId || resolveReqBusinessId(req);
   db.updateBusinessPlan(bId, planId);
   res.json({
     ok: true,
-    message: `Plan upgraded successfully to ${db.SUBSCRIPTION_PLANS[planId].name}!`,
+    message: `Plan updated successfully to ${db.SUBSCRIPTION_PLANS[planId].name} by Administrator!`,
     plan: db.SUBSCRIPTION_PLANS[planId]
+  });
+});
+
+// Client Portal Plan Upgrade Request (Requires Admin Approval & Payment Verification)
+app.post('/api/subscription/request-upgrade', (req, res) => {
+  const { planId, clientPhone, clientName, notes } = req.body || {};
+  if (!db.SUBSCRIPTION_PLANS[planId]) {
+    return res.status(400).json({ ok: false, error: 'Invalid subscription plan selected' });
+  }
+  const bId = resolveReqBusinessId(req);
+  const biz = db.getBusiness(bId) || db.getActiveBusiness();
+  const reqEntry = db.addSubscriptionRequest({
+    businessId: biz.id,
+    storeName: biz.name,
+    planId,
+    clientPhone: clientPhone || biz.phone || '',
+    clientName: clientName || biz.ownerName || '',
+    notes
+  });
+  res.json({
+    ok: true,
+    message: `ඔබගේ ${db.SUBSCRIPTION_PLANS[planId].name} Upgrade ඉල්ලීම ලැබිණි. කරුණාකර බැංකු රිසිට්පත 076 210 7601 WhatsApp කරන්න. පරිපාලක තහවුරු කළ වහාම සක්‍රීය වේ.`,
+    request: reqEntry
   });
 });
 
@@ -2875,6 +2899,11 @@ wss.on('connection', (browserWs, req) => {
 // ─── Gemini AI Engine with Smart Dataset Query ────────────────────────────────
 async function getGeminiReply(userMessage, sess, userLang) {
   const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
+  const subStatus = db.isBusinessSubscriptionActive(activeBiz.id);
+  if (!subStatus.active) {
+    console.warn(`[TRIAL-GUARD] AI reply stopped for ${activeBiz.name} (${activeBiz.id}): ${subStatus.reason}`);
+    return `🔒 *OmniSix AI — Subscription Notice*\nඔබගේ නොමිලේ අත්හදා බැලීමේ කාලසීමාව (Free 3-Day Trial) අවසන් වී ඇත. සේවාව අඛණ්ඩව පවත්වා ගැනීමට කරුණාකර Paid Plan එකක් (Starter රු. 1,900 / Pro රු. 2,900 / Enterprise රු. 3,500) සක්‍රීය කරගන්න.\n📞 විස්තර සහ සහය සඳහා WhatsApp අමතන්න: 076 210 7601`;
+  }
   const settings = (sess && sess.businessId && db.getTenantSettings(sess.businessId)) || db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
   if (!sess.apiKey && (settings.geminiApiKey || activeBiz.geminiApiKey)) {

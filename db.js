@@ -1090,6 +1090,111 @@ class Database {
   }
 
   // ─── License Keys & Multi-Tenant Management ──────────────────────────────────
+  isBusinessSubscriptionActive(businessId) {
+    if (!businessId || businessId === 'weddingarts') {
+      return {
+        active: true,
+        planTier: 'enterprise',
+        isExpired: false,
+        daysLeft: 9999,
+        planLabel: 'Enterprise Root',
+        licenseKey: 'ROOT-LIFETIME'
+      };
+    }
+
+    const biz = this.getBusiness(businessId);
+    if (!biz) {
+      return { active: false, planTier: 'none', isExpired: true, daysLeft: 0, reason: 'Business not found' };
+    }
+
+    const licenses = this.getLicenses().filter(l => l.businessId === businessId);
+    const activeLic = licenses.find(l => l.status === 'Active' && !l.isExpired);
+
+    if (activeLic) {
+      return {
+        active: true,
+        planTier: activeLic.planTier || biz.subscriptionPlan || 'starter',
+        isExpired: false,
+        daysLeft: activeLic.daysLeft,
+        planLabel: activeLic.planLabel || activeLic.label || activeLic.plan,
+        licenseKey: activeLic.key
+      };
+    }
+
+    const expiredLic = licenses.find(l => l.status === 'Expired' || l.isExpired);
+    if (expiredLic) {
+      return {
+        active: false,
+        planTier: expiredLic.planTier || biz.subscriptionPlan || 'starter',
+        isExpired: true,
+        daysLeft: 0,
+        planLabel: expiredLic.planLabel || expiredLic.label || expiredLic.plan,
+        reason: 'Subscription license expired',
+        licenseKey: expiredLic.key
+      };
+    }
+
+    // Trial calculation based on createdAt (3 days)
+    if (biz.createdAt) {
+      const createdTime = new Date(biz.createdAt).getTime();
+      const now = Date.now();
+      const diffMs = now - createdTime;
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+      if (diffMs > threeDaysMs) {
+        return {
+          active: false,
+          planTier: 'starter',
+          isExpired: true,
+          daysLeft: 0,
+          planLabel: 'Free Trial (3 Days)',
+          reason: '3-Day Free Trial Expired'
+        };
+      } else {
+        const daysLeft = Math.max(1, Math.ceil((threeDaysMs - diffMs) / (24 * 60 * 60 * 1000)));
+        return {
+          active: true,
+          planTier: 'starter',
+          isExpired: false,
+          daysLeft,
+          planLabel: 'Free Trial (3 Days)'
+        };
+      }
+    }
+
+    return {
+      active: false,
+      planTier: 'starter',
+      isExpired: true,
+      daysLeft: 0,
+      planLabel: 'Trial Expired',
+      reason: 'No active paid plan found'
+    };
+  }
+
+  addSubscriptionRequest({ businessId, storeName, planId, clientPhone, clientName, notes }) {
+    if (!this.data.subscriptionRequests) this.data.subscriptionRequests = [];
+    const entry = {
+      id: 'REQ-' + Date.now(),
+      businessId,
+      storeName,
+      planId,
+      planName: SUBSCRIPTION_PLANS[planId]?.name || planId,
+      price: SUBSCRIPTION_PLANS[planId]?.price || 0,
+      clientPhone,
+      clientName,
+      notes: notes || '',
+      status: 'Pending',
+      createdAt: new Date().toISOString()
+    };
+    this.data.subscriptionRequests.unshift(entry);
+    this.save();
+    return entry;
+  }
+
+  getSubscriptionRequests() {
+    return this.data.subscriptionRequests || [];
+  }
+
   getLicenses() {
     if (!this.data.licenses) this.data.licenses = [];
     return this.data.licenses.map(lic => {
