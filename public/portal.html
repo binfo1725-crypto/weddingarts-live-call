@@ -3807,7 +3807,13 @@ table tr:hover td {
               <li style="color:#94a3b8;">❌ Live Calls Disabled</li>
             </ul>
           </div>
-          <button id="btn-plan-starter" class="btn-secondary" onclick="requestPlanUpgrade('starter', 'Starter Plan', 1900)" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Starter</button>
+          
+          <button type="button" class="btn-primary" onclick="buyPlanViaWhatsApp('starter', 'Starter Plan', 1900)" style="background:#22c55e;border-color:#22c55e;color:#fff;width:100%;margin-top:16px;font-weight:700;font-size:0.84rem;display:flex;align-items:center;justify-content:center;gap:6px;">
+            💬 WhatsApp මඟින් මිලදී ගන්න
+          </button>
+          <button type="button" class="btn-secondary" onclick="requestPlanUpgrade('starter', 'Starter Plan', 1900)" style="width:100%;margin-top:8px;font-weight:600;font-size:0.78rem;">
+            🏦 Bank Transfer / Slip Note
+          </button>
         </div>
 
         <!-- Pro Plan (Popular) -->
@@ -3827,7 +3833,13 @@ table tr:hover td {
               <li>✅ Smart Order Recovery</li>
             </ul>
           </div>
-          <button id="btn-plan-pro" class="btn-primary" onclick="requestPlanUpgrade('pro', 'Pro Plan', 2900)" style="width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Pro Plan</button>
+          
+          <button type="button" class="btn-primary" onclick="buyPlanViaWhatsApp('pro', 'Pro Plan', 2900)" style="background:#22c55e;border-color:#22c55e;color:#fff;width:100%;margin-top:16px;font-weight:700;font-size:0.84rem;display:flex;align-items:center;justify-content:center;gap:6px;">
+            💬 WhatsApp මඟින් මිලදී ගන්න
+          </button>
+          <button type="button" class="btn-secondary" onclick="requestPlanUpgrade('pro', 'Pro Plan', 2900)" style="width:100%;margin-top:8px;font-weight:600;font-size:0.78rem;">
+            🏦 Bank Transfer / Slip Note
+          </button>
         </div>
 
         <!-- Enterprise Plan -->
@@ -3847,7 +3859,52 @@ table tr:hover td {
               <li>✅ VIP Priority Support</li>
             </ul>
           </div>
-          <button id="btn-plan-enterprise" class="btn-primary" onclick="requestPlanUpgrade('enterprise', 'Enterprise Plan', 3500)" style="background:#059669;border-color:#059669;width:100%;margin-top:18px;font-weight:700;font-size:0.84rem;">Select Enterprise</button>
+          
+          <button type="button" class="btn-primary" onclick="buyPlanViaWhatsApp('enterprise', 'Enterprise Plan', 3500)" style="background:#22c55e;border-color:#22c55e;color:#fff;width:100%;margin-top:16px;font-weight:700;font-size:0.84rem;display:flex;align-items:center;justify-content:center;gap:6px;">
+            💬 WhatsApp මඟින් මිලදී ගන්න
+          </button>
+          <button type="button" class="btn-secondary" onclick="requestPlanUpgrade('enterprise', 'Enterprise Plan', 3500)" style="width:100%;margin-top:8px;font-weight:600;font-size:0.78rem;">
+            🏦 Bank Transfer / Slip Note
+          </button>
+        </div>
+      </div>
+
+      <!-- 🏦 OFFICIAL BANK PAYMENT & DIRECT WHATSAPP BUY SECTION -->
+      <div style="margin-top:22px;background:linear-gradient(135deg, rgba(37,99,235,0.14), rgba(16,185,129,0.14));border:1px solid rgba(34,197,94,0.35);border-radius:18px;padding:20px 22px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+          <div>
+            <div style="font-size:0.75rem;font-weight:800;color:#22c55e;text-transform:uppercase;letter-spacing:0.05em;">🏦 නිල ගෙවීම් විස්තර (Official Bank Details)</div>
+            <h4 style="margin:2px 0 0 0;font-size:1.05rem;color:#ffffff;font-weight:800;">Bank of Ceylon (BOC Bank) — සෘජු ගෙවීම් ගිණුම</h4>
+          </div>
+          <a href="https://wa.me/94762107801?text=Hi%20Tharindu,%20I%20want%20to%20buy%20a%20Paid%20Plan%20for%20my%20OmniSix%20AI%20Store." target="_blank" class="btn-primary" style="background:#22c55e;border-color:#22c55e;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:10px;font-weight:700;font-size:0.84rem;box-shadow:0 0 16px rgba(34,197,94,0.45);">
+            💬 WhatsApp Hotline: 076 210 7801
+          </a>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;background:#0d121c;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);font-size:0.84rem;">
+          <div>
+            <span style="color:#94a3b8;font-size:0.72rem;display:block;">බැංකුව (Bank):</span>
+            <strong style="color:#f8fafc;">Bank of Ceylon (BOC Bank)</strong>
+          </div>
+          <div>
+            <span style="color:#94a3b8;font-size:0.72rem;display:block;">ගිණුම් අංකය (Account Number):</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <strong style="color:#22c55e;font-size:1.05rem;letter-spacing:0.04em;">92949122</strong>
+              <button type="button" onclick="navigator.clipboard.writeText('92949122');alert('BOC ගිණුම් අංකය (92949122) Copy කරගන්නා ලදී!');" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;padding:2px 8px;border-radius:6px;font-size:0.7rem;cursor:pointer;">📋 Copy</button>
+            </div>
+          </div>
+          <div>
+            <span style="color:#94a3b8;font-size:0.72rem;display:block;">ගිණුම් හිමියාගේ නම (Account Name):</span>
+            <strong style="color:#f8fafc;">D T Rajapaksha (Tharindu Rajapaksha)</strong>
+          </div>
+          <div>
+            <span style="color:#94a3b8;font-size:0.72rem;display:block;">WhatsApp Slip Verification:</span>
+            <strong style="color:#38bdf8;">076 210 7801</strong>
+          </div>
+        </div>
+
+        <div style="font-size:0.78rem;color:#94a3b8;margin-top:10px;display:flex;align-items:center;gap:6px;">
+          <span>💡</span> <span>බැංකු ගෙවීම සිදුකර හෝ Online Banking Transfer කර Slip / Receipt පත <strong>076 210 7801</strong> වෙත WhatsApp කළ වහාම ඔබගේ Store Plan එක සක්‍රීය කෙරේ.</span>
         </div>
       </div>
     </div>
@@ -4660,11 +4717,17 @@ async function submitUpgradeRequest(e) {
   }
 }
 
+function buyPlanViaWhatsApp(planId, planName, price) {
+  const storeName = activeBiz ? activeBiz.name : 'My Store';
+  const text = encodeURIComponent(`Hi Tharindu, I want to buy the ${planName} (Rs. ${price.toLocaleString()}/month) for my store "${storeName}". Please send activation details.`);
+  window.open(`https://wa.me/94762107801?text=${text}`, '_blank');
+}
+
 function openWhatsAppUpgrade() {
   const planName = document.getElementById('upgrade-plan-name')?.textContent || 'SaaS Plan';
   const storeName = activeBiz ? activeBiz.name : 'OmniSix Store';
-  const text = encodeURIComponent(`Hi OmniSix AI Support, I want to upgrade my store "${storeName}" to ${planName}. Please provide payment verification.`);
-  window.open(`https://wa.me/94762107601?text=${text}`, '_blank');
+  const text = encodeURIComponent(`Hi Tharindu (OmniSix AI), I want to upgrade my store "${storeName}" to ${planName}. Here is my bank payment receipt.`);
+  window.open(`https://wa.me/94762107801?text=${text}`, '_blank');
 }
 
 function renderOrdersOverview(orders) {
@@ -6444,9 +6507,22 @@ window.addEventListener('resize', () => {
 
     <!-- Payment & Upgrade Action Buttons -->
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
-      <a href="https://wa.me/94762107601?text=Hi%20OmniSix%20AI%20Support,%20My%203-day%20trial%20is%20expired.%20I%20want%20to%20buy%20a%20Paid%20Plan." target="_blank" class="btn-primary" style="background:#22c55e;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;font-weight:700;">
-        💬 Pay & Upgrade via WhatsApp (076 210 7601)
-      </a>
+      
+    <!-- BOC Bank Account Details Box in Paywall -->
+    <div style="background:#131926;border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:14px;margin-bottom:20px;text-align:left;font-size:0.84rem;line-height:1.7;">
+      <div style="font-weight:700;color:#22c55e;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+        <span>🏦 BOC Bank Account Details (ගෙවීම් තොරතුරු):</span>
+        <button type="button" onclick="navigator.clipboard.writeText('92949122');alert('BOC Account Number (92949122) Copied!');" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:2px 8px;border-radius:6px;font-size:0.7rem;cursor:pointer;">📋 Copy Acc</button>
+      </div>
+      <div>• Bank: <strong style="color:#fff;">Bank of Ceylon (BOC)</strong></div>
+      <div>• Account Number: <strong style="color:#22c55e;font-size:1.05rem;">92949122</strong></div>
+      <div>• Account Name: <strong style="color:#fff;">D T Rajapaksha (Tharindu Rajapaksha)</strong></div>
+      <div>• WhatsApp Hotline: <strong style="color:#38bdf8;">076 210 7801</strong></div>
+    </div>
+
+    <a href="https://wa.me/94762107801?text=Hi%20Tharindu,%20my%20OmniSix%20AI%20store%20trial%20is%20expired.%20I%20want%20to%20buy%20a%20Paid%20Plan%20and%20send%20the%20payment%20slip." target="_blank" class="btn-primary" style="background:#22c55e;border-color:#22c55e;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;font-weight:700;font-size:0.9rem;box-shadow:0 0 20px rgba(34,197,94,0.5);">
+      💬 WhatsApp මඟින් මිලදී ගන්න (076 210 7801)
+    </a>
       <button type="button" class="btn-secondary" onclick="openSubscriptionModal()" style="padding:12px 18px;border-radius:12px;font-weight:700;">
         🏦 Bank Details & Slip Upload
       </button>
@@ -6475,12 +6551,15 @@ window.addEventListener('resize', () => {
       <input type="hidden" id="upgrade-plan-id" value="pro">
     </div>
 
-    <div style="background:#131926;border:1px solid rgba(255,255,255,0.08);padding:14px;border-radius:12px;font-size:0.82rem;line-height:1.8;color:#cbd5e1;margin-bottom:16px;">
-      <div style="font-weight:700;color:#f8fafc;margin-bottom:4px;">🏦 Bank Deposit / Online Transfer Details:</div>
-      <div>• Bank: <strong>Commercial Bank of Ceylon</strong></div>
-      <div>• Account Name: <strong>OmniSix AI Solutions</strong></div>
-      <div>• Account Number: <strong>8010203040</strong></div>
-      <div>• Branch: <strong>Colombo City Branch</strong></div>
+    <div style="background:#131926;border:1px solid rgba(34,197,94,0.3);padding:14px;border-radius:12px;font-size:0.84rem;line-height:1.8;color:#cbd5e1;margin-bottom:16px;">
+      <div style="font-weight:700;color:#22c55e;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+        <span>🏦 Bank of Ceylon (BOC) Official Account:</span>
+        <button type="button" onclick="navigator.clipboard.writeText('92949122');alert('BOC Account Number (92949122) Copied!');" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:2px 8px;border-radius:6px;font-size:0.7rem;cursor:pointer;">📋 Copy Acc</button>
+      </div>
+      <div>• Bank: <strong style="color:#ffffff;">Bank of Ceylon (BOC Bank)</strong></div>
+      <div>• Account Number: <strong style="color:#22c55e;font-size:1.05rem;">92949122</strong></div>
+      <div>• Account Name: <strong style="color:#ffffff;">D T Rajapaksha (Tharindu Rajapaksha)</strong></div>
+      <div>• WhatsApp Hotline: <strong style="color:#38bdf8;">076 210 7801</strong></div>
     </div>
 
     <form onsubmit="submitUpgradeRequest(event)">
@@ -6497,7 +6576,7 @@ window.addEventListener('resize', () => {
           Submit Upgrade Request
         </button>
         <button type="button" class="btn-secondary" onclick="openWhatsAppUpgrade()" style="flex:1;background:#22c55e;color:#fff;border-color:#22c55e;padding:10px;font-weight:700;border-radius:10px;">
-          WhatsApp Slip Now
+          💬 WhatsApp Slip to 076 210 7801
         </button>
       </div>
     </form>
