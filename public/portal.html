@@ -844,32 +844,7 @@
     color: var(--text-primary);
   }
 
-  @media (max-width: 991px) {
-    .dashboard-container { flex-direction: column; padding: 12px; gap: 12px; }
-    .sidebar {
-      width: 100%;
-      height: auto;
-      max-height: none;
-      position: static;
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: hidden;
-      white-space: nowrap;
-      padding: 8px 10px;
-      gap: 6px;
-      border-radius: 12px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .sidebar::-webkit-scrollbar { display: none; }
-    .tab-btn {
-      width: auto;
-      flex-shrink: 0;
-      padding: 8px 14px;
-      white-space: nowrap;
-      font-size: 0.82rem;
-    }
-  }
+  /* Obsolete horizontal sidebar query replaced by OmniSix Responsive Engine in whatzi_suite.css */
 
   @media (max-width: 768px) {
     .navbar { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
@@ -1713,6 +1688,10 @@ table tr:hover td {
 <!-- Top Navbar -->
 <header class="navbar" id="admin-header" style="display:none;">
   <div class="nav-left">
+    <!-- Mobile Navigation Drawer Toggle -->
+    <button type="button" class="mobile-menu-toggle-btn" onclick="toggleMobileDrawer()" title="Open Navigation Menu" aria-label="Toggle navigation menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
     <!-- OmniSix AI Brand Logo -->
     <a href="javascript:void(0)" onclick="showTab('overview')" style="display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:12px;">
       <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.1rem;box-shadow:0 0 14px rgba(16,185,129,0.5);">6</div>
@@ -1777,6 +1756,9 @@ table tr:hover td {
   </div>
 </header>
 
+<!-- Mobile Drawer Backdrop -->
+<div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" onclick="closeMobileDrawer()"></div>
+
 <!-- Main Container -->
 <div class="dashboard-container">
 
@@ -1792,7 +1774,10 @@ table tr:hover td {
         <div class="whatzi-brand-title">OmniSix AI</div>
       </div>
     </div>
-    <button type="button" class="whatzi-collapse-btn" title="Toggle sidebar" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">&lt;</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button type="button" class="whatzi-collapse-btn desktop-only" title="Toggle sidebar" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">&lt;</button>
+      <button type="button" class="mobile-drawer-close" title="Close menu" onclick="closeMobileDrawer()">&times;</button>
+    </div>
   </div>
 
   <!-- Search Menu Capsule -->
@@ -3922,6 +3907,15 @@ function showTab(tabName) {
   }
 
   currentTab = tabName;
+  // SYNC_MOBILE_BOTTOM_NAV
+  if (typeof closeMobileDrawer === 'function') closeMobileDrawer();
+  document.querySelectorAll('.mobile-bottom-nav .mob-tab-btn').forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
   window.scrollTo({ top: 0, behavior: 'instant' });
   const stage = document.querySelector('.main-stage');
   if (stage) stage.scrollTop = 0;
@@ -5809,6 +5803,72 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-  <script src="/whatzi_suite.js"></script>
+  <script src="/whatzi_suite.js">
+
+// ─── Mobile Navigation Drawer & Responsive Collapse ──────────────────────────
+function toggleMobileDrawer() {
+  const sb = document.querySelector('.sidebar');
+  const bd = document.getElementById('mobile-drawer-backdrop');
+  if (!sb) return;
+  const isOpen = sb.classList.contains('mobile-open');
+  if (isOpen) {
+    closeMobileDrawer();
+  } else {
+    sb.classList.add('mobile-open');
+    if (bd) bd.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeMobileDrawer() {
+  const sb = document.querySelector('.sidebar');
+  const bd = document.getElementById('mobile-drawer-backdrop');
+  if (sb) sb.classList.remove('mobile-open');
+  if (bd) bd.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// Window resize auto-collapse handler for desktop split-screens
+window.addEventListener('resize', () => {
+  const sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  if (window.innerWidth >= 992 && window.innerWidth <= 1180) {
+    if (!sb.classList.contains('collapsed')) {
+      sb.classList.add('collapsed');
+    }
+  } else if (window.innerWidth > 1180) {
+    // Keep desktop state
+  } else {
+    // On mobile (< 992px), ensure collapsed is removed so drawer shows full content
+    sb.classList.remove('collapsed');
+  }
+});
+
+</script>
+
+<!-- Mobile Sticky Bottom Navigation Dock -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-dock">
+  <button type="button" class="mob-tab-btn active" data-tab="overview" onclick="showTab('overview')">
+    <span class="mob-tab-icon">📊</span>
+    <span class="mob-tab-label">Overview</span>
+  </button>
+  <button type="button" class="mob-tab-btn" data-tab="inbox" onclick="showTab('inbox')">
+    <span class="mob-tab-icon">💬</span>
+    <span class="mob-tab-label">Inbox</span>
+  </button>
+  <button type="button" class="mob-tab-btn" data-tab="orders" onclick="showTab('orders')">
+    <span class="mob-tab-icon">📦</span>
+    <span class="mob-tab-label">Orders</span>
+  </button>
+  <button type="button" class="mob-tab-btn" data-tab="products" onclick="showTab('products')">
+    <span class="mob-tab-icon">🏷️</span>
+    <span class="mob-tab-label">Products</span>
+  </button>
+  <button type="button" class="mob-tab-btn" onclick="toggleMobileDrawer()">
+    <span class="mob-tab-icon">☰</span>
+    <span class="mob-tab-label">Menu</span>
+  </button>
+</nav>
+
 </body>
 </html>

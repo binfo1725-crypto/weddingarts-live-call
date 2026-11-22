@@ -508,3 +508,391 @@ table tr:hover td {
   display: flex;
   gap: 12px;
 }
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* OMNISIX AI RESPONSIVE UX ENGINE: DESKTOP & MOBILE OPTIMIZATIONS           */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Desktop & Ultra-Wide Ergonomics (>= 1600px & >= 1720px) ────────── */
+@media (min-width: 1720px) {
+  .dashboard-container {
+    max-width: 1720px !important;
+    margin: 0 auto !important;
+  }
+  .navbar {
+    max-width: 1720px !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* ── 2. Fluid Split-Screen & Laptops (992px to 1440px) ─────────────────── */
+.dashboard-container {
+  display: flex !important;
+  flex-direction: row !important;
+  padding: 14px 18px !important;
+  gap: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+.main-stage {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.table-responsive {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: block !important;
+  border-radius: 12px !important;
+}
+
+.table-responsive table {
+  width: 100% !important;
+  min-width: 680px;
+}
+
+/* Sidebar Smooth Transitions */
+.sidebar {
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), left 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s ease !important;
+}
+
+.sidebar.collapsed {
+  width: 66px !important;
+  min-width: 66px !important;
+  padding: 14px 6px !important;
+}
+.sidebar.collapsed .whatzi-brand-title,
+.sidebar.collapsed .whatzi-search-box,
+.sidebar.collapsed .whatzi-nav-category,
+.sidebar.collapsed .tab-btn > span,
+.sidebar.collapsed .whatzi-badge-new,
+.sidebar.collapsed .whatzi-sidebar-footer {
+  display: none !important;
+}
+.sidebar.collapsed .tab-btn {
+  justify-content: center !important;
+  padding: 10px 0 !important;
+  width: 100% !important;
+}
+.sidebar.collapsed .whatzi-sidebar-brand {
+  justify-content: center !important;
+  padding: 4px 0 14px 0 !important;
+}
+.sidebar.collapsed .whatzi-collapse-btn {
+  transform: rotate(180deg) !important;
+}
+
+/* ── 3. Mobile Header & Drawer Navigation (<= 991px) ────────────────────── */
+.mobile-menu-toggle-btn {
+  display: none !important;
+}
+.mobile-drawer-close {
+  display: none !important;
+}
+.mobile-drawer-backdrop {
+  display: none;
+}
+.mobile-bottom-nav {
+  display: none !important;
+}
+
+@media (max-width: 991px) {
+  .mobile-menu-toggle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .mobile-menu-toggle-btn:hover,
+  .mobile-menu-toggle-btn:active {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #22c55e;
+    color: #22c55e;
+  }
+
+  .mobile-drawer-close {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .whatzi-collapse-btn.desktop-only {
+    display: none !important;
+  }
+
+  /* Backdrop Overlay */
+  .mobile-drawer-backdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(4, 7, 13, 0.78) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    z-index: 10000 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.28s ease !important;
+  }
+  .mobile-drawer-backdrop.show {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* Slide-Over Drawer Sidebar */
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: -320px !important;
+    width: 290px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    z-index: 10001 !important;
+    background: #0d121c !important;
+    border-radius: 0 18px 18px 0 !important;
+    border-left: none !important;
+    box-shadow: 12px 0 45px rgba(0, 0, 0, 0.85) !important;
+    padding: 16px 14px 40px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .sidebar.mobile-open {
+    left: 0 !important;
+  }
+  .sidebar.collapsed {
+    width: 290px !important;
+  }
+  .sidebar.collapsed .whatzi-brand-title,
+  .sidebar.collapsed .whatzi-search-box,
+  .sidebar.collapsed .whatzi-nav-category,
+  .sidebar.collapsed .tab-btn > span,
+  .sidebar.collapsed .whatzi-badge-new,
+  .sidebar.collapsed .whatzi-sidebar-footer {
+    display: flex !important;
+  }
+  .sidebar .tab-btn {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding: 10px 14px !important;
+    font-size: 0.88rem !important;
+    white-space: normal !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Main Stage Container on Mobile/Tablet */
+  .dashboard-container {
+    display: block !important;
+    flex-direction: column !important;
+    padding: 12px 12px 84px 12px !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Sticky Bottom Navigation Dock */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 62px !important;
+    background: rgba(13, 18, 28, 0.94) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.65) !important;
+    z-index: 9999 !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 4px 6px calc(env(safe-area-inset-bottom, 6px) + 4px) 6px !important;
+    box-sizing: border-box !important;
+  }
+  .mob-tab-btn {
+    flex: 1 !important;
+    background: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 6px 2px !important;
+    font-size: 0.68rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    border-radius: 8px !important;
+  }
+  .mob-tab-btn .mob-tab-icon {
+    font-size: 1.15rem !important;
+    line-height: 1 !important;
+  }
+  .mob-tab-btn.active {
+    color: #22c55e !important;
+    font-weight: 700 !important;
+  }
+  .mob-tab-btn.active .mob-tab-icon {
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6));
+    transform: scale(1.1);
+  }
+}
+
+/* ── 4. Smartphone Screens (< 768px & < 480px) ──────────────────────────── */
+@media (max-width: 768px) {
+  /* Prevent iOS Safari input auto-zoom */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Compact Navbar */
+  .navbar {
+    padding: 8px 12px !important;
+    min-height: 54px !important;
+    gap: 8px !important;
+  }
+  .nav-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 1 1 auto !important;
+  }
+  .nav-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 0 0 auto !important;
+  }
+  .biz-switcher-wrap {
+    margin-left: 4px !important;
+    max-width: 140px !important;
+  }
+  .biz-switcher-wrap label {
+    display: none !important;
+  }
+  .biz-select {
+    max-width: 110px !important;
+    font-size: 0.76rem !important;
+    padding: 4px 6px !important;
+  }
+  .btn-add-store {
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+  }
+  #nav-cloud-status,
+  #audio-label,
+  .whatzi-breadcrumb,
+  .whatzi-nav-icon-btn[onclick*="toggleRTLMode"],
+  button[onclick*="openEODReportModal"] {
+    display: none !important;
+  }
+  .whatzi-nav-btn {
+    padding: 4px 8px !important;
+    font-size: 0.74rem !important;
+  }
+
+  /* Metrics Cards Responsive 2-Col Grid */
+  .metrics-grid,
+  .overview-stats-grid,
+  .stats-grid,
+  div[style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .metric-card {
+    padding: 12px 10px !important;
+    border-radius: 12px !important;
+  }
+  .metric-card .value,
+  .metric-card h3,
+  .metric-card [style*="font-size: 1.8rem"],
+  .metric-card [style*="font-size: 1.6rem"] {
+    font-size: 1.3rem !important;
+  }
+  .metric-card .label,
+  .metric-card p {
+    font-size: 0.72rem !important;
+  }
+
+  /* Modals on Mobile */
+  .modal-content,
+  .whatzi-modal-content {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 16px !important;
+    margin: 10px auto !important;
+    max-height: 90vh !important;
+  }
+
+  /* Glass Card padding */
+  .glass-card {
+    padding: 14px 12px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Chat Inbox on Mobile */
+  .chat-layout {
+    grid-template-columns: 1fr !important;
+    height: calc(100vh - 145px) !important;
+  }
+  .chat-list.mobile-hidden {
+    display: none !important;
+  }
+  .chat-main.mobile-hidden {
+    display: none !important;
+  }
+  .mobile-back-to-chats {
+    display: inline-flex !important;
+  }
+}
+
+/* ── 5. Small Phones (< 380px) ──────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .metrics-grid,
+  .overview-stats-grid,
+  .stats-grid,
+  div[style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: 1fr !important;
+  }
+  .biz-select {
+    max-width: 80px !important;
+  }
+}
