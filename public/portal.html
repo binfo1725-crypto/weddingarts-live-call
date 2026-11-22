@@ -2183,15 +2183,11 @@ table tr:hover td {
       <span id="whatzi-cur-page-title" class="whatzi-breadcrumb-cur">Executive Overview</span>
     </div>
 
-    <!-- Store Switcher Pill -->
-    <div class="biz-switcher-wrap" style="margin-left: 12px;">
-      <label>STORE:</label>
-      <select class="biz-select" id="business-select" onchange="switchBusiness(this.value)">
-        <!-- Injected via JS -->
-      </select>
-      <button type="button" class="btn-add-store" onclick="openAddStoreModal()" title="Setup & add a custom store" style="border-radius:6px;padding:2px 8px;font-size:0.75rem;">
-        + New
-      </button>
+    <!-- Active Store Badge (Tenant Isolated) -->
+    <div class="biz-switcher-wrap" style="margin-left: 12px; display: inline-flex; align-items: center; gap: 8px;">
+      <label style="font-size:0.75rem;font-weight:700;color:#94a3b8;margin:0;">STORE:</label>
+      <span id="portal-header-store-badge" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#10b981;font-weight:700;font-size:0.8rem;padding:4px 12px;border-radius:8px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;">Loading Store...</span>
+      <select class="biz-select" id="business-select" style="display:none;" onchange="switchBusiness(this.value)"></select>
     </div>
   </div>
 
@@ -2493,7 +2489,7 @@ table tr:hover td {
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">සතිය තුළ AI කතාබස් කළ පිරිස</span>
               <span style="color:#2563eb;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
             </div>
-            <div style="font-size:1.6rem;font-weight:800;color:#ff0055;" id="roi-weekly-chats">412</div>
+            <div style="font-size:1.6rem;font-weight:800;color:#ff0055;" id="roi-weekly-chats">0</div>
             <div style="font-size:0.73rem;color:#059669;margin-top:4px;font-weight:600;">WhatsApp & Calls Handled 24/7</div>
           </div>
 
@@ -2504,8 +2500,8 @@ table tr:hover td {
               <span style="color:#059669;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
             </div>
             <div style="display:flex;align-items:baseline;gap:8px;">
-              <div style="font-size:1.6rem;font-weight:800;color:#ffffff;" id="roi-confirmed-orders">58</div>
-              <span id="roi-conversion-rate" style="font-size:0.88rem;font-weight:800;color:#059669;background:#ecfdf5;padding:2px 8px;border-radius:6px;">14.1% Rate</span>
+              <div style="font-size:1.6rem;font-weight:800;color:#ffffff;" id="roi-confirmed-orders">0</div>
+              <span id="roi-conversion-rate" style="font-size:0.88rem;font-weight:800;color:#059669;background:#ecfdf5;padding:2px 8px;border-radius:6px;">0.0% Rate</span>
             </div>
             <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">Inquiry ➜ Paid Order Conversion</div>
           </div>
@@ -2516,7 +2512,7 @@ table tr:hover td {
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">AI මඟින් උපයා දුන් ආදායම</span>
               <span style="color:#059669;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
             </div>
-            <div style="font-size:1.6rem;font-weight:800;color:#059669;">Rs. <span id="roi-revenue">248,500</span></div>
+            <div style="font-size:1.6rem;font-weight:800;color:#059669;">Rs. <span id="roi-revenue">0</span></div>
             <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">තහවුරු කළ ඇණවුම් වලින් ආදායම</div>
           </div>
 
@@ -2526,7 +2522,7 @@ table tr:hover td {
               <span style="font-size:0.78rem;font-weight:700;color:#64748b;">Human Agent ට ඉතිරි කළ කාලය</span>
               <span style="color:#7c3aed;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
             </div>
-            <div style="font-size:1.6rem;font-weight:800;color:#7c3aed;" id="roi-hours-saved">34.0 පැය</div>
+            <div style="font-size:1.6rem;font-weight:800;color:#7c3aed;" id="roi-hours-saved">0.0 පැය</div>
             <div style="font-size:0.73rem;color:#64748b;margin-top:4px;">5 mins / chat automation savings</div>
           </div>
         </div>
@@ -2632,10 +2628,10 @@ table tr:hover td {
             <div style="margin-bottom:14px;">
               <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;">
                 <span style="font-weight:700;color: #cbd5e1;">AI Text & Voice Replies</span>
-                <span style="font-weight:800;color:#2563eb;" id="quota-ai-text">412 / 1,500</span>
+                <span style="font-weight:800;color:#2563eb;" id="quota-ai-text">0 / 1,500</span>
               </div>
               <div style="background:#e2e8f0;height:8px;border-radius:10px;overflow:hidden;">
-                <div id="quota-ai-bar" style="background:linear-gradient(90deg, #3b82f6, #6366f1);height:100%;width:27.5%;border-radius:10px;transition:width 0.4s ease;"></div>
+                <div id="quota-ai-bar" style="background:linear-gradient(90deg, #3b82f6, #6366f1);height:100%;width:0%;border-radius:10px;transition:width 0.4s ease;"></div>
               </div>
             </div>
 
@@ -2643,10 +2639,10 @@ table tr:hover td {
             <div style="margin-bottom:14px;">
               <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;">
                 <span style="font-weight:700;color: #cbd5e1;">Products Catalog Limit</span>
-                <span style="font-weight:800;color:#059669;" id="quota-products-text">5 / 20 Products</span>
+                <span style="font-weight:800;color:#059669;" id="quota-products-text">0 / 20 Products</span>
               </div>
               <div style="background:#e2e8f0;height:8px;border-radius:10px;overflow:hidden;">
-                <div id="quota-products-bar" style="background:linear-gradient(90deg, #10b981, #059669);height:100%;width:25%;border-radius:10px;transition:width 0.4s ease;"></div>
+                <div id="quota-products-bar" style="background:linear-gradient(90deg, #10b981, #059669);height:100%;width:0%;border-radius:10px;transition:width 0.4s ease;"></div>
               </div>
             </div>
 
@@ -3779,17 +3775,17 @@ table tr:hover td {
 </div>
 
 <!-- Modal: Tiered Subscription Plans (Pricing & Quotas) -->
-<div id="modal-subscription-plans" class="modal-overlay hidden" style="backdrop-filter:blur(8px);z-index:99999;">
-  <div class="modal-card" style="max-width:880px;width:100%;padding:0;overflow:hidden;border-radius:22px;box-shadow:0 25px 60px rgba(0,0,0,0.35);">
-    <div style="background:linear-gradient(135deg, #0f172a, #1e3a8a, #059669);padding:24px 30px;color:#ffffff;display:flex;justify-content:space-between;align-items:center;">
+<div id="modal-subscription-plans" class="modal-overlay hidden" style="backdrop-filter:blur(8px);z-index:99999;align-items:flex-start;overflow-y:auto;padding:20px 12px 60px 12px;">
+  <div class="modal-card" style="max-width:880px;width:100%;margin:auto;max-height:90vh;display:flex;flex-direction:column;border-radius:22px;box-shadow:0 25px 60px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.12);overflow:hidden;">
+    <div style="flex-shrink:0;background:linear-gradient(135deg, #0f172a, #1e3a8a, #059669);padding:18px 24px;color:#ffffff;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);">
       <div>
-        <h3 style="margin:0;font-size:1.25rem;font-weight:800;">OmniSix AI — Subscription Pricing & Plans</h3>
+        <h3 style="margin:0;font-size:1.2rem;font-weight:800;">OmniSix AI — Subscription Pricing & Plans</h3>
         <p style="margin:4px 0 0;font-size:0.8rem;color:rgba(255,255,255,0.85);">ඔබගේ ව්‍යාපාරික අවශ්‍යතාවයට ගැළපෙන හොඳම SaaS සැලසුම තෝරාගන්න</p>
       </div>
-      <button type="button" onclick="closeSubscriptionModal()" style="background:rgba(255,255,255,0.15);border:none;color:#ffffff;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;">✕</button>
+      <button type="button" onclick="closeSubscriptionModal()" style="background:rgba(255,255,255,0.15);border:none;color:#ffffff;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">✕</button>
     </div>
 
-    <div style="padding:28px 30px;background: #07080c;">
+    <div style="flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:22px 24px;background:#07080c;">
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:18px;">
         <!-- Starter Plan -->
         <div class="plan-card" style="background: #10121b;border:2px solid #e2e8f0;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;position:relative;">
@@ -4342,22 +4338,22 @@ table tr:hover td {
 
 
 <script>
-  // ─── Client Portal License Verification & Multi-Tab Interceptor ──────────────────
+  // ─── Client Portal License Verification & Multi-Tenant Interceptor ──────────────────
   const urlParams = new URLSearchParams(window.location.search);
   const urlKey = urlParams.get('key') || urlParams.get('licenseKey');
   if (urlKey) {
     localStorage.setItem('omnisix_license_key', urlKey);
     sessionStorage.setItem('omnisix_license_key', urlKey);
-  }
-  const urlBiz = urlParams.get('biz') || urlParams.get('store');
-  if (urlBiz) {
-    sessionStorage.setItem('omnisix_portal_biz_id', urlBiz);
+    // Secure URL sanitization: Strip sensitive keys and parameters from address bar
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (e) {}
   }
 
   let licenseKey = sessionStorage.getItem('omnisix_license_key') || localStorage.getItem('omnisix_license_key');
-  const portalBizId = sessionStorage.getItem('omnisix_portal_biz_id') || urlBiz;
 
-  if (!licenseKey && !portalBizId) {
+  // Strict SaaS Security: Portal access is strictly prohibited without a valid License Key
+  if (!licenseKey) {
     window.location.replace('/login');
   }
 
@@ -4533,6 +4529,8 @@ async function fetchBusinesses() {
       allBusinesses = [activeBiz];
       const storeNameEl = document.getElementById('portal-store-name');
       if (storeNameEl) storeNameEl.textContent = activeBiz.name;
+      const headerStoreBadge = document.getElementById('portal-header-store-badge');
+      if (headerStoreBadge) headerStoreBadge.textContent = activeBiz.name;
       const metricStoreEl = document.getElementById('metric-store-name');
       if (metricStoreEl) metricStoreEl.textContent = activeBiz.name;
 
@@ -4558,6 +4556,8 @@ function populateBusinessSelect() {
   if (activeBiz) {
     const el = document.getElementById('portal-store-name');
     if (el) el.textContent = activeBiz.name;
+    const hb = document.getElementById('portal-header-store-badge');
+    if (hb) hb.textContent = activeBiz.name;
     const m = document.getElementById('metric-store-name');
     if (m) m.textContent = activeBiz.name;
   }
@@ -4617,13 +4617,13 @@ async function fetchOverview() {
           }
         });
 
-        // Update Quota Bars
+        // Update Quota Bars (Strictly Real Runtime Metrics)
         const qTier = document.getElementById('quota-tier-name');
         if (qTier) qTier.textContent = r.activePlan.name;
         const qAiText = document.getElementById('quota-ai-text');
         const qAiBar = document.getElementById('quota-ai-bar');
-        const weeklyChats = r.weeklyConversations || 412;
-        const limitText = r.activePlan.limits?.monthlyReplies || 1500;
+        const weeklyChats = Number(r.weeklyConversations !== undefined ? r.weeklyConversations : 0);
+        const limitText = (r.activePlan && r.activePlan.limits?.monthlyReplies) ? r.activePlan.limits.monthlyReplies : 1500;
         if (qAiText) qAiText.textContent = `${weeklyChats} / ${limitText.toLocaleString('en-US')}`;
         if (qAiBar) {
           const pct = Math.min(100, Math.round((weeklyChats / limitText) * 100));
@@ -4631,8 +4631,8 @@ async function fetchOverview() {
         }
         const qProdText = document.getElementById('quota-products-text');
         const qProdBar = document.getElementById('quota-products-bar');
-        const prodCount = (allProducts && allProducts.length > 0) ? allProducts.length : 5;
-        const prodLimit = r.activePlan.limits?.products || 20;
+        const prodCount = (allProducts && Array.isArray(allProducts)) ? allProducts.length : 0;
+        const prodLimit = (r.activePlan && r.activePlan.limits?.products) ? r.activePlan.limits.products : 20;
         if (qProdText) qProdText.textContent = `${prodCount} / ${prodLimit} Products`;
         if (qProdBar) {
           const pPct = Math.min(100, Math.round((prodCount / prodLimit) * 100));

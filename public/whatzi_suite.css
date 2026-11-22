@@ -655,20 +655,49 @@ body[dir="rtl"] .tab-btn {
 
 
 
-/* ── Modal Popups Mobile Touch Scrolling Fix ────────────────────────────── */
+/* ── Modal Popups Responsive Touch Scrolling & Viewport Fitting Fix ────────────────────────────── */
+.modal-overlay {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 24px 12px 60px 12px !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
+  touch-action: pan-y !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+}
+.modal-overlay.hidden {
+  display: none !important;
+}
+.modal-card,
+.modal-overlay > div,
+.whatzi-modal-content,
+div[class*="modal-card"],
+div[class*="modal-content"],
+div[style*="max-width:880px"],
+div[style*="max-width:680px"],
+div[style*="max-width:650px"],
+div[style*="max-width:700px"] {
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  margin: 12px auto !important;
+}
+.modal-card > div:nth-child(2),
+div[style*="max-width:880px"] > div:nth-child(2),
+.whatzi-modal-content > div:nth-child(2) {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  flex: 1 1 auto !important;
+}
 @media (max-width: 991px) {
   .modal-overlay {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
     padding: 14px 6px 90px 6px !important;
-    overflow-y: scroll !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: contain !important;
-    touch-action: pan-y !important;
-  }
-  .modal-overlay.hidden {
-    display: none !important;
   }
   .modal-card,
   .modal-overlay > div,
@@ -679,15 +708,9 @@ body[dir="rtl"] .tab-btn {
   div[style*="max-width:680px"],
   div[style*="max-width:650px"],
   div[style*="max-width:700px"] {
-    max-height: 85vh !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: contain !important;
-    touch-action: pan-y !important;
+    max-height: 88vh !important;
     width: 96vw !important;
     max-width: 96vw !important;
     margin: 8px auto !important;
-    box-sizing: border-box !important;
   }
 }

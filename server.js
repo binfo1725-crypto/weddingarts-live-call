@@ -747,23 +747,23 @@ function resolveReqBusinessId(req) {
     }
   }
 
-  // Multi-Tab isolation: Check tab-scoped header
-  const headerBizId = req.headers['x-business-id'];
-  if (headerBizId && db.getBusiness(headerBizId)) {
-    return headerBizId;
-  }
-
-  // Check URL query parameters (store, biz, businessId)
-  if (req.query) {
-    const qb = req.query.store || req.query.biz || req.query.businessId;
-    if (qb && db.getBusiness(qb)) {
-      return qb;
+  // Admin Multi-Tab or Scoped requests: Only allow custom store switching if authenticated as Admin
+  if (isAdminReq(req)) {
+    const headerBizId = req.headers['x-business-id'];
+    if (headerBizId && db.getBusiness(headerBizId)) {
+      return headerBizId;
     }
-  }
 
-  // Check request body
-  if (req.body && req.body.businessId && db.getBusiness(req.body.businessId)) {
-    return req.body.businessId;
+    if (req.query) {
+      const qb = req.query.store || req.query.biz || req.query.businessId;
+      if (qb && db.getBusiness(qb)) {
+        return qb;
+      }
+    }
+
+    if (req.body && req.body.businessId && db.getBusiness(req.body.businessId)) {
+      return req.body.businessId;
+    }
   }
 
   const active = db.getActiveBusiness();
@@ -772,36 +772,44 @@ function resolveReqBusinessId(req) {
 
 app.get('/api/portal/store', (req, res) => {
   const key = req.headers['x-license-key'] || req.query.key;
-  const requestedBizId = req.headers['x-business-id'] || req.query.biz || req.query.store;
-
-  let lic = key ? db.getLicenseByKey(key) : null;
-  let biz = null;
-
-  if (lic && lic.status === 'Active') {
-    biz = db.getAllBusinesses().find(b => b.id === lic.businessId) || db.getActiveBusiness();
-  } else if (requestedBizId && db.getBusiness(requestedBizId)) {
-    biz = db.getBusiness(requestedBizId);
-    lic = (db.data.licenses || []).find(l => l.businessId === requestedBizId && l.status === 'Active') || {
-      key: 'PORTAL-DIRECT-' + biz.id.toUpperCase(),
-      clientName: biz.name,
-      planTier: biz.subscriptionPlan || 'enterprise',
-      status: 'Active',
-      expiresAt: '2099-12-31T23:59:59.999Z',
-      daysLeft: 9999
-    };
-  } else {
-    return res.status(401).json({ ok: false, error: 'Missing or invalid license key header.' });
+  if (!key) {
+    return res.status(401).json({ ok: false, error: 'Access Denied: Valid SaaS License Key required.' });
   }
+
+  const lic = db.getLicenseByKey(key);
+  if (!lic || lic.status !== 'Active') {
+    return res.status(401).json({ ok: false, error: 'Access Denied: License Key is invalid, expired or revoked.' });
+  }
+
+  const tenantBizId = lic.businessId;
+  if (!tenantBizId) {
+    return res.status(403).json({ ok: false, error: 'Tenant Error: No store linked to this license key.' });
+  }
+
+  // Cross-tenant access validation: strictly forbid URL parameter tampering
+  const requestedBizId = req.headers['x-business-id'] || req.query.biz || req.query.store;
+  if (requestedBizId && requestedBizId !== tenantBizId) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant store access prohibited. Strict multi-tenant isolation enforced.' });
+  }
+
+  const biz = db.getBusiness(tenantBizId);
+  if (!biz) {
+    return res.status(404).json({ ok: false, error: 'Business store not found.' });
+  }
+
+  // Subscription and 3-day trial check
+  const subStatus = db.isBusinessSubscriptionActive(biz.id);
 
   const orders = db.getOrders(biz.id);
   const products = db.getProducts(biz.id);
   const flows = db.getCustomFlows(biz.id);
-  const chats = (db.data.chats || []).filter(c => !c.businessId || c.businessId === biz.id);
+  const chats = (db.data.chats || []).filter(c => c.businessId === biz.id);
 
   res.json({
     ok: true,
     license: lic,
     business: biz,
+    subscription: subStatus,
     products,
     flows,
     orders,
@@ -812,6 +820,14 @@ app.get('/api/portal/store', (req, res) => {
       totalChats: chats.length,
       productsCount: products.length
     }
+  });
+});
+
+// Secure Super Admin Master PIN endpoint (Admin Panel only, requires active admin token)
+app.get('/api/admin/master-info', requireAdminAuth, (req, res) => {
+  res.json({
+    ok: true,
+    masterPin: ADMIN_MASTER_PASSWORD
   });
 });
 
