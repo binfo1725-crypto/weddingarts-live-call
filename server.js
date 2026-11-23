@@ -363,6 +363,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // ─── 📊 Production Observability & Health Probes ─────────────────────────────
+// Ultra-fast, zero-overhead 24/7 keep-alive endpoint for external uptime monitors (UptimeRobot, Cron-Job, etc.)
+app.all(['/ping', '/keepalive'], (req, res) => {
+  res.status(200).type('text/plain').send('PONG');
+});
+
 app.get('/health', (req, res) => {
   if (!db.isMongoConnected) {
     db.initMongo().catch(() => {});
