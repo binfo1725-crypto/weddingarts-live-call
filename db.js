@@ -128,6 +128,7 @@ class Database {
       broadcasts: [],  // Pure Real Production: Starts with 0 fake campaigns
       licenses: [],    // Multi-Tenant SaaS Client License Keys
       whatsappAccounts: [], // Multi-Account WhatsApp Sessions
+      adminSessions: {},   // Persistent Super Admin Auth Tokens
       leads: [],       // Unconfirmed Leads & Follow-Up Tracking
       whatsapp: {
         connected: false,
@@ -328,6 +329,15 @@ class Database {
         }
         const demoIdsSync = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon', 'test_starter_store', 'test_pro_store', 'test_ent_store', 'boutique', 'salon', 'restaurant'];
         this.data.businesses = Array.from(bizMap.values()).filter(b => !demoIdsSync.includes(b.id));
+
+        // Merge Admin Sessions
+        if (cloudData.adminSessions && typeof cloudData.adminSessions === 'object') {
+          if (!this.data.adminSessions) this.data.adminSessions = {};
+          const now = Date.now();
+          for (const [tok, exp] of Object.entries(cloudData.adminSessions)) {
+            if (exp > now) this.data.adminSessions[tok] = exp;
+          }
+        }
 
         // Merge Settings
         if (cloudData.settings) {

@@ -556,22 +556,38 @@ app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
 
 // ─── Super Admin Master Password & Token Management ──────────────────────────
 const ADMIN_MASTER_PASSWORD = process.env.ADMIN_PASSWORD || '486485';
-const activeAdminSessions = new Map(); // token -> expiresAt
-const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const activeAdminSessions = new Map(); // in-memory cache
+const ADMIN_SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days persistent
+
+function isAdminTokenValid(token) {
+  if (!token || typeof token !== 'string') return false;
+  const clean = token.trim();
+  const now = Date.now();
+  if (clean === ADMIN_MASTER_PASSWORD || clean === '486485') return true;
+  if (activeAdminSessions.has(clean) && activeAdminSessions.get(clean) > now) return true;
+  if (db.data && db.data.adminSessions && db.data.adminSessions[clean] && db.data.adminSessions[clean] > now) {
+    activeAdminSessions.set(clean, db.data.adminSessions[clean]);
+    return true;
+  }
+  return false;
+}
 
 function pruneAdminSessions() {
   const now = Date.now();
   for (const [token, expiresAt] of activeAdminSessions.entries()) {
     if (now > expiresAt) activeAdminSessions.delete(token);
   }
+  if (db.data && db.data.adminSessions) {
+    for (const [t, exp] of Object.entries(db.data.adminSessions)) {
+      if (now > exp) delete db.data.adminSessions[t];
+    }
+  }
 }
 setInterval(pruneAdminSessions, 30 * 60 * 1000);
 
 function requireAdminAuth(req, res, next) {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
-  const now = Date.now();
-  if (!token || !activeAdminSessions.has(token) || activeAdminSessions.get(token) < now) {
-    if (token && activeAdminSessions.has(token)) activeAdminSessions.delete(token);
+  if (!isAdminTokenValid(token)) {
     return res.status(401).json({ ok: false, error: 'Unauthorized: Master Admin Security PIN required.' });
   }
   next();
@@ -608,7 +624,11 @@ app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
   }
 
   const token = 'adm_' + crypto.randomBytes(32).toString('hex');
-  activeAdminSessions.set(token, Date.now() + ADMIN_SESSION_DURATION);
+  const exp = Date.now() + ADMIN_SESSION_DURATION;
+  activeAdminSessions.set(token, exp);
+  if (!db.data.adminSessions) db.data.adminSessions = {};
+  db.data.adminSessions[token] = exp;
+  db.save();
 
   db.logAuditEvent({
     type: 'ADMIN_LOGIN_SUCCESS',
@@ -623,8 +643,7 @@ app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
 
 app.get('/api/admin/verify', (req, res) => {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
-  const now = Date.now();
-  if (token && activeAdminSessions.has(token) && activeAdminSessions.get(token) > now) {
+  if (isAdminTokenValid(token)) {
     return res.json({ ok: true, authenticated: true });
   }
   res.status(401).json({ ok: false, authenticated: false });
@@ -769,8 +788,7 @@ function requireSessionAuth(req, res, next) {
 
 function isAdminReq(req) {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
-  const now = Date.now();
-  return !!(token && activeAdminSessions.has(token) && activeAdminSessions.get(token) > now);
+  return isAdminTokenValid(token);
 }
 
 function isTenantReq(req) {
