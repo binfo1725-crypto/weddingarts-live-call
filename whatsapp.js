@@ -326,8 +326,8 @@ class WhatsAppAccountSession {
                 `අපගේ කාර්ය මණ්ඩලය විසින් ඔබගේ ඇණවුම සූදානම් කර කඩිනමින් කුරියර් වෙත භාරදෙනු ඇත. ඔබට ස්තූතියි! 🙏✨`;
 
               await this.sock.sendMessage(remoteJid, { text: confirmText });
-              db.addChatMessage(senderPhone, 'customer', `📷 [Bank Slip Attached: Rs. ${slipResult.amount}]`, senderName, senderPhone, activeBiz.id);
-              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id);
+              db.addChatMessage(senderPhone, 'customer', `📷 [Bank Slip Attached: Rs. ${slipResult.amount}]`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
+              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
               continue;
             }
 
@@ -340,7 +340,7 @@ class WhatsAppAccountSession {
               senderName,
               senderPhone,
               activeBiz.id,
-              isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: audioMsg.mimetype || 'audio/ogg' } : {}
+              { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', ...(isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: audioMsg.mimetype || 'audio/ogg' } : {}) }
             );
 
             // Check if AI Bot is disabled for this specific account
@@ -471,7 +471,7 @@ class WhatsAppAccountSession {
             if (matchedProductToSend && matchedProductToSend.imageUrl) {
               const photoCaption = `📸 *${matchedProductToSend.name}*\n💰 මිල: Rs. ${(matchedProductToSend.price || 0).toLocaleString()}\n${matchedProductToSend.description ? matchedProductToSend.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`;
               await this.sendImageMessage(senderPhone, matchedProductToSend.imageUrl, photoCaption);
-              db.addChatMessage(senderPhone, 'ai', `📷 [Product Photo: ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id);
+              db.addChatMessage(senderPhone, 'ai', `📷 [Product Photo: ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
               await delay(800);
             }
 
@@ -543,7 +543,7 @@ class WhatsAppAccountSession {
                   await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 }
 
-                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, {
+                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '',
                   audioBase64: voiceAudioBase64,
                   mimeType: 'audio/mp4'
                 });
@@ -555,7 +555,7 @@ class WhatsAppAccountSession {
                 await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 console.log(`[whatsapp-acc:${this.id}] 🤖 Replied [${detectedL}] to ${senderPhone}: "${aiReply.slice(0, 50)}..."`);
 
-                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id);
+                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
               }
             }
           } catch (msgErr) {

@@ -1915,24 +1915,50 @@ app.post('/api/gemini/verify-key', async (req, res) => {
   });
 });
 
-// Live Chat Inbox & Human Takeover (Strict Multi-Tenant Scoped)
+// Live Chat Inbox & Human Takeover (Strict Multi-Tenant Scoped with Multi-Account WhatsApp Routing)
 app.get('/api/chats', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
+  const isTenant = isTenantReq(req);
+  const targetBizId = isTenant ? bId : null;
+  const accounts = db.getWhatsAppAccounts(targetBizId) || [];
+  const chats = db.getChats(targetBizId) || [];
+
+  // Match and enrich chats with WhatsApp account details
+  chats.forEach(c => {
+    let matchedAcc = null;
+    if (c.accountId) {
+      matchedAcc = accounts.find(a => a.id === c.accountId);
+    }
+    if (!matchedAcc && c.businessId) {
+      matchedAcc = accounts.find(a => a.businessId === c.businessId);
+    }
+    if (!matchedAcc) {
+      matchedAcc = accounts.find(a => a.id === 'default') || accounts[0] || { id: 'default', label: 'Primary Line', phoneNumber: '' };
+    }
+    c.accountId = (matchedAcc && matchedAcc.id) || c.accountId || 'default';
+    c.accountLabel = (matchedAcc && matchedAcc.label) || c.accountLabel || 'WhatsApp Line';
+    c.accountPhone = (matchedAcc && matchedAcc.phoneNumber) || c.accountPhone || '';
+  });
+
   res.json({
     ok: true,
-    chats: db.getChats(isTenantReq(req) ? bId : null)
+    chats,
+    accounts
   });
 });
 
 app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
-  const { chatId, text } = req.body;
+  const { chatId, text, accountId } = req.body;
   if (!chatId || !text) return res.status(400).json({ error: 'chatId and text required' });
 
   const isTenant = isTenantReq(req);
   const bId = resolveReqBusinessId(req);
-  const targetAccId = isTenant ? ('wa_' + bId) : 'default';
+  const chat = db.getChat(chatId);
+  const targetAccId = accountId || (chat && chat.accountId) || (isTenant ? ('wa_' + bId) : 'default');
 
-  const result = db.addChatMessage(chatId, 'agent', text, 'Customer', chatId, bId);
+  const result = db.addChatMessage(chatId, 'agent', text, (chat && chat.customerName) || 'Customer', chatId, bId, {
+    accountId: targetAccId
+  });
   if (waEngine) {
     try {
       await waEngine.sendTextMessage(chatId, text, targetAccId);

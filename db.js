@@ -906,6 +906,9 @@ class Database {
         businessId: assignedBizId,
         customerName: customerName,
         customerPhone: customerPhone || chatId,
+        accountId: extra.accountId || 'default',
+        accountPhone: extra.accountPhone || '',
+        accountLabel: extra.accountLabel || '',
         aiMuted: false,
         aiMuteUntil: 0,
         unread: 0,
@@ -916,8 +919,11 @@ class Database {
         messages: []
       };
       this.data.chats.unshift(chat);
-    } else if (businessId && !chat.businessId) {
-      chat.businessId = businessId;
+    } else {
+      if (businessId && !chat.businessId) chat.businessId = businessId;
+      if (extra.accountId) chat.accountId = extra.accountId;
+      if (extra.accountPhone) chat.accountPhone = extra.accountPhone;
+      if (extra.accountLabel) chat.accountLabel = extra.accountLabel;
     }
 
     const msgObj = {
