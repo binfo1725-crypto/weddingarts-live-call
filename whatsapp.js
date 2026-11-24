@@ -340,7 +340,7 @@ class WhatsAppAccountSession {
               senderName,
               senderPhone,
               activeBiz.id,
-              { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', ...(isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: audioMsg.mimetype || 'audio/ogg' } : {}) }
+              { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid, ...(isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: audioMsg.mimetype || 'audio/ogg' } : {}) }
             );
 
             // Check if AI Bot is disabled for this specific account
@@ -631,20 +631,42 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
     }
-    let clean = String(toPhone || '').replace(/\D/g, '');
-    if (clean.startsWith('0') && clean.length === 10) {
-      clean = '94' + clean.slice(1);
-    } else if (clean.length === 9 && !clean.startsWith('94')) {
-      clean = '94' + clean;
+    let target = String(toPhone || '').trim();
+    let jid = '';
+
+    if (target.includes('@')) {
+      jid = target;
+    } else {
+      const chat = db.getChat(target);
+      if (chat && chat.remoteJid) {
+        jid = chat.remoteJid;
+      } else if (target.length > 13) {
+        jid = `${target}@lid`;
+      } else {
+        let clean = target.replace(/\D/g, '');
+        if (clean.startsWith('0') && clean.length === 10) {
+          clean = '94' + clean.slice(1);
+        } else if (clean.length === 9 && !clean.startsWith('94')) {
+          clean = '94' + clean;
+        }
+        jid = `${clean}@s.whatsapp.net`;
+      }
     }
-    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
 
     try {
       await this.sock.sendMessage(jid, { text });
-      console.log(`[whatsapp-acc:${this.id}] Sent text to ${clean}`);
-      return { ok: true };
+      console.log(`[whatsapp-acc:${this.id}] Successfully sent text to ${jid}: "${text.slice(0, 40)}"`);
+      return { ok: true, jid };
     } catch (e) {
-      console.error(`[whatsapp-acc:${this.id}] Send failed to ${clean}:`, e.message);
+      console.error(`[whatsapp-acc:${this.id}] Send failed to ${jid}:`, e.message);
+      if (jid.endsWith('@lid')) {
+        const altJid = `${jid.split('@')[0]}@s.whatsapp.net`;
+        try {
+          await this.sock.sendMessage(altJid, { text });
+          console.log(`[whatsapp-acc:${this.id}] Fallback sent to ${altJid}`);
+          return { ok: true, jid: altJid };
+        } catch (err2) {}
+      }
       return { ok: false, error: e.message };
     }
   }

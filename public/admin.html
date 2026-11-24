@@ -2403,15 +2403,93 @@ table tr:hover td {
 /* ─── Ultra-Modern Multi-Line WhatsApp Omnichannel Inbox Styling ─── */
 .chat-layout {
   display: grid !important;
-  grid-template-columns: 340px 1fr !important;
-  height: calc(100vh - 160px) !important;
-  min-height: 600px !important;
-  max-height: 880px !important;
+  grid-template-columns: 320px 1fr !important;
+  height: calc(100vh - 190px) !important;
+  min-height: 480px !important;
+  max-height: 840px !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 16px !important;
   overflow: hidden !important;
   background: #0d111a !important;
   box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45) !important;
+}
+.chat-main {
+  display: flex !important;
+  flex-direction: column !important;
+  background: #080c14 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+.chat-messages {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding: 16px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  background: #07090e !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+.canned-snippets-bar {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding: 6px 16px !important;
+  background: #0d111a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.chat-footer {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 16px 12px !important;
+  background: #101522 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  z-index: 10 !important;
+  box-sizing: border-box !important;
+}
+.chat-input {
+  flex: 1 !important;
+  height: 42px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  padding: 0 14px !important;
+  color: #ffffff !important;
+  font-size: 0.88rem !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+.chat-input:focus {
+  border-color: #10b981 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25) !important;
+}
+.chat-send-btn {
+  height: 42px !important;
+  padding: 0 18px !important;
+  background: #10b981 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.84rem !important;
+  border: none !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+}
+.chat-send-btn:hover {
+  background: #059669 !important;
+  transform: translateY(-1px) !important;
 }
 .chat-sidebar {
   display: flex !important;
@@ -10125,10 +10203,16 @@ function filterChatMessages(query) {
 
 function insertCannedSnippet(text) {
   const input = document.getElementById('chat-reply-input');
-  if (input) {
-    input.value = (input.value ? input.value + ' ' : '') + text;
-    input.focus();
-  }
+  if (!input) return;
+  const cleanType = String(text || '').replace(/^\//, '').toLowerCase().trim();
+  const snippets = {
+    bank: "🏦 Bank Account Details:\nBank of Ceylon (BOC)\nAccount Number: 92949122\nAccount Name: D T Rajapaksha\nBranch: Piliyandala\n\n(ගෙවීම සිදුකර Slip පත මෙහි එවන්න 🙏)",
+    cod: "📦 Cash on Delivery (COD) පහසුකම පවතී. භාණ්ඩය නිවසටම ලැබුණු පසු මුදල් ගෙවිය හැක. 🚚",
+    dispatch: "🚚 ඇණවුම් තහවුරු කළ සැණින් පැය 24ක් තුළ Courier වෙත භාරදෙනු ලැබේ. දින 1-3ක් ඇතුළත ඔබට ලැබේ.",
+    thanks: "🙏 ස්තූතියි! ඔබට තවත් යමක් දැනගැනීමට අවශ්‍යද? ඕනෑම වේලාවක අප හා සම්බන්ධ වන්න."
+  };
+  input.value = snippets[cleanType] || text;
+  input.focus();
 }
 
 function openPackingSlipModal(orderId) {

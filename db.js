@@ -906,6 +906,7 @@ class Database {
         businessId: assignedBizId,
         customerName: customerName,
         customerPhone: customerPhone || chatId,
+        remoteJid: extra.remoteJid || (chatId.includes('@') ? chatId : (chatId.length > 13 ? (chatId + '@lid') : (chatId + '@s.whatsapp.net'))),
         accountId: extra.accountId || 'default',
         accountPhone: extra.accountPhone || '',
         accountLabel: extra.accountLabel || '',
@@ -924,6 +925,8 @@ class Database {
       if (extra.accountId) chat.accountId = extra.accountId;
       if (extra.accountPhone) chat.accountPhone = extra.accountPhone;
       if (extra.accountLabel) chat.accountLabel = extra.accountLabel;
+      if (extra.remoteJid) chat.remoteJid = extra.remoteJid;
+      if (!chat.remoteJid && chat.id && chat.id.length > 13) chat.remoteJid = chat.id + '@lid';
     }
 
     const msgObj = {

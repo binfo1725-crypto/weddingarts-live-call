@@ -1956,12 +1956,15 @@ app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
   const chat = db.getChat(chatId);
   const targetAccId = accountId || (chat && chat.accountId) || (isTenant ? ('wa_' + bId) : 'default');
 
+  const targetJid = (chat && chat.remoteJid) || (chatId.includes('@') ? chatId : (chatId.length > 13 ? (chatId + '@lid') : chatId));
   const result = db.addChatMessage(chatId, 'agent', text, customerName || (chat && chat.customerName) || 'Customer', chatId, bId, {
-    accountId: targetAccId
+    accountId: targetAccId,
+    remoteJid: targetJid
   });
   if (waEngine) {
     try {
-      await waEngine.sendTextMessage(chatId, text, targetAccId);
+      const sendRes = await waEngine.sendTextMessage(targetJid, text, targetAccId);
+      console.log('[chats/reply] Sent via', targetAccId, 'to', targetJid, 'result:', sendRes);
     } catch (e) {
       console.warn('[chats/reply] WhatsApp send failed:', e.message);
     }
