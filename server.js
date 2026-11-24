@@ -1810,21 +1810,31 @@ app.post('/api/products/send-photo', requireSessionAuth, async (req, res) => {
     const bId = resolveReqBusinessId(req);
     const products = db.getProducts(bId);
     const prod = products.find(p => p.id === productId);
-    if (!prod || !prod.imageUrl) {
+    if (!prod || (!prod.imageUrl && (!prod.images || prod.images.length === 0))) {
       return res.status(404).json({ ok: false, error: 'Product or product image not found' });
     }
-    const caption = customCaption || `📸 *${prod.name}*\n💰 මිල: Rs. ${(prod.price || 0).toLocaleString()}\n${prod.description ? prod.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`;
+    const allImgs = (Array.isArray(prod.images) && prod.images.length > 0)
+      ? prod.images.filter(Boolean)
+      : [prod.imageUrl].filter(Boolean);
 
-    // Choose session for this business
     let targetAccId = accountId;
     if (!targetAccId && req.tenantBusinessId) {
       targetAccId = 'wa_' + req.tenantBusinessId;
     }
-    const result = await waEngine.sendImageMessage(phone, prod.imageUrl, targetAccId, caption);
-    if (result.ok) {
-      db.addChatMessage(phone, 'agent', `📷 [Sent Product Photo: ${prod.name}]`, 'Agent', phone, bId);
+
+    let lastResult = { ok: true };
+    for (let i = 0; i < allImgs.length; i++) {
+      const caption = (i === 0)
+        ? (customCaption || `📸 *${prod.name}*${allImgs.length > 1 ? ` (Photo 1/${allImgs.length})` : ''}\n💰 මිල: Rs. ${(prod.price || 0).toLocaleString()}\n${prod.description ? prod.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`)
+        : `📸 *${prod.name}* (${i + 1}/${allImgs.length})`;
+      lastResult = await waEngine.sendImageMessage(phone, allImgs[i], targetAccId, caption);
+      if (i < allImgs.length - 1) await new Promise(r => setTimeout(r, 600));
     }
-    res.json(result);
+
+    if (lastResult.ok) {
+      db.addChatMessage(phone, 'agent', `📷 [Sent ${allImgs.length} Product Photos: ${prod.name}]`, 'Agent', phone, bId);
+    }
+    res.json({ ok: true, sentCount: allImgs.length });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

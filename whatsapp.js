@@ -467,12 +467,23 @@ class WhatsAppAccountSession {
               }
             }
 
-            // If a product with photo was requested or matched, send the genuine photo first!
-            if (matchedProductToSend && matchedProductToSend.imageUrl) {
-              const photoCaption = `📸 *${matchedProductToSend.name}*\n💰 මිල: Rs. ${(matchedProductToSend.price || 0).toLocaleString()}\n${matchedProductToSend.description ? matchedProductToSend.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`;
-              await this.sendImageMessage(senderPhone, matchedProductToSend.imageUrl, photoCaption);
-              db.addChatMessage(senderPhone, 'ai', `📷 [Product Photo: ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
-              await delay(800);
+            // If a product with photo was requested or matched, send genuine photo gallery!
+            if (matchedProductToSend && (matchedProductToSend.imageUrl || (matchedProductToSend.images && matchedProductToSend.images.length > 0))) {
+              const allImages = (Array.isArray(matchedProductToSend.images) && matchedProductToSend.images.length > 0)
+                ? matchedProductToSend.images.filter(Boolean)
+                : [matchedProductToSend.imageUrl].filter(Boolean);
+
+              for (let i = 0; i < allImages.length; i++) {
+                const imgUrl = allImages[i];
+                const photoCaption = (i === 0)
+                  ? `📸 *${matchedProductToSend.name}*${allImages.length > 1 ? ` (Photo 1/${allImages.length})` : ''}\n💰 මිල: Rs. ${(matchedProductToSend.price || 0).toLocaleString()}\n${matchedProductToSend.description ? matchedProductToSend.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`
+                  : `📸 *${matchedProductToSend.name}* (${i + 1}/${allImages.length})`;
+                await this.sendImageMessage(senderPhone, imgUrl, photoCaption);
+                if (i < allImages.length - 1) await delay(700);
+              }
+
+              db.addChatMessage(senderPhone, 'ai', `📷 [Product Photos (${allImages.length}): ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
+              await delay(600);
             }
 
             if (aiReply) {

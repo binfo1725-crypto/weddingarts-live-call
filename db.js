@@ -709,6 +709,7 @@ class Database {
       const num = parseInt(String(p.id).replace(/\D/g, ''), 10) || 0;
       return Math.max(max, num);
     }, 0) + 1;
+    const rawImgs = Array.isArray(prod.images) ? prod.images.filter(Boolean) : (prod.imageUrl ? [prod.imageUrl] : []);
     const newProd = {
       id: prod.id || `PROD-${nextNum}`,
       businessId: prod.businessId || this.getActiveBusiness().id,
@@ -719,7 +720,8 @@ class Database {
       minFloorPrice: parseFloat(prod.minFloorPrice) || (parseFloat(prod.price) * 0.9) || 0,
       maxDiscountPct: parseInt(prod.maxDiscountPct) || 10,
       description: prod.description || '',
-      imageUrl: prod.imageUrl || prod.image || '',
+      images: rawImgs,
+      imageUrl: rawImgs[0] || prod.imageUrl || prod.image || '',
       inStock: prod.inStock !== false
     };
     this.data.products.push(newProd);
@@ -730,6 +732,12 @@ class Database {
   updateProduct(id, updates) {
     const idx = (this.data.products || []).findIndex(p => p.id === id);
     if (idx >= 0) {
+      if (Array.isArray(updates.images)) {
+        updates.images = updates.images.filter(Boolean);
+        updates.imageUrl = updates.images[0] || updates.imageUrl || '';
+      } else if (updates.imageUrl && !updates.images) {
+        updates.images = [updates.imageUrl];
+      }
       this.data.products[idx] = { ...this.data.products[idx], ...updates };
       this.save();
       return this.data.products[idx];

@@ -4761,13 +4761,11 @@ table tr:hover td {
         <input type="text" id="mp-desc" class="form-input" placeholder="Includes free courier delivery">
       </div>
       <div class="form-group">
-        <label class="form-label">Product Image / Photo (Auto-sends to WhatsApp customers)</label>
-        <input type="file" id="mp-image-file" class="form-input" accept="image/*" onchange="handleProductImageUpload(event)">
+        <label class="form-label">Product Photos & Gallery (Multiple Images Supported — Auto-sends to WhatsApp)</label>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">📸 එක් භාණ්ඩයක් සඳහා ඡායාරූප කිහිපයක් (Front, Back, Real-life view) එකවර තෝරා හෝ එකින් එක Upload කරන්න.</div>
+        <input type="file" id="mp-image-file" class="form-input" accept="image/*" multiple onchange="handleProductImageUpload(event)">
         <input type="hidden" id="mp-image-data" value="">
-        <div id="mp-image-preview-box" style="display:none;margin-top:10px;position:relative;width:fit-content;">
-          <img id="mp-image-preview" src="" style="width:100px;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--card-border);box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-          <button type="button" onclick="clearProductImage()" style="position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.2);">✕</button>
-        </div>
+        <div id="mp-images-gallery" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
         <button type="button" class="btn-secondary" onclick="closeAddProductModal()">Cancel</button>
@@ -5442,9 +5440,14 @@ function renderProducts(products) {
   }
   products.forEach(p => {
     const tr = document.createElement('tr');
-    const imgThumb = (p.imageUrl && p.imageUrl.length > 20)
-      ? `<img src="${p.imageUrl}" style="width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--card-border);vertical-align:middle;margin-right:8px;" alt="${escapeHtml(p.name)}">`
-      : `<span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:6px;background: #0b0d14;border:1px dashed #cbd5e1;font-size:16px;margin-right:8px;vertical-align:middle;">📷</span>`;
+    const pImgs = (Array.isArray(p.images) && p.images.length > 0) ? p.images : (p.imageUrl ? [p.imageUrl] : []);
+    const coverUrl = pImgs[0] || '';
+    const imgThumb = (coverUrl && coverUrl.length > 20)
+      ? `<div style="position:relative;display:inline-block;vertical-align:middle;margin-right:8px;">
+           <img src="${coverUrl}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;border:1px solid var(--card-border);" alt="${escapeHtml(p.name)}">
+           ${pImgs.length > 1 ? `<span style="position:absolute;bottom:-4px;right:-4px;background:#3b82f6;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:4px;border:1px solid #0b0d14;">+${pImgs.length}</span>` : ''}
+         </div>`
+      : `<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:6px;background: #0b0d14;border:1px dashed #cbd5e1;font-size:16px;margin-right:8px;vertical-align:middle;">📷</span>`;
 
     tr.innerHTML = `
       <td style="font-weight:700;color:var(--text-primary);display:flex;align-items:center;">
@@ -5471,49 +5474,90 @@ function renderProducts(products) {
   });
 }
 
-function handleProductImageUpload(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const maxDim = 800;
-      let width = img.width;
-      let height = img.height;
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      document.getElementById('mp-image-data').value = compressedDataUrl;
-      const previewImg = document.getElementById('mp-image-preview');
-      previewImg.src = compressedDataUrl;
-      document.getElementById('mp-image-preview-box').style.display = 'block';
+let currentProductImages = [];
+
+function renderProductImageGallery() {
+  const container = document.getElementById('mp-images-gallery');
+  if (!container) return;
+  container.innerHTML = '';
+  if (currentProductImages.length === 0) {
+    const hiddenInp = document.getElementById('mp-image-data');
+    if (hiddenInp) hiddenInp.value = '';
+    return;
+  }
+  const hiddenInp = document.getElementById('mp-image-data');
+  if (hiddenInp) hiddenInp.value = currentProductImages[0] || '';
+
+  currentProductImages.forEach((dataUrl, idx) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'position:relative;width:84px;height:84px;border-radius:10px;border:' + (idx === 0 ? '2px solid #10b981' : '1px solid var(--card-border)') + ';overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.15);background:#0b0d14;display:inline-block;';
+
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+    card.appendChild(img);
+
+    const badge = document.createElement('span');
+    badge.style.cssText = 'position:absolute;bottom:2px;left:2px;background:' + (idx === 0 ? '#10b981' : 'rgba(0,0,0,0.75)') + ';color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;';
+    badge.textContent = idx === 0 ? 'Cover' : '#' + (idx + 1);
+    card.appendChild(badge);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.style.cssText = 'position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+    delBtn.textContent = '✕';
+    delBtn.onclick = function() {
+      currentProductImages.splice(idx, 1);
+      renderProductImageGallery();
     };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+    card.appendChild(delBtn);
+
+    container.appendChild(card);
+  });
+}
+
+function handleProductImageUpload(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const maxDim = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        currentProductImages.push(compressedDataUrl);
+        renderProductImageGallery();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = '';
 }
 
 function clearProductImage() {
   const fileInput = document.getElementById('mp-image-file');
   if (fileInput) fileInput.value = '';
-  document.getElementById('mp-image-data').value = '';
-  const previewImg = document.getElementById('mp-image-preview');
-  if (previewImg) previewImg.src = '';
-  const previewBox = document.getElementById('mp-image-preview-box');
-  if (previewBox) previewBox.style.display = 'none';
+  currentProductImages = [];
+  renderProductImageGallery();
 }
 
 function openAddProductModal() {
@@ -5535,7 +5579,8 @@ async function submitNewProduct(e) {
     cost: document.getElementById('mp-cost').value,
     minFloorPrice: document.getElementById('mp-floor').value,
     description: document.getElementById('mp-desc').value,
-    imageUrl: document.getElementById('mp-image-data').value || ''
+    images: currentProductImages,
+    imageUrl: currentProductImages[0] || ''
   };
 
   try {
