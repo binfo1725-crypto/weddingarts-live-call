@@ -1948,7 +1948,7 @@ app.get('/api/chats', requireSessionAuth, (req, res) => {
 });
 
 app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
-  const { chatId, text, accountId } = req.body;
+  const { chatId, text, accountId, customerName } = req.body;
   if (!chatId || !text) return res.status(400).json({ error: 'chatId and text required' });
 
   const isTenant = isTenantReq(req);
@@ -1956,7 +1956,7 @@ app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
   const chat = db.getChat(chatId);
   const targetAccId = accountId || (chat && chat.accountId) || (isTenant ? ('wa_' + bId) : 'default');
 
-  const result = db.addChatMessage(chatId, 'agent', text, (chat && chat.customerName) || 'Customer', chatId, bId, {
+  const result = db.addChatMessage(chatId, 'agent', text, customerName || (chat && chat.customerName) || 'Customer', chatId, bId, {
     accountId: targetAccId
   });
   if (waEngine) {
