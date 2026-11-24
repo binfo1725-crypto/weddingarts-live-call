@@ -453,7 +453,90 @@ const PromptInjectionShield = {
   }
 };
 
+// ─── 8. Ultra-Fast Zero-Latency Hybrid Fast-Cache Intent Engine ───────────────
+const HybridFastCacheEngine = {
+  resolve(text, business = {}, products = [], detectedLang = 'Sinhala') {
+    if (!text || typeof text !== 'string') return null;
+    const clean = text.trim().toLowerCase();
+    const isEnglish = detectedLang === 'English';
+
+    // 1. Pricing / Packages / Plans Inquiry
+    const isPricingQuery = /^(mila|gana|ganan|price|pricing|packages|package|plans|cost|charges|fees|rental|monthly|starter|pro|enterprise)(\?|\.|\s|$)|(mila kiyada|gaana kiyada|price kiyada|packages monawada|plans monawada|price list|pricing details|package details|ganan kohomada)/i.test(clean);
+
+    if (isPricingQuery) {
+      const bizName = business.name || 'OmniSix AI';
+      const isSoftware = (business.category === 'software' || business.id === 'software' || business.id === 'omnisix' || (bizName || '').toLowerCase().includes('software') || (bizName || '').toLowerCase().includes('omnisix'));
+
+      if (isSoftware) {
+        if (isEnglish) {
+          return `💼 *${bizName} — Cloud AI SaaS Pricing Plans:*\n\n` +
+            `🔹 *Starter Cloud Plan:* Rs. 1,900/month\n` +
+            `• 1 WhatsApp Line, 500 AI chats/mo, Auto-reply, Basic CRM\n\n` +
+            `🔹 *Pro Cloud Plan:* Rs. 2,900/month\n` +
+            `• 3 WhatsApp Lines, 2,500 AI chats/mo, Gemini AI, Audio Transcription\n\n` +
+            `🔹 *Enterprise Cloud VIP Plan:* Rs. 3,500/month\n` +
+            `• Unlimited Lines, Real-Time AI Live Voice Calls, Dedicated Account Manager\n\n` +
+            `🎁 *Get your 3-Day Free Trial:* https://omnisix-ai.onrender.com/free\n\n` +
+            `Would you like to activate a free test trial or subscribe today? 😊`;
+        }
+        return `💼 *${bizName} — පැකේජ සහ මිල ගණන්:*\n\n` +
+          `🔹 *Starter Cloud Plan:* රු. 1,900/මසකට\n` +
+          `• WhatsApp Line 1ක්, AI Chats 500ක්, Auto-Replies & Basic CRM\n\n` +
+          `🔹 *Pro Cloud Plan:* රු. 2,900/මසකට\n` +
+          `• WhatsApp Lines 3ක්, AI Chats 2,500ක්, Gemini AI & Voice Notes\n\n` +
+          `🔹 *Enterprise Cloud VIP Plan:* රු. 3,500/මසකට\n` +
+          `• Unlimited Lines, Real-Time AI Live Voice Calls & Full CRM Automation\n\n` +
+          `🎁 *නොමිලේ දින 3ක අත්හදා බැලීම සඳහා (Free 3-Day Trial):*\n` +
+          `👉 https://omnisix-ai.onrender.com/free\n\n` +
+          `ඔබට අවශ්‍ය පැකේජය තෝරා ගැනීමට සහය අවශ්‍යද? අදම සම්බන්ධ වන්න. 😊`;
+      }
+
+      if (Array.isArray(products) && products.length > 0) {
+        const topProds = products.slice(0, 5).map(p => `• *${p.name}:* රු. ${(p.price || 0).toLocaleString()} ${p.description ? `(${p.description.slice(0, 45)})` : ''}`).join('\n');
+        return `🏷️ *${bizName} — භාණ්ඩ හා මිල ගණන් ලැයිස්තුව:*\n\n${topProds}\n\n📦 Islandwide Cash on Delivery (COD) පහසුකම ඇත.\nඇණවුම් කිරීමට හෝ විස්තර දැනගැනීමට කැමති භාණ්ඩයේ නම එවන්න. 😊`;
+      }
+    }
+
+    // 2. Bank Details / Account Number Inquiry
+    if (/(bank details|account details|account number|acc no|boc|bank eka|gewanna ona|salli danna|payment details|bank ekata|account eka)/i.test(clean)) {
+      const bDetails = business.bankDetails || 'Bank of Ceylon (BOC)\n• Account No: 92949122\n• Account Name: D T Rajapaksha\n• Branch: Piliyandala';
+      if (isEnglish) {
+        return `💳 *Official Bank Details for Payment:*\n\n${bDetails}\n\n📌 After payment, please send a clear photo or screenshot of the deposit slip here to confirm your order/activation. Thank you!`;
+      }
+      return `💳 *මුදල් ගෙවීම් සඳහා නිල බැංකු විස්තර:*\n\n${bDetails}\n\n📌 මුදල් තැන්පත් කළ පසු රිසිට්පතේ (Slip/Screenshot) පැහැදිලි ඡායාරූපයක් මෙහි එවන්න. එවිට ඔබගේ ඇණවුම/ගිණුම සක්‍රීය කරනු ලැබේ. ස්තූතියි!`;
+    }
+
+    // 3. Delivery / COD Inquiry
+    if (/(cash on delivery|cod thiyenawada|cod puluwanda|delivery|deliver|courier|ewanne kohomada|dawas kiyak|delivery charges|delivery fee)/i.test(clean)) {
+      if (isEnglish) {
+        return `🚚 *Delivery & Payment Options:*\n\n` +
+          `• *Islandwide Cash on Delivery (COD):* Available for all main regions.\n` +
+          `• *Delivery Time:* 2 to 3 business days via PromptX / Domex courier.\n` +
+          `• *Bank Deposit:* You can also deposit directly to our bank account.\n\n` +
+          `To place an order, send your Name, Delivery Address, and Mobile Number! 📦`;
+      }
+      return `🚚 *බෙදාහැරීම් සහ ගෙවීම් විස්තර (Delivery & COD):*\n\n` +
+        `• *Cash on Delivery (COD):* භාණ්ඩය ලැබුණු පසු මුදල් ගෙවීමේ පහසුකම දිවයින පුරා ඇත.\n` +
+        `• *භාණ්ඩ ලැබීමට ගතවන කාලය:* වැඩකරන දින 2-3ක් ඇතුළත කුරියර් (PromptX / Domex) මඟින් නිවසටම ගෙනැවිත් දෙනු ලැබේ.\n` +
+        `• *බැංකු තැන්පතු:* අවශ්‍ය නම් බැංකු ගිණුමට මුදල් තැන්පත් කරද ඇණවුම් කළ හැක.\n\n` +
+        `ඇණවුම තහවුරු කිරීමට ඔබගේ නම, ලිපිනය සහ දුරකථන අංකය අප වෙත එවන්න. 📦`;
+    }
+
+    // 4. Greetings
+    if (/^(hi|hello|hey|hlo|good morning|good evening|suba udasanak|suba rathriyak|oya kawda|kawda me|halo|helo)(\s*|\.|\!)*$/i.test(clean)) {
+      const bizName = business.name || 'OmniSix AI';
+      if (isEnglish) {
+        return `Hello! 👋 Welcome to *${bizName}*.\nI am your 24/7 AI Smart Assistant. How can I help you today? Feel free to ask about our pricing, packages, or services! 😊`;
+      }
+      return `ආයුබෝවන්! 👋 *${bizName}* වෙත සාදරයෙන් පිළිගන්නවා.\nමම ඔබගේ 24/7 AI සහායකයායි. අද ඔබට අවශ්‍ය තොරතුරු, මිල ගණන් හෝ ඇණවුම් පිළිබඳව ඕනෑම දෙයක් මෙහි විමසිය හැක. 😊`;
+    }
+
+    return null;
+  }
+};
+
 module.exports = {
+  HybridFastCacheEngine,
   PromptInjectionShield,
   CustomerArchetypeEngine,
   AngryCustomerEscalationEngine,

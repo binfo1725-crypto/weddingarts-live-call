@@ -106,7 +106,8 @@ const {
   SmartNegotiationEngine,
   SmartUpsellEngine,
   SlipDetectionEngine,
-  LanguageDetectionEngine
+  LanguageDetectionEngine,
+  HybridFastCacheEngine
 } = require('./ai_engines.js');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -117,9 +118,9 @@ const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}`;
 
 const GEMINI_TEXT_MODELS = [
-  'gemini-3.1-flash-lite',
   'gemini-3.5-flash-lite',
-  'gemini-3.8-flash'
+  'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite'
 ];
 const GEMINI_TTS_MODELS = [
   'gemini-3.1-flash-tts-preview',
@@ -3084,6 +3085,16 @@ async function getGeminiReply(userMessage, sess, userLang) {
     return matchedFlow.response;
   }
 
+  // 4. Ultra-Fast Zero-Latency Hybrid Fast-Cache Engine (< 5ms local resolution)
+  const storeProducts = db.getProducts(activeBiz.id);
+  const fastReply = HybridFastCacheEngine.resolve(userMessage, activeBiz, storeProducts, detectedLang);
+  if (fastReply) {
+    console.log(`[ai-engine] ⚡ Hybrid Fast-Cache instant reply (0ms API latency) for: "${(userMessage || '').substring(0, 40)}"`);
+    sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
+    sess.history.push({ role: 'model', parts: [{ text: fastReply }] });
+    return fastReply;
+  }
+
   const datasetContext = (sess.dataset && sess.dataset.length > 50) ? sess.dataset : (activeBiz.dataset || BUILTIN_DATASET);
   const systemInstruction = buildSystemPrompt(sess, datasetContext, userLang, userMessage, detectedLang);
 
@@ -3179,7 +3190,7 @@ async function getGeminiReply(userMessage, sess, userLang) {
               maxOutputTokens: sess.isVoiceCall ? 250 : 800
             }
           }),
-          signal: AbortSignal.timeout(6000)
+          signal: AbortSignal.timeout(3500)
         });
 
         const data = await response.json();

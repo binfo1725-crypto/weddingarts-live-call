@@ -549,7 +549,7 @@ class WhatsAppAccountSession {
                 });
               } else {
                 await this.sock.sendPresenceUpdate('composing', remoteJid);
-                await delay(1200);
+                await delay(600);
                 await this.sock.sendPresenceUpdate('paused', remoteJid);
 
                 await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
