@@ -118,8 +118,8 @@ const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const CALL_SERVER_URL = process.env.CALL_SERVER_URL || `http://localhost:${PORT}`;
 
 const GEMINI_TEXT_MODELS = [
-  'gemini-3.5-flash-lite',
   'gemini-flash-lite-latest',
+  'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite'
 ];
 const GEMINI_TTS_MODELS = [
@@ -3190,7 +3190,7 @@ async function getGeminiReply(userMessage, sess, userLang) {
               maxOutputTokens: sess.isVoiceCall ? 250 : 800
             }
           }),
-          signal: AbortSignal.timeout(3500)
+          signal: AbortSignal.timeout(6000)
         });
 
         const data = await response.json();
@@ -3211,7 +3211,7 @@ async function getGeminiReply(userMessage, sess, userLang) {
         }
       } catch (err) {
         lastError = err.message;
-        markKeyCooldown(key, 5 * 60 * 1000);
+        // Do not poison key pool on transient network / timeout hiccups
       }
     }
   }

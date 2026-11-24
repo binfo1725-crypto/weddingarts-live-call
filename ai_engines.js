@@ -459,14 +459,13 @@ const HybridFastCacheEngine = {
     if (!text || typeof text !== 'string') return null;
     const clean = text.trim().toLowerCase();
     const isEnglish = detectedLang === 'English';
+    const bizName = business.name || 'OmniSix AI Software';
+    const isSoftware = (business.category === 'software' || business.id === 'software' || business.id === 'omnisix' || business.id === 'weddingarts' || (bizName || '').toLowerCase().includes('software') || (bizName || '').toLowerCase().includes('omnisix'));
 
-    // 1. Pricing / Packages / Plans Inquiry
-    const isPricingQuery = /^(mila|gana|ganan|price|pricing|packages|package|plans|cost|charges|fees|rental|monthly|starter|pro|enterprise)(\?|\.|\s|$)|(mila kiyada|gaana kiyada|price kiyada|packages monawada|plans monawada|price list|pricing details|package details|ganan kohomada)/i.test(clean);
+    // 1. Pricing / Packages / Plans Inquiry (Flexible match anywhere in message)
+    const isPricingQuery = /(price|pricing|mila|gana|ganan|package|packages|plans|plan|cost|charges|fees|rental|monthly|starter|enterprise|how much|kotcharada)/i.test(clean);
 
     if (isPricingQuery) {
-      const bizName = business.name || 'OmniSix AI';
-      const isSoftware = (business.category === 'software' || business.id === 'software' || business.id === 'omnisix' || (bizName || '').toLowerCase().includes('software') || (bizName || '').toLowerCase().includes('omnisix'));
-
       if (isSoftware) {
         if (isEnglish) {
           return `💼 *${bizName} — Cloud AI SaaS Pricing Plans:*\n\n` +
@@ -477,7 +476,7 @@ const HybridFastCacheEngine = {
             `🔹 *Enterprise Cloud VIP Plan:* Rs. 3,500/month\n` +
             `• Unlimited Lines, Real-Time AI Live Voice Calls, Dedicated Account Manager\n\n` +
             `🎁 *Get your 3-Day Free Trial:* https://omnisix-ai.onrender.com/free\n\n` +
-            `Would you like to activate a free test trial or subscribe today? 😊`;
+            `Which plan fits your business best? You can test it today with our 3-Day Free Trial! 😊`;
         }
         return `💼 *${bizName} — පැකේජ සහ මිල ගණන්:*\n\n` +
           `🔹 *Starter Cloud Plan:* රු. 1,900/මසකට\n` +
@@ -488,7 +487,7 @@ const HybridFastCacheEngine = {
           `• Unlimited Lines, Real-Time AI Live Voice Calls & Full CRM Automation\n\n` +
           `🎁 *නොමිලේ දින 3ක අත්හදා බැලීම සඳහා (Free 3-Day Trial):*\n` +
           `👉 https://omnisix-ai.onrender.com/free\n\n` +
-          `ඔබට අවශ්‍ය පැකේජය තෝරා ගැනීමට සහය අවශ්‍යද? අදම සම්බන්ධ වන්න. 😊`;
+          `ඔබේ ව්‍යාපාරයට වඩාත් ගැළපෙන පැකේජය කුමක්ද? නොමිලේ ටෙස්ට් කර බැලීමට අදම ලියාපදිංචි වන්න! 😊`;
       }
 
       if (Array.isArray(products) && products.length > 0) {
@@ -497,7 +496,63 @@ const HybridFastCacheEngine = {
       }
     }
 
-    // 2. Bank Details / Account Number Inquiry
+    // 2. AI Agent / Bot / Features / Service Info
+    if (/(ai agent|agent|bot|features|software|omnisix|monawada karanne|mokakda me|what is this|demo|system|crm)/i.test(clean)) {
+      if (isEnglish) {
+        return `🤖 *${bizName} — 24/7 Autonomous WhatsApp & Voice AI:*
+
+` +
+          `• ⚡ *Instant WhatsApp Auto-Reply:* Answers prices, products, bank details & takes orders.
+` +
+          `• 🎙️ *Live Voice AI Calls:* Answers incoming voice calls in human-like Sinhala or English.
+` +
+          `• 📊 *Omnichannel Live CRM:* Manage multiple WhatsApp numbers in one dashboard.
+` +
+          `• 🛡️ *100% Anti-Ban Safety:* Smart typing emulation & zero-width character protection.
+
+` +
+          `🎁 *Try free for 3 days:* https://omnisix-ai.onrender.com/free
+` +
+          `Send *price* to see our affordable packages starting from Rs. 1,900/mo! 😊`;
+      }
+      return `🤖 *${bizName} — 24/7 ස්වයංක්‍රීය WhatsApp & Voice AI පද්ධතිය:*
+
+` +
+        `• ⚡ *ක්ෂණික WhatsApp Auto-Reply:* පාරිභෝගික ප්‍රශ්න, මිල ගණන්, බැංකු විස්තර වලට පිළිතුරු දෙමින් ඇණවුම් ලබා ගැනීම.
+` +
+        `• 🎙️ *Live Voice AI ඇමතුම්:* පාරිභෝගිකයින් කතා කරන විට ස්වභාවික සිංහලෙන් සජීවීව කතා කර පිළිතුරු දීම.
+` +
+        `• 📊 *Omnichannel Live CRM:* WhatsApp අංක කිහිපයක් එකම තිරයකින් (Dashboard) කළමනාකරණය.
+` +
+        `• 🛡️ *100% Anti-Ban ආරක්ෂාව:* WhatsApp අංක Block නොවී පවත්වා ගැනීමේ ආරක්ෂක ක්‍රමවේද.
+
+` +
+        `🎁 *දින 3ක් නොමිලේ අත්හදා බැලීමට (Free Trial):* https://omnisix-ai.onrender.com/free
+` +
+        `අපගේ පැකේජ බැලීමට *price* ලෙස එවන්න (රු. 1,900/මසක සිට). 😊`;
+    }
+
+    // 3. Free Trial Registration
+    if (/(free trial|test karanna|register|try|try karanna|free trial link)/i.test(clean)) {
+      if (isEnglish) {
+        return `🎁 *${bizName} — 3-Day Free Trial:*
+
+You can test all features including WhatsApp AI automation and Omnichannel CRM with zero commitment.
+
+👉 *Activate Free Trial:* https://omnisix-ai.onrender.com/free
+
+No credit card required. Instant activation! 😊`;
+      }
+      return `🎁 *${bizName} — නොමිලේ දින 3ක අත්හදා බැලීම:*
+
+ඔබගේ WhatsApp අංකය සම්බන්ධ කර සියලුම AI පහසුකම් සහ CRM Dashboard එක නොමිලේ අත්හදා බැලිය හැක.
+
+👉 *Free Trial එක සක්‍රීය කරගන්න:* https://omnisix-ai.onrender.com/free
+
+ලියාපදිංචි වී ක්ෂණිකවම භාවිතය ආරම්භ කරන්න! 😊`;
+    }
+
+    // 4. Bank Details / Account Number Inquiry
     if (/(bank details|account details|account number|acc no|boc|bank eka|gewanna ona|salli danna|payment details|bank ekata|account eka)/i.test(clean)) {
       const bDetails = business.bankDetails || 'Bank of Ceylon (BOC)\n• Account No: 92949122\n• Account Name: D T Rajapaksha\n• Branch: Piliyandala';
       if (isEnglish) {
@@ -506,7 +561,7 @@ const HybridFastCacheEngine = {
       return `💳 *මුදල් ගෙවීම් සඳහා නිල බැංකු විස්තර:*\n\n${bDetails}\n\n📌 මුදල් තැන්පත් කළ පසු රිසිට්පතේ (Slip/Screenshot) පැහැදිලි ඡායාරූපයක් මෙහි එවන්න. එවිට ඔබගේ ඇණවුම/ගිණුම සක්‍රීය කරනු ලැබේ. ස්තූතියි!`;
     }
 
-    // 3. Delivery / COD Inquiry
+    // 5. Delivery / COD Inquiry
     if (/(cash on delivery|cod thiyenawada|cod puluwanda|delivery|deliver|courier|ewanne kohomada|dawas kiyak|delivery charges|delivery fee)/i.test(clean)) {
       if (isEnglish) {
         return `🚚 *Delivery & Payment Options:*\n\n` +
@@ -515,16 +570,21 @@ const HybridFastCacheEngine = {
           `• *Bank Deposit:* You can also deposit directly to our bank account.\n\n` +
           `To place an order, send your Name, Delivery Address, and Mobile Number! 📦`;
       }
-      return `🚚 *බෙදාහැරීම් සහ ගෙවීම් විස්තර (Delivery & COD):*\n\n` +
-        `• *Cash on Delivery (COD):* භාණ්ඩය ලැබුණු පසු මුදල් ගෙවීමේ පහසුකම දිවයින පුරා ඇත.\n` +
-        `• *භාණ්ඩ ලැබීමට ගතවන කාලය:* වැඩකරන දින 2-3ක් ඇතුළත කුරියර් (PromptX / Domex) මඟින් නිවසටම ගෙනැවිත් දෙනු ලැබේ.\n` +
-        `• *බැංකු තැන්පතු:* අවශ්‍ය නම් බැංකු ගිණුමට මුදල් තැන්පත් කරද ඇණවුම් කළ හැක.\n\n` +
+      return `🚚 *බෙදාහැරීම් සහ ගෙවීම් විස්තර (Delivery & COD):*
+
+` +
+        `• *Cash on Delivery (COD):* භාණ්ඩය ලැබුණු පසු මුදල් ගෙවීමේ පහසුකම දිවයින පුරා ඇත.
+` +
+        `• *භාණ්ඩ ලැබීමට ගතවන කාලය:* වැඩකරන දින 2-3ක් ඇතුළත කුරියර් (PromptX / Domex) මඟින් නිවසටම ගෙනැවිත් දෙනු ලැබේ.
+` +
+        `• *බැංකු තැන්පතු:* අවශ්‍ය නම් බැංකු ගිණුමට මුදල් තැන්පත් කරද ඇණවුම් කළ හැක.
+
+` +
         `ඇණවුම තහවුරු කිරීමට ඔබගේ නම, ලිපිනය සහ දුරකථන අංකය අප වෙත එවන්න. 📦`;
     }
 
-    // 4. Greetings
+    // 6. Greetings
     if (/^(hi|hello|hey|hlo|good morning|good evening|suba udasanak|suba rathriyak|oya kawda|kawda me|halo|helo)(\s*|\.|\!)*$/i.test(clean)) {
-      const bizName = business.name || 'OmniSix AI';
       if (isEnglish) {
         return `Hello! 👋 Welcome to *${bizName}*.\nI am your 24/7 AI Smart Assistant. How can I help you today? Feel free to ask about our pricing, packages, or services! 😊`;
       }
@@ -534,7 +594,6 @@ const HybridFastCacheEngine = {
     return null;
   }
 };
-
 module.exports = {
   HybridFastCacheEngine,
   PromptInjectionShield,
