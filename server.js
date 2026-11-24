@@ -3109,6 +3109,9 @@ async function getGeminiReply(userMessage, sess, userLang) {
       expectedRole = expectedRole === 'user' ? 'model' : 'user';
     }
   }
+  if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
+    cleanHistory.pop();
+  }
 
   let turnInstruction = '';
   let initialModelAck = '';
@@ -3460,8 +3463,14 @@ The business owner has configured this AI to reply STRICTLY IN SINGLISH (Sinhala
    * If customer sends short answers ("ok", "yes", "1", "size M", "red", phone number, or delivery address), seamlessly preserve the ongoing conversation's language.`;
   }
 
+  const isOngoingChat = Array.isArray(sess.history) && sess.history.length > 0;
+  const ongoingDirective = isOngoingChat
+    ? `\n=== ⚠️ ONGOING CONVERSATION MANDATE (DO NOT RE-GREET) ===\nThis is an ACTIVE, ONGOING conversation with ${customerName}. You have ALREADY greeted and welcomed them previously in the chat history.\n- NEVER say "Kohomada", "Hello", "Hi", "Welcome to...", "Mama Nethmi", or introduce yourself or the business name again.\n- NEVER act like the conversation just started.\n- Jump directly into addressing the customer's query (\"${userMessage}\") warmly, thoughtfully, and specifically, continuing naturally from previous messages!\n`
+    : `\n=== 🌟 NEW CONVERSATION WELCOME ===\nThis is the FIRST message from ${customerName}. Greet them politely, warmly and introduce how you can help.\n`;
+
   return `You are "${settings.aiName || 'Nethmi'}", a ${personaInstruction} representing "${storeName}".
 Customer Name: "${customerName}".
+${ongoingDirective}
 
 === 🌐 🗣️ QUAD-LANGUAGE SMART ADAPTATION MANDATE (සිංහල, Singlish, English, தமிழ்) ===
 Customer Input Contextual Language: "${detectedLang}"

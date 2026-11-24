@@ -419,7 +419,7 @@ class WhatsAppAccountSession {
                   dataset: activeBiz.dataset,
                   isWhatsApp: true,
                   isVoiceCall: false,
-                  history: (chat?.messages || []).slice(-6).map(m => ({
+                  history: (chat?.messages || []).slice(0, -1).slice(-8).map(m => ({
                     role: m.sender === 'customer' ? 'user' : 'model',
                     parts: [{ text: m.text }]
                   }))
@@ -485,7 +485,10 @@ class WhatsAppAccountSession {
               else if (langMode === 'singlish_only') effectiveLang = 'Singlish';
 
               // 🔘 Interactive Quick Action Buttons & Menus (Feature 8)
-              if (settings.isInteractiveButtonsEnabled !== false && !isQuickActionHandled) {
+              const priorAiMsgs = (chat?.messages || []).filter(m => m.sender === 'ai');
+              const isFirstConversationTurn = priorAiMsgs.length === 0;
+              const isMenuReq = /^(menu|help|options|actions|list|1|2|3)$/i.test(text.trim());
+              if ((isFirstConversationTurn || isMenuReq) && settings.isInteractiveButtonsEnabled !== false && !isQuickActionHandled) {
                 let quickMenu = '';
                 if (effectiveLang === 'English') {
                   quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Reply Number):*\n1️⃣ *View Full Catalog & Prices*\n2️⃣ *Confirm Order & Delivery*\n3️⃣ *Connect with Human Agent*';
