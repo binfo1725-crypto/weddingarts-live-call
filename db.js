@@ -380,6 +380,26 @@ class Database {
       if (Array.isArray(sanitized.whatsappAccounts)) {
         sanitized.whatsappAccounts.forEach(a => { delete a.qrDataUrl; delete a.rawQr; });
       }
+      // Guard MongoDB 16MB document limit: retain full inline media on latest 40 chat messages globally if DB grows large
+      if (Array.isArray(sanitized.chats)) {
+        const serializedLen = JSON.stringify(sanitized).length;
+        if (serializedLen > 10 * 1024 * 1024) {
+          let keptMediaCount = 0;
+          for (const c of sanitized.chats) {
+            if (!Array.isArray(c.messages)) continue;
+            for (let mi = c.messages.length - 1; mi >= 0; mi--) {
+              const m = c.messages[mi];
+              if (m.audioBase64 || m.imageBase64) {
+                keptMediaCount++;
+                if (keptMediaCount > 35) {
+                  delete m.audioBase64;
+                  delete m.imageBase64;
+                }
+              }
+            }
+          }
+        }
+      }
       await this.mongoStateCol.updateOne(
         { _id: 'omnisix_data' },
         { $set: { data: sanitized, lastUpdated: new Date() } },
@@ -947,14 +967,20 @@ class Database {
       if (!chat.remoteJid && chat.id && chat.id.length > 13) chat.remoteJid = chat.id + '@lid';
     }
 
+    const safeAudio = (extra.audioBase64 && extra.audioBase64.length <= 950000) ? extra.audioBase64 : null;
+    const safeImage = (extra.imageBase64 && extra.imageBase64.length <= 800000) ? extra.imageBase64 : null;
     const msgObj = {
       id: 'msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       sender: sender, // 'customer' | 'ai' | 'agent'
       text: text,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       timestamp: Date.now(),
-      audioBase64: extra.audioBase64 || null,
-      mimeType: extra.mimeType || null
+      audioBase64: safeAudio,
+      mimeType: extra.mimeType || null,
+      imageBase64: safeImage,
+      imageMimeType: extra.imageMimeType || null,
+      visionSummary: extra.visionSummary || null,
+      productId: extra.productId || null
     };
 
     chat.messages.push(msgObj);

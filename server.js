@@ -99,6 +99,7 @@ const agentFleet = new AgentFleetManager(db);
 const waEngine = require('./whatsapp.js');
 const { generateInvoicePdf } = require('./invoiceGenerator.js');
 const categoryProfiles = require('./categoryProfiles.js');
+const { analyzeImageWithGeminiVision } = require('./slipVerifier.js');
 const pdfParse = require('pdf-parse');
 const {
   CustomerArchetypeEngine,
@@ -1817,24 +1818,34 @@ app.post('/api/products/send-photo', requireSessionAuth, async (req, res) => {
       ? prod.images.filter(Boolean)
       : [prod.imageUrl].filter(Boolean);
 
-    let targetAccId = accountId;
+    const existingChat = db.getChat(phone);
+    const sendTarget = (existingChat && existingChat.remoteJid) ? existingChat.remoteJid : phone;
+    let targetAccId = accountId || (existingChat && existingChat.accountId) || null;
     if (!targetAccId && req.tenantBusinessId) {
       targetAccId = 'wa_' + req.tenantBusinessId;
     }
 
-    let lastResult = { ok: true };
+    let sentCount = 0;
+    let lastResult = { ok: false, error: 'Failed to send' };
     for (let i = 0; i < allImgs.length; i++) {
       const caption = (i === 0)
         ? (customCaption || `📸 *${prod.name}*${allImgs.length > 1 ? ` (Photo 1/${allImgs.length})` : ''}\n💰 මිල: Rs. ${(prod.price || 0).toLocaleString()}\n${prod.description ? prod.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`)
         : `📸 *${prod.name}* (${i + 1}/${allImgs.length})`;
-      lastResult = await waEngine.sendImageMessage(phone, allImgs[i], targetAccId, caption);
+      lastResult = await waEngine.sendImageMessage(sendTarget, allImgs[i], targetAccId, caption);
+      if (lastResult && lastResult.ok) sentCount++;
       if (i < allImgs.length - 1) await new Promise(r => setTimeout(r, 600));
     }
 
-    if (lastResult.ok) {
-      db.addChatMessage(phone, 'agent', `📷 [Sent ${allImgs.length} Product Photos: ${prod.name}]`, 'Agent', phone, bId);
+    if (sentCount === 0) {
+      return res.status(502).json({ ok: false, error: lastResult?.error || 'WhatsApp image delivery failed' });
     }
-    res.json({ ok: true, sentCount: allImgs.length });
+
+    const chatKey = (existingChat && existingChat.id) || String(phone).split('@')[0];
+    db.addChatMessage(chatKey, 'agent', `📷 [Sent ${sentCount} Product Photos: ${prod.name}]`, existingChat?.customerName || 'Agent', existingChat?.customerPhone || chatKey, bId, {
+      productId: prod.id,
+      accountId: targetAccId || undefined
+    });
+    res.json({ ok: true, sentCount });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -3352,13 +3363,38 @@ async function synthesizeVoiceAudio(text, preferredVoice, sessionKey) {
           }
           continue; // Try next key/model in pool!
         }
-        const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (audioData) {
-          console.log(`[Gemini TTS] ✅ Successfully generated genuine Gemini ${voice} Voice (${audioData.length} chars) via ${model}`);
-          return { audioBase64: audioData, mimeType: 'audio/wav', isGemini: true };
+        const inlinePart = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        const rawAudioData = inlinePart?.data;
+        if (rawAudioData) {
+          let finalBase64 = rawAudioData;
+          let finalMime = (inlinePart.mimeType || 'audio/wav').split(';')[0].trim();
+          const rawBuf = Buffer.from(rawAudioData, 'base64');
+          const isAlreadyRiff = rawBuf.length > 4 && rawBuf.slice(0, 4).toString('ascii') === 'RIFF';
+          if (!isAlreadyRiff && (finalMime.includes('l16') || finalMime.includes('pcm') || finalMime === 'audio/wav')) {
+            const rateMatch = String(inlinePart.mimeType || '').match(/rate=(\d+)/i);
+            const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+            const wavHeader = Buffer.alloc(44);
+            wavHeader.write('RIFF', 0);
+            wavHeader.writeUInt32LE(36 + rawBuf.length, 4);
+            wavHeader.write('WAVE', 8);
+            wavHeader.write('fmt ', 12);
+            wavHeader.writeUInt32LE(16, 16);
+            wavHeader.writeUInt16LE(1, 20);
+            wavHeader.writeUInt16LE(1, 22);
+            wavHeader.writeUInt32LE(sampleRate, 24);
+            wavHeader.writeUInt32LE(sampleRate * 2, 28);
+            wavHeader.writeUInt16LE(2, 32);
+            wavHeader.writeUInt16LE(16, 34);
+            wavHeader.write('data', 36);
+            wavHeader.writeUInt32LE(rawBuf.length, 40);
+            finalBase64 = Buffer.concat([wavHeader, rawBuf]).toString('base64');
+            finalMime = 'audio/wav';
+          }
+          console.log(`[Gemini TTS] ✅ Successfully generated genuine Gemini ${voice} Voice (${finalBase64.length} chars, ${finalMime}) via ${model}`);
+          return { audioBase64: finalBase64, mimeType: finalMime, isGemini: true };
         }
       } catch (err) {
-        markKeyCooldown(key, 5 * 60 * 1000);
+        // Transient TTS timeout - proceed to next model/key without poisoning key pool
       }
     }
   }
@@ -3392,11 +3428,16 @@ function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLan
   const storeProducts = db.getProducts(activeBiz.id);
   let catalogPhotoContext = '';
   if (storeProducts && storeProducts.length > 0) {
-    const prodsWithImg = storeProducts.filter(p => !!(p.imageUrl && p.imageUrl.length > 20));
+    const prodsWithImg = storeProducts.filter(p =>
+      !!((p.imageUrl && p.imageUrl.length > 20) || (Array.isArray(p.images) && p.images.some(img => img && img.length > 20)))
+    );
     if (prodsWithImg.length > 0) {
       catalogPhotoContext = `\n--- 📸 PRODUCTS WITH GENUINE PHOTOS AVAILABLE IN SYSTEM ---\n` +
-        prodsWithImg.map(p => `• Product: "${p.name}" | Price: Rs. ${(p.price || 0).toLocaleString()} [PHOTO AVAILABLE]`).join('\n') +
-        `\n👉 WHEN A CUSTOMER ASKS TO SEE PHOTOS / SAMPLES / PICS of any product above (e.g. "photos ewanna", "photo thiyenawada", "balanna puluwanda", "sample balanna puluwanda", "pics please"), reply politely and APPEND THIS EXACT TAG AT THE END of your reply: [[SEND_PHOTO: ProductName]]\nThe WhatsApp engine will automatically deliver the genuine product photo with details directly to the customer!\n--- END PRODUCTS WITH PHOTOS ---\n`;
+        prodsWithImg.map(p => {
+          const cnt = (Array.isArray(p.images) && p.images.length > 0) ? p.images.length : 1;
+          return `• Product: "${p.name}" | Category: "${p.category || 'General'}" | Price: Rs. ${(p.price || 0).toLocaleString()} [${cnt} PHOTO(S) AVAILABLE]`;
+        }).join('\n') +
+        `\n👉 WHENEVER A CUSTOMER ASKS FOR PRODUCT PHOTOS / IMAGES / SAMPLES / DETAILS of any product (e.g. "photo ewanna", "prodact ewanna", "product balanna", "sample", "pics please", "monawada thiyenne"), reply warmly and APPEND THIS EXACT TAG AT THE END of your reply: [[SEND_PHOTO: ProductName]]\nThe WhatsApp engine will automatically deliver ALL genuine photos of that product directly to the customer!\n--- END PRODUCTS WITH PHOTOS ---\n`;
     }
   }
 
@@ -3625,6 +3666,13 @@ async function transcribeAudioBuffer(audioBuffer, mimeType = 'audio/ogg; codecs=
           signal: AbortSignal.timeout(10000)
         });
         const data = await res.json();
+        if (data?.error) {
+          console.warn(`[voice-transcribe] ${model} API error (${data.error.code}): ${data.error.message}`);
+          if (data.error.code === 429 || data.error.code === 401) {
+            markKeyCooldown(key, 10 * 60 * 1000);
+          }
+          continue;
+        }
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
         if (text) {
           console.log(`[voice-transcribe] 🎙️ Gemini (${model}) transcribed voice note: "${text}"`);
@@ -3636,6 +3684,19 @@ async function transcribeAudioBuffer(audioBuffer, mimeType = 'audio/ogg; codecs=
     }
   }
   return '';
+}
+
+// ─── Gemini Multimodal Vision Analyzer for Incoming WhatsApp Images ──────────
+async function analyzeImageBuffer(imgBuffer, mimeType = 'image/jpeg', caption = '', storeName = 'OmniSix AI', sessionKey = null) {
+  const keysToTry = getOrderedKeys(sessionKey);
+  if (!imgBuffer || keysToTry.length === 0) {
+    return { isBankSlip: false, imageDescription: '', customerIntent: '' };
+  }
+  const result = await analyzeImageWithGeminiVision(imgBuffer, mimeType, keysToTry, { caption, storeName });
+  if (result && (result.isBankSlip || result.imageDescription)) {
+    console.log(`[image-vision] 👁️ Image analyzed (isBankSlip=${result.isBankSlip}): "${(result.imageDescription || result.summary || '').slice(0, 80)}"`);
+  }
+  return result;
 }
 
 // ─── Attach Handlers to WhatsApp Multi-Device Engine ────────────────────────
@@ -3716,6 +3777,9 @@ waEngine.setHandlers({
   },
   audioTranscribeHandler: async (audioBuffer, mimeType) => {
     return await transcribeAudioBuffer(audioBuffer, mimeType);
+  },
+  imageAnalyzeHandler: async (imgBuffer, mimeType, caption, storeName, customKey) => {
+    return await analyzeImageBuffer(imgBuffer, mimeType, caption, storeName, customKey);
   },
   voiceSynthesizeHandler: async (text, preferredVoice, customKey) => {
     return await synthesizeVoiceAudio(text, preferredVoice, customKey);

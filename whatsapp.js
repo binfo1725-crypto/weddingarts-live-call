@@ -229,13 +229,17 @@ class WhatsAppAccountSession {
                          msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson ||
                          '';
 
-            // Download & verify bank deposit slip with Gemini Vision if image received
+            // Download & inspect ANY incoming image via Gemini Multimodal Vision (Bank slips, product photos, screenshots, etc.)
             const imgMsg = msg.message?.imageMessage;
             const isImage = !!imgMsg;
             let slipResult = null;
+            let rawImgBase64 = null;
+            let rawImgMime = (imgMsg?.mimetype || 'image/jpeg').split(';')[0].trim() || 'image/jpeg';
+            let imageVisionDescription = '';
+            let customerOriginalCaption = text ? text.trim() : '';
 
             if (isImage) {
-              console.log(`[whatsapp-acc:${this.id}] 📷 Received WhatsApp Image/Slip from ${remoteJid}`);
+              console.log(`[whatsapp-acc:${this.id}] 📷 Received WhatsApp Image from ${remoteJid}`);
               try {
                 const imgBuffer = await downloadMediaMessage(
                   msg,
@@ -244,25 +248,40 @@ class WhatsAppAccountSession {
                   { logger: pino({ level: 'silent' }), reuploadRequest: this.sock.updateMediaMessage }
                 );
                 if (imgBuffer) {
+                  if (imgBuffer.length <= 580 * 1024) {
+                    rawImgBase64 = imgBuffer.toString('base64');
+                  }
                   const activeBiz = (this.businessId && (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId))) || db.getActiveBusiness();
                   const settings = (this.businessId && db.getTenantSettings(this.businessId)) || db.getSettings();
                   const geminiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || '';
-                  if (geminiKey) {
-                    slipResult = await verifyBankSlipWithGeminiVision(imgBuffer, imgMsg.mimetype || 'image/jpeg', geminiKey);
+                  if (this.manager.imageAnalyzeHandler) {
+                    slipResult = await this.manager.imageAnalyzeHandler(imgBuffer, rawImgMime, customerOriginalCaption, activeBiz.name, geminiKey || null);
+                  } else if (geminiKey) {
+                    slipResult = await verifyBankSlipWithGeminiVision(imgBuffer, rawImgMime, geminiKey);
+                  }
+                  if (slipResult && slipResult.imageDescription) {
+                    imageVisionDescription = slipResult.imageDescription + (slipResult.customerIntent ? ` — ${slipResult.customerIntent}` : '');
+                  } else if (slipResult && slipResult.summary) {
+                    imageVisionDescription = slipResult.summary;
                   }
                 }
               } catch (imgErr) {
-                console.error(`[whatsapp-acc:${this.id}] Slip verify error:`, imgErr.message);
+                console.error(`[whatsapp-acc:${this.id}] Image vision error:`, imgErr.message);
               }
 
-              if (!text || text.trim().length === 0) {
-                text = slipResult && slipResult.isBankSlip
-                  ? `[Bank Payment Slip - Rs. ${slipResult.amount}]`
-                  : `[Customer Sent an Image]`;
+              if (slipResult && slipResult.isBankSlip) {
+                text = `[Bank Payment Slip - Rs. ${slipResult.amount}]`;
+              } else if (imageVisionDescription) {
+                text = customerOriginalCaption
+                  ? `${customerOriginalCaption} [📷 Image Content: ${imageVisionDescription}]`
+                  : `📷 [Image Sent: ${imageVisionDescription}]`;
+              } else if (!text || text.trim().length === 0) {
+                text = `📷 [Customer Sent an Image]`;
               }
             }
 
             // Download and transcribe audio if voice note received
+            let isVoiceTranscribed = false;
             if (isVoiceNote) {
               console.log(`[whatsapp-acc:${this.id}] 🎙️ Received WhatsApp Voice Note (${audioMsg.seconds || 0}s) from ${remoteJid}`);
               try {
@@ -278,6 +297,7 @@ class WhatsAppAccountSession {
                     const transcribed = await this.manager.audioTranscribeHandler(buffer, audioMsg.mimetype || 'audio/ogg; codecs=opus');
                     if (transcribed && transcribed.trim().length > 0) {
                       text = transcribed.trim();
+                      isVoiceTranscribed = true;
                       console.log(`[whatsapp-acc:${this.id}] 📝 Transcribed Voice Note: "${text}"`);
                     }
                   }
@@ -287,7 +307,7 @@ class WhatsAppAccountSession {
               }
 
               if (!text || text.trim().length === 0) {
-                text = 'හෙලෝ (Customer Voice Message)';
+                text = `[Voice Note (${audioMsg.seconds || 0}s) — Audio Attached, Please Listen]`;
               }
             }
 
@@ -326,13 +346,19 @@ class WhatsAppAccountSession {
                 `අපගේ කාර්ය මණ්ඩලය විසින් ඔබගේ ඇණවුම සූදානම් කර කඩිනමින් කුරියර් වෙත භාරදෙනු ඇත. ඔබට ස්තූතියි! 🙏✨`;
 
               await this.sock.sendMessage(remoteJid, { text: confirmText });
-              db.addChatMessage(senderPhone, 'customer', `📷 [Bank Slip Attached: Rs. ${slipResult.amount}]`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
-              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
+              db.addChatMessage(senderPhone, 'customer', `📷 [Bank Slip Attached: Rs. ${slipResult.amount}]`, senderName, senderPhone, activeBiz.id, {
+                accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid,
+                ...(rawImgBase64 ? { imageBase64: rawImgBase64, imageMimeType: rawImgMime, visionSummary: imageVisionDescription || `Bank Slip Verified: Rs. ${slipResult.amount}` } : {})
+              });
+              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid });
               continue;
             }
 
-            // Store message in unified database with receiving account tag & businessId
-            const storedText = isVoiceNote ? `🎤 ${text.trim()}` : text.trim();
+            // Store message in unified database with receiving account tag, media preview & AI Vision summary
+            const cleanAudioMime = isVoiceNote ? ((audioMsg.mimetype || 'audio/ogg').split(';')[0].trim() || 'audio/ogg') : null;
+            const storedText = isVoiceNote
+              ? `🎤 ${text.trim()}`
+              : (isImage ? (customerOriginalCaption ? `📷 ${customerOriginalCaption}` : '📷 [Customer Sent an Image]') : text.trim());
             db.addChatMessage(
               senderPhone,
               'customer',
@@ -340,7 +366,14 @@ class WhatsAppAccountSession {
               senderName,
               senderPhone,
               activeBiz.id,
-              { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid, ...(isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: audioMsg.mimetype || 'audio/ogg' } : {}) }
+              {
+                accountId: this.id,
+                accountPhone: this.phoneNumber || '',
+                accountLabel: this.label || '',
+                remoteJid: remoteJid,
+                ...(isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: cleanAudioMime } : {}),
+                ...(isImage && rawImgBase64 ? { imageBase64: rawImgBase64, imageMimeType: rawImgMime, visionSummary: imageVisionDescription || null } : {})
+              }
             );
 
             // Check if AI Bot is disabled for this specific account
@@ -433,57 +466,89 @@ class WhatsAppAccountSession {
               }
             }
 
-            // Check if any store product photo should be sent (via tag or photo inquiry match)
+            // Check if any store product photo(s) should be sent (via tag, keyword/category tokens, or photo/product inquiry)
             const storeProducts = db.getProducts(activeBiz.id);
-            const prodsWithImage = (storeProducts || []).filter(p => !!(p.imageUrl && p.imageUrl.length > 20));
+            const prodsWithImage = (storeProducts || []).filter(p =>
+              !!((p.imageUrl && p.imageUrl.length > 20) || (Array.isArray(p.images) && p.images.some(img => img && img.length > 20)))
+            );
 
-            let matchedProductToSend = null;
+            let matchedProductsToSend = [];
             if (prodsWithImage.length > 0) {
               // 1. Tag match from Gemini: [[SEND_PHOTO: ProductName]] or [[SEND_PRODUCT_IMAGE: ID]]
-              const photoTagMatch = aiReply.match(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*([^\]]+)\]\]/i);
-              if (photoTagMatch) {
-                const targetNameOrId = photoTagMatch[1].trim().toLowerCase();
-                matchedProductToSend = prodsWithImage.find(p =>
+              const photoTagRegex = /\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*([^\]]+)\]\]/gi;
+              let tagMatch;
+              while ((tagMatch = photoTagRegex.exec(aiReply)) !== null) {
+                const targetNameOrId = tagMatch[1].trim().toLowerCase();
+                const found = prodsWithImage.find(p =>
                   (p.id && p.id.toLowerCase() === targetNameOrId) ||
                   (p.name && p.name.toLowerCase().includes(targetNameOrId)) ||
                   targetNameOrId.includes((p.name || '').toLowerCase())
                 );
-                aiReply = aiReply.replace(photoTagMatch[0], '').trim();
+                if (found && !matchedProductsToSend.some(x => x.id === found.id)) {
+                  matchedProductsToSend.push(found);
+                }
               }
+              aiReply = aiReply.replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*[^\]]+\]\]/gi, '').trim();
 
-              // 2. Keyword / Photo Inquiry Match
-              if (!matchedProductToSend) {
-                const isPhotoReq = /photo|image|picture|pic|ෆොටෝ|පින්තූර|පින්තුර|බලන්න|sample|දක්වන්න/i.test(text);
+              // 2. Smart Keyword / Token / Category / Photo Inquiry Match
+              if (matchedProductsToSend.length === 0) {
+                const isPhotoReq = /photo|image|img|pic|picture|sample|catalog|catlog|product|prodact|poto|fotto|ෆොටෝ|පින්තූර|පින්තුර|පොටෝ|බලන්න|දක්වන්න|ewanna|evanna|pennanna/i.test(text);
                 const textLower = text.toLowerCase();
                 const replyLower = aiReply.toLowerCase();
-                for (const prod of prodsWithImage) {
-                  const pNameLower = (prod.name || '').toLowerCase();
-                  if (!pNameLower || pNameLower.length < 3) continue;
-                  if (textLower.includes(pNameLower) || (isPhotoReq && replyLower.includes(pNameLower))) {
-                    matchedProductToSend = prod;
-                    break;
+
+                const scored = prodsWithImage.map(prod => {
+                  let score = 0;
+                  const pName = (prod.name || '').toLowerCase().trim();
+                  const pCat = (prod.category || '').toLowerCase().trim();
+                  if (pName && pName.length >= 3 && textLower.includes(pName)) score += 10;
+                  if (pName && pName.length >= 3 && isPhotoReq && replyLower.includes(pName)) score += 6;
+                  if (pCat && pCat.length >= 3 && textLower.includes(pCat)) score += 4;
+                  const tokens = [...pName.split(/\s+/), ...pCat.split(/\s+/)].filter(t => t.length >= 3);
+                  for (const tok of tokens) {
+                    if (textLower.includes(tok)) score += 2;
+                    else if (isPhotoReq && replyLower.includes(tok)) score += 1;
                   }
+                  return { prod, score };
+                }).filter(x => x.score >= (isPhotoReq ? 1 : 10)).sort((a, b) => b.score - a.score);
+
+                if (scored.length > 0) {
+                  matchedProductsToSend.push(scored[0].prod);
+                } else if (isPhotoReq) {
+                  // Customer asked for photos/product (e.g. "Prodact ewanna" / "photo ewanna") — send top matching catalog item(s)
+                  matchedProductsToSend = prodsWithImage.slice(0, 2);
                 }
               }
             }
 
-            // If a product with photo was requested or matched, send genuine photo gallery!
-            if (matchedProductToSend && (matchedProductToSend.imageUrl || (matchedProductToSend.images && matchedProductToSend.images.length > 0))) {
+            // Deliver genuine multi-image product gallery directly to remoteJid (supports both @lid and @s.whatsapp.net)
+            for (const matchedProductToSend of matchedProductsToSend) {
               const allImages = (Array.isArray(matchedProductToSend.images) && matchedProductToSend.images.length > 0)
                 ? matchedProductToSend.images.filter(Boolean)
                 : [matchedProductToSend.imageUrl].filter(Boolean);
 
+              if (allImages.length === 0) continue;
+
+              let sentImgCount = 0;
               for (let i = 0; i < allImages.length; i++) {
                 const imgUrl = allImages[i];
                 const photoCaption = (i === 0)
                   ? `📸 *${matchedProductToSend.name}*${allImages.length > 1 ? ` (Photo 1/${allImages.length})` : ''}\n💰 මිල: Rs. ${(matchedProductToSend.price || 0).toLocaleString()}\n${matchedProductToSend.description ? matchedProductToSend.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`
                   : `📸 *${matchedProductToSend.name}* (${i + 1}/${allImages.length})`;
-                await this.sendImageMessage(senderPhone, imgUrl, photoCaption);
+                const sendRes = await this.sendImageMessage(remoteJid, imgUrl, photoCaption);
+                if (sendRes && sendRes.ok) sentImgCount++;
                 if (i < allImages.length - 1) await delay(700);
               }
 
-              db.addChatMessage(senderPhone, 'ai', `📷 [Product Photos (${allImages.length}): ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
-              await delay(600);
+              if (sentImgCount > 0) {
+                db.addChatMessage(senderPhone, 'ai', `📷 [Product Photos (${sentImgCount}): ${matchedProductToSend.name}]`, senderName, senderPhone, activeBiz.id, {
+                  accountId: this.id,
+                  accountPhone: this.phoneNumber || '',
+                  accountLabel: this.label || '',
+                  remoteJid: remoteJid,
+                  productId: matchedProductToSend.id
+                });
+                await delay(500);
+              }
             }
 
             if (aiReply) {
@@ -526,6 +591,7 @@ class WhatsAppAccountSession {
                                        (voiceMode === 'auto' && isVoiceNote));
 
               let voiceAudioBase64 = null;
+              let voiceMimeType = 'audio/wav';
               if (shouldReplyVoice && this.manager.voiceSynthesizeHandler) {
                 try {
                   const preferredVoice = settings.voiceProfile || activeBiz.voice || 'Leda';
@@ -533,6 +599,7 @@ class WhatsAppAccountSession {
                   const voiceRes = await this.manager.voiceSynthesizeHandler(aiReply, preferredVoice, customKey);
                   if (voiceRes && voiceRes.audioBase64) {
                     voiceAudioBase64 = voiceRes.audioBase64;
+                    voiceMimeType = voiceRes.mimeType || 'audio/wav';
                   }
                 } catch (ttsErr) {
                   console.warn(`[whatsapp-acc:${this.id}] Voice synthesis error:`, ttsErr.message);
@@ -541,25 +608,25 @@ class WhatsAppAccountSession {
 
               if (voiceAudioBase64) {
                 await this.sock.sendPresenceUpdate('recording', remoteJid);
-                await delay(1200);
+                await delay(1000);
                 await this.sock.sendPresenceUpdate('paused', remoteJid);
 
                 const voiceBuf = Buffer.from(voiceAudioBase64, 'base64');
                 await this.sock.sendMessage(remoteJid, {
                   audio: voiceBuf,
-                  mimetype: 'audio/mp4',
+                  mimetype: voiceMimeType,
                   ptt: true
                 });
-                console.log(`[whatsapp-acc:${this.id}] 🎙️ Sent Gemini Voice Note to ${senderPhone}!`);
+                console.log(`[whatsapp-acc:${this.id}] 🎙️ Sent Gemini Voice Note (${voiceMimeType}) to ${senderPhone}!`);
 
                 if (voiceMode === 'both' || !isVoiceNote) {
-                  await delay(800);
+                  await delay(600);
                   await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 }
 
-                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '',
+                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid,
                   audioBase64: voiceAudioBase64,
-                  mimeType: 'audio/mp4'
+                  mimeType: voiceMimeType
                 });
               } else {
                 await this.sock.sendPresenceUpdate('composing', remoteJid);
@@ -641,77 +708,75 @@ class WhatsAppAccountSession {
     return await this.sendTextMessage(toPhone, text);
   }
 
-  async sendTextMessage(toPhone, text) {
-    if (!this.sock || !this.connected) {
-      return { ok: false, error: `Account ${this.id} not connected` };
-    }
-    let target = String(toPhone || '').trim();
-    let jid = '';
-
-    if (target.includes('@')) {
-      jid = target;
-    } else {
-      const chat = db.getChat(target);
-      if (chat && chat.remoteJid) {
-        jid = chat.remoteJid;
-      } else if (target.length > 13) {
-        jid = `${target}@lid`;
-      } else {
-        let clean = target.replace(/\D/g, '');
-        if (clean.startsWith('0') && clean.length === 10) {
-          clean = '94' + clean.slice(1);
-        } else if (clean.length === 9 && !clean.startsWith('94')) {
-          clean = '94' + clean;
-        }
-        jid = `${clean}@s.whatsapp.net`;
-      }
-    }
-
-    try {
-      await this.sock.sendMessage(jid, { text });
-      console.log(`[whatsapp-acc:${this.id}] Successfully sent text to ${jid}: "${text.slice(0, 40)}"`);
-      return { ok: true, jid };
-    } catch (e) {
-      console.error(`[whatsapp-acc:${this.id}] Send failed to ${jid}:`, e.message);
-      if (jid.endsWith('@lid')) {
-        const altJid = `${jid.split('@')[0]}@s.whatsapp.net`;
-        try {
-          await this.sock.sendMessage(altJid, { text });
-          console.log(`[whatsapp-acc:${this.id}] Fallback sent to ${altJid}`);
-          return { ok: true, jid: altJid };
-        } catch (err2) {}
-      }
-      return { ok: false, error: e.message };
-    }
-  }
-
-  async sendVoiceMessage(toPhone, audioBuffer, ptt = true) {
-    if (!this.sock || !this.connected) {
-      return { ok: false, error: `Account ${this.id} not connected` };
-    }
-    let clean = String(toPhone || '').replace(/\D/g, '');
+  resolveJid(toPhoneOrJid) {
+    const target = String(toPhoneOrJid || '').trim();
+    if (!target) return '';
+    if (target.includes('@')) return target;
+    const digitsOnly = target.replace(/\D/g, '');
+    const chat = db.getChat(target) || db.getChat(digitsOnly);
+    if (chat && chat.remoteJid) return chat.remoteJid;
+    if (digitsOnly.length > 13) return `${digitsOnly}@lid`;
+    let clean = digitsOnly;
     if (clean.startsWith('0') && clean.length === 10) {
       clean = '94' + clean.slice(1);
     } else if (clean.length === 9 && !clean.startsWith('94')) {
       clean = '94' + clean;
     }
-    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
+    return `${clean}@s.whatsapp.net`;
+  }
 
+  async sendWithJidFallback(toPhoneOrJid, payloadBuilder) {
+    const jid = this.resolveJid(toPhoneOrJid);
+    if (!jid) return { ok: false, error: 'Invalid recipient phone/JID' };
+    try {
+      const payload = await payloadBuilder(jid);
+      await this.sock.sendMessage(jid, payload);
+      return { ok: true, jid };
+    } catch (e) {
+      if (jid.endsWith('@lid')) {
+        const altJid = `${jid.split('@')[0]}@s.whatsapp.net`;
+        try {
+          const altPayload = await payloadBuilder(altJid);
+          await this.sock.sendMessage(altJid, altPayload);
+          return { ok: true, jid: altJid };
+        } catch (_) {}
+      }
+      return { ok: false, error: e.message, jid };
+    }
+  }
+
+  async sendTextMessage(toPhone, text) {
+    if (!this.sock || !this.connected) {
+      return { ok: false, error: `Account ${this.id} not connected` };
+    }
+    const res = await this.sendWithJidFallback(toPhone, async () => ({ text }));
+    if (res.ok) {
+      console.log(`[whatsapp-acc:${this.id}] Successfully sent text to ${res.jid}: "${text.slice(0, 40)}"`);
+    } else {
+      console.error(`[whatsapp-acc:${this.id}] Send failed to ${res.jid}:`, res.error);
+    }
+    return res;
+  }
+
+  async sendVoiceMessage(toPhone, audioBuffer, ptt = true, mimeType = 'audio/wav') {
+    if (!this.sock || !this.connected) {
+      return { ok: false, error: `Account ${this.id} not connected` };
+    }
+    const jid = this.resolveJid(toPhone);
     try {
       await this.sock.sendPresenceUpdate('recording', jid);
-      await delay(1200);
+      await delay(900);
       await this.sock.sendPresenceUpdate('paused', jid);
-
       const buf = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer, 'base64');
-      await this.sock.sendMessage(jid, {
+      const res = await this.sendWithJidFallback(toPhone, async () => ({
         audio: buf,
-        mimetype: 'audio/mp4',
+        mimetype: mimeType || 'audio/wav',
         ptt: !!ptt
-      });
-      console.log(`[whatsapp-acc:${this.id}] Sent voice message to ${clean}`);
-      return { ok: true };
+      }));
+      if (res.ok) console.log(`[whatsapp-acc:${this.id}] Sent voice message to ${res.jid}`);
+      else console.error(`[whatsapp-acc:${this.id}] Send voice failed to ${res.jid}:`, res.error);
+      return res;
     } catch (e) {
-      console.error(`[whatsapp-acc:${this.id}] Send voice failed to ${clean}:`, e.message);
       return { ok: false, error: e.message };
     }
   }
@@ -720,14 +785,6 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
     }
-    let clean = String(toPhone || '').replace(/\D/g, '');
-    if (clean.startsWith('0') && clean.length === 10) {
-      clean = '94' + clean.slice(1);
-    } else if (clean.length === 9 && !clean.startsWith('94')) {
-      clean = '94' + clean;
-    }
-    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
-
     try {
       let imageBuffer;
       if (Buffer.isBuffer(imageInput)) {
@@ -742,17 +799,26 @@ class WhatsAppAccountSession {
           imageBuffer = Buffer.from(imageInput, 'base64');
         }
       }
+      if (!imageBuffer) return { ok: false, error: 'Empty image payload' };
 
-      await this.sock.sendPresenceUpdate('composing', jid);
-      await delay(800);
-      await this.sock.sendMessage(jid, {
+      const targetJid = this.resolveJid(toPhone);
+      try {
+        await this.sock.sendPresenceUpdate('composing', targetJid);
+        await delay(500);
+      } catch (_) {}
+
+      const res = await this.sendWithJidFallback(toPhone, async () => ({
         image: imageBuffer,
         caption: caption || ''
-      });
-      console.log(`[whatsapp-acc:${this.id}] 📷 Sent product image to ${clean} with caption: "${(caption || '').slice(0, 40)}"`);
-      return { ok: true };
+      }));
+      if (res.ok) {
+        console.log(`[whatsapp-acc:${this.id}] 📷 Sent product image to ${res.jid} with caption: "${(caption || '').slice(0, 40)}"`);
+      } else {
+        console.error(`[whatsapp-acc:${this.id}] Send image failed to ${res.jid}:`, res.error);
+      }
+      return res;
     } catch (e) {
-      console.error(`[whatsapp-acc:${this.id}] Send image failed to ${clean}:`, e.message);
+      console.error(`[whatsapp-acc:${this.id}] Send image failed to ${toPhone}:`, e.message);
       return { ok: false, error: e.message };
     }
   }
@@ -761,28 +827,16 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) {
       return { ok: false, error: `Account ${this.id} not connected` };
     }
-    let clean = String(toPhone || '').replace(/\D/g, '');
-    if (clean.startsWith('0') && clean.length === 10) {
-      clean = '94' + clean.slice(1);
-    } else if (clean.length === 9 && !clean.startsWith('94')) {
-      clean = '94' + clean;
-    }
-    const jid = clean.includes('@s.whatsapp.net') ? clean : `${clean}@s.whatsapp.net`;
-
-    try {
-      const docBuffer = Buffer.isBuffer(docInput) ? docInput : Buffer.from(docInput, 'base64');
-      await this.sock.sendMessage(jid, {
-        document: docBuffer,
-        mimetype: 'application/pdf',
-        fileName: fileName || 'Document.pdf',
-        caption: caption || ''
-      });
-      console.log(`[whatsapp-acc:${this.id}] 📄 Sent document ${fileName} to ${clean}`);
-      return { ok: true };
-    } catch (e) {
-      console.error(`[whatsapp-acc:${this.id}] Send document failed to ${clean}:`, e.message);
-      return { ok: false, error: e.message };
-    }
+    const docBuffer = Buffer.isBuffer(docInput) ? docInput : Buffer.from(docInput, 'base64');
+    const res = await this.sendWithJidFallback(toPhone, async () => ({
+      document: docBuffer,
+      mimetype: 'application/pdf',
+      fileName: fileName || 'Document.pdf',
+      caption: caption || ''
+    }));
+    if (res.ok) console.log(`[whatsapp-acc:${this.id}] 📄 Sent document ${fileName} to ${res.jid}`);
+    else console.error(`[whatsapp-acc:${this.id}] Send document failed to ${res.jid}:`, res.error);
+    return res;
   }
 
   async logout() {
@@ -906,6 +960,7 @@ class MultiAccountWhatsAppManager {
     this.aiReplyHandler = null;
     this.orderCheckHandler = null;
     this.audioTranscribeHandler = null;
+    this.imageAnalyzeHandler = null;
     this.voiceSynthesizeHandler = null;
 
     // Auto-clean deduplication cache every 5 minutes
@@ -931,10 +986,11 @@ class MultiAccountWhatsAppManager {
     this.processedMessageIds.set(msgId, Date.now());
   }
 
-  setHandlers({ aiReplyHandler, orderCheckHandler, audioTranscribeHandler, voiceSynthesizeHandler }) {
+  setHandlers({ aiReplyHandler, orderCheckHandler, audioTranscribeHandler, imageAnalyzeHandler, voiceSynthesizeHandler }) {
     this.aiReplyHandler = aiReplyHandler;
     this.orderCheckHandler = orderCheckHandler;
     this.audioTranscribeHandler = audioTranscribeHandler;
+    this.imageAnalyzeHandler = imageAnalyzeHandler;
     this.voiceSynthesizeHandler = voiceSynthesizeHandler;
   }
 
@@ -1349,21 +1405,21 @@ class MultiAccountWhatsAppManager {
           return await session.sendImageMessage(cleanTo, imageUrl, caption || text);
         case 'video':
           if (session.sock) {
-            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
+            const jid = session.resolveJid(to);
             await session.sock.sendMessage(jid, { video: { url: videoUrl }, caption: caption || text });
             return { ok: true };
           }
           break;
         case 'document':
           if (session.sock) {
-            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
+            const jid = session.resolveJid(to);
             await session.sock.sendMessage(jid, { document: { url: docUrl }, mimetype: 'application/pdf', fileName: title || 'Document.pdf', caption: caption || text });
             return { ok: true };
           }
           break;
         case 'location':
           if (session.sock) {
-            const jid = cleanTo.includes('@s.whatsapp.net') ? cleanTo : `${cleanTo}@s.whatsapp.net`;
+            const jid = session.resolveJid(to);
             await session.sock.sendMessage(jid, { location: { degreesLatitude: Number(lat) || 6.9271, degreesLongitude: Number(long) || 79.8612, name: title || 'Store Location' } });
             return { ok: true };
           }
