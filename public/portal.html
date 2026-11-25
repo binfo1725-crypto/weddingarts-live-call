@@ -4728,12 +4728,12 @@ table tr:hover td {
 
 <!-- Modal: Add New Product -->
 <div id="modal-add-product" class="modal-overlay hidden">
-  <div class="modal-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+  <div class="modal-card" style="max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0;">
       <h3 style="font-size:1.15rem;font-weight:700;">Add Product to Catalog</h3>
-      <button class="btn-secondary" onclick="closeAddProductModal()" style="padding:4px 10px;">✕</button>
+      <button type="button" class="btn-secondary" onclick="closeAddProductModal()" style="padding:4px 10px;">✕</button>
     </div>
-    <form onsubmit="submitNewProduct(event)">
+    <form onsubmit="submitNewProduct(event)" style="overflow-y:auto;flex:1 1 auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#3b82f6 #0f141f;display:flex;flex-direction:column;gap:12px;">
       <div class="form-group">
         <label class="form-label">Product Name</label>
         <input type="text" id="mp-name" class="form-input" required placeholder="24x36 UV Gloss Grand Frame">
@@ -4767,7 +4767,7 @@ table tr:hover td {
         <input type="hidden" id="mp-image-data" value="">
         <div id="mp-images-gallery" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);position:sticky;bottom:0;background:#10121b;z-index:10;flex-shrink:0;">
         <button type="button" class="btn-secondary" onclick="closeAddProductModal()">Cancel</button>
         <button type="submit" class="btn-primary">Add Product</button>
       </div>

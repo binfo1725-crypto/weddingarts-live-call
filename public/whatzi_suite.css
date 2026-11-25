@@ -688,12 +688,21 @@ div[style*="max-width:700px"] {
   box-sizing: border-box !important;
   margin: 12px auto !important;
 }
+.modal-card > form,
 .modal-card > div:nth-child(2),
+.modal-card > div[class*="content"],
+.modal-card > div[class*="body"],
 div[style*="max-width:880px"] > div:nth-child(2),
-.whatzi-modal-content > div:nth-child(2) {
+.whatzi-modal-content > div:nth-child(2),
+.whatzi-modal-content > form,
+div[class*="modal-card"] > form {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   flex: 1 1 auto !important;
+  overscroll-behavior-y: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #3b82f6 #0f141f !important;
+  padding-right: 6px !important;
 }
 @media (max-width: 991px) {
   .modal-overlay {
