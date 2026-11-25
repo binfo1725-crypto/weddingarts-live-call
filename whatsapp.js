@@ -452,6 +452,8 @@ class WhatsAppAccountSession {
                   dataset: activeBiz.dataset,
                   isWhatsApp: true,
                   isVoiceCall: false,
+                  isCustomerImage: isImage,
+                  rawCaption: customerOriginalCaption,
                   history: (chat?.messages || []).slice(0, -1).slice(-8).map(m => ({
                     role: m.sender === 'customer' ? 'user' : 'model',
                     parts: [{ text: m.text }]
@@ -491,31 +493,36 @@ class WhatsAppAccountSession {
               aiReply = aiReply.replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*[^\]]+\]\]/gi, '').trim();
 
               // 2. Smart Keyword / Token / Category / Photo Inquiry Match
-              if (matchedProductsToSend.length === 0) {
-                const isPhotoReq = /photo|image|img|pic|picture|sample|catalog|catlog|product|prodact|poto|fotto|ෆොටෝ|පින්තූර|පින්තුර|පොටෝ|බලන්න|දක්වන්න|ewanna|evanna|pennanna/i.test(text);
-                const textLower = text.toLowerCase();
+              // CRITICAL: Always inspect the customer's RAW message (NOT our synthesized "[📷 Image Content: ...]" description!)
+              // so uploading a photo of an external item NEVER triggers an automatic product photo dump!
+              const customerRawQuery = isImage ? (customerOriginalCaption || '') : text;
+              if (matchedProductsToSend.length === 0 && customerRawQuery) {
+                const isPhotoReq = /photo|image|img|pic|picture|sample|catalog|catlog|product|prodact|poto|fotto|ෆොටෝ|පින්තූර|පින්තුර|පොටෝ|බලන්න|දක්වන්න|ewanna|evanna|pennanna/i.test(customerRawQuery);
+                const textLower = customerRawQuery.toLowerCase();
                 const replyLower = aiReply.toLowerCase();
 
-                const scored = prodsWithImage.map(prod => {
-                  let score = 0;
-                  const pName = (prod.name || '').toLowerCase().trim();
-                  const pCat = (prod.category || '').toLowerCase().trim();
-                  if (pName && pName.length >= 3 && textLower.includes(pName)) score += 10;
-                  if (pName && pName.length >= 3 && isPhotoReq && replyLower.includes(pName)) score += 6;
-                  if (pCat && pCat.length >= 3 && textLower.includes(pCat)) score += 4;
-                  const tokens = [...pName.split(/\s+/), ...pCat.split(/\s+/)].filter(t => t.length >= 3);
-                  for (const tok of tokens) {
-                    if (textLower.includes(tok)) score += 2;
-                    else if (isPhotoReq && replyLower.includes(tok)) score += 1;
-                  }
-                  return { prod, score };
-                }).filter(x => x.score >= (isPhotoReq ? 1 : 10)).sort((a, b) => b.score - a.score);
+                if (!isImage || isPhotoReq) {
+                  const scored = prodsWithImage.map(prod => {
+                    let score = 0;
+                    const pName = (prod.name || '').toLowerCase().trim();
+                    const pCat = (prod.category || '').toLowerCase().trim();
+                    if (pName && pName.length >= 3 && textLower.includes(pName)) score += 10;
+                    if (pName && pName.length >= 3 && isPhotoReq && replyLower.includes(pName)) score += 6;
+                    if (pCat && pCat.length >= 3 && textLower.includes(pCat)) score += 4;
+                    const tokens = [...pName.split(/\s+/), ...pCat.split(/\s+/)].filter(t => t.length >= 3);
+                    for (const tok of tokens) {
+                      if (textLower.includes(tok)) score += 2;
+                      else if (isPhotoReq && replyLower.includes(tok)) score += 1;
+                    }
+                    return { prod, score };
+                  }).filter(x => x.score >= (isPhotoReq ? 1 : 10)).sort((a, b) => b.score - a.score);
 
-                if (scored.length > 0) {
-                  matchedProductsToSend.push(scored[0].prod);
-                } else if (isPhotoReq) {
-                  // Customer asked for photos/product (e.g. "Prodact ewanna" / "photo ewanna") — send top matching catalog item(s)
-                  matchedProductsToSend = prodsWithImage.slice(0, 2);
+                  if (scored.length > 0) {
+                    matchedProductsToSend.push(scored[0].prod);
+                  } else if (isPhotoReq && !isImage) {
+                    // Text inquiry explicitly asking for photos/products (e.g. "Prodact ewanna" / "Images ewanna")
+                    matchedProductsToSend = prodsWithImage.slice(0, 2);
+                  }
                 }
               }
             }

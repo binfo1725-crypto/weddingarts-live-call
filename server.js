@@ -3070,10 +3070,13 @@ async function getGeminiReply(userMessage, sess, userLang) {
     sess.apiKey = settings.geminiApiKey || activeBiz.geminiApiKey;
   }
 
-  // Detect customer's actual contextual language with history memory
+  // Detect customer's actual contextual language using raw caption when an image was uploaded (so English AI Vision description doesn't force English!)
+  const langProbeText = sess.isCustomerImage
+    ? (sess.rawCaption || LanguageDetectionEngine.resolveLanguageFromHistory(sess.history || []) ? (sess.rawCaption || '') : '')
+    : userMessage;
   const detectedLang = (userLang === 'en-US')
     ? 'English'
-    : LanguageDetectionEngine.detectLanguage(userMessage, sess.history || []);
+    : LanguageDetectionEngine.detectLanguage(langProbeText, sess.history || []);
 
   console.log(`[ai-engine] Detected Language: "${detectedLang}" (session mode: ${sess.isVoiceCall ? 'Voice' : 'WhatsApp/Text'}) for: "${(userMessage || '').substring(0, 50)}"`);
 
@@ -3106,9 +3109,9 @@ async function getGeminiReply(userMessage, sess, userLang) {
     return matchedFlow.response;
   }
 
-  // 4. Ultra-Fast Zero-Latency Hybrid Fast-Cache Engine (< 5ms local resolution)
+  // 4. Ultra-Fast Zero-Latency Hybrid Fast-Cache Engine (skip for image inputs so Vision context goes to Gemini)
   const storeProducts = db.getProducts(activeBiz.id);
-  const fastReply = HybridFastCacheEngine.resolve(userMessage, activeBiz, storeProducts, detectedLang);
+  const fastReply = sess.isCustomerImage ? null : HybridFastCacheEngine.resolve(userMessage, activeBiz, storeProducts, detectedLang);
   if (fastReply) {
     console.log(`[ai-engine] ⚡ Hybrid Fast-Cache instant reply (0ms API latency) for: "${(userMessage || '').substring(0, 40)}"`);
     sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
@@ -3514,6 +3517,15 @@ The business owner has configured this AI to reply STRICTLY IN SINGLISH (Sinhala
    * If customer sends short answers ("ok", "yes", "1", "size M", "red", phone number, or delivery address), seamlessly preserve the ongoing conversation's language.`;
   }
 
+  const imageUnderstandingDirective = sess.isCustomerImage
+    ? `\n=== 👁️ CUSTOMER SENT AN IMAGE (READ VISION DESCRIPTION & ANSWER ACCURATELY) ===
+The customer just sent a photo (described inside [📷 Image Content: ...] or [Image Sent: ...]) along with caption "${sess.rawCaption || 'No caption'}".
+- Carefully examine what item/text/issue is shown in the customer's image and directly respond to THEIR photo and question.
+- Compare the item in the customer's image against our OFFICIAL MASTER DATASET and Product Catalog above:
+  * If the customer is asking about a third-party product we do NOT sell (e.g. earbuds cover, shoes, gadgets, etc. when our business does something else), warmly clarify in the customer's language that we do not carry that specific item, briefly mention what our business actually offers, and ask if they need help with our services.
+  * NEVER output [[SEND_PHOTO: ...]] when replying to a customer's uploaded image UNLESS they specifically asked to see photos of OUR OWN catalog products!\n`
+    : '';
+
   const isOngoingChat = Array.isArray(sess.history) && sess.history.length > 0;
   const ongoingDirective = isOngoingChat
     ? `\n=== ⚠️ ONGOING CONVERSATION MANDATE (DO NOT RE-GREET) ===\nThis is an ACTIVE, ONGOING conversation with ${customerName}. You have ALREADY greeted and welcomed them previously in the chat history.\n- NEVER say "Kohomada", "Hello", "Hi", "Welcome to...", "Mama Nethmi", or introduce yourself or the business name again.\n- NEVER act like the conversation just started.\n- Jump directly into addressing the customer's query (\"${userMessage}\") warmly, thoughtfully, and specifically, continuing naturally from previous messages!\n`
@@ -3521,7 +3533,7 @@ The business owner has configured this AI to reply STRICTLY IN SINGLISH (Sinhala
 
   return `You are "${settings.aiName || 'Nethmi'}", a ${personaInstruction} representing "${storeName}".
 Customer Name: "${customerName}".
-${ongoingDirective}
+${ongoingDirective}${imageUnderstandingDirective}
 
 === 🌐 🗣️ QUAD-LANGUAGE SMART ADAPTATION MANDATE (සිංහල, Singlish, English, தமிழ்) ===
 Customer Input Contextual Language: "${detectedLang}"
@@ -3652,7 +3664,7 @@ async function transcribeAudioBuffer(audioBuffer, mimeType = 'audio/ogg; codecs=
       const payload = {
         contents: [{
           parts: [
-            { text: "Accurately transcribe this WhatsApp voice note sent by a Sri Lankan customer in Sinhala (සිංහල), Singlish, or English. Return ONLY the transcribed text, nothing else. If there is speech in Sinhala, transcribe it in natural Sinhala script." },
+            { text: "Carefully listen to and accurately transcribe this WhatsApp voice note from a Sri Lankan customer speaking colloquial Sinhala (සිංහල), Singlish, or English (commonly asking about prices, discounts, offers, packages, products, free trials, or delivery). Pay close attention to Sinhala phonetics (e.g. ඔයාලගේ vs යාලුවගේ, ඩිස්කවුන්ට්/ඔෆර්ස්, ෆ්‍රී ට්‍රයල්). Return ONLY the exact transcribed text, nothing else." },
             { inlineData: { mimeType: cleanMime, data: audioBase64 } }
           ]
         }]

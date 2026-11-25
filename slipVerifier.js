@@ -1,7 +1,9 @@
 // OmniSix AI - Unified Gemini Vision Analyzer & Bank Slip Verification Engine
 // Powered by Google Gemini Multimodal Vision
 
-const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+const fetchFn = typeof globalThis.fetch === 'function'
+  ? globalThis.fetch.bind(globalThis)
+  : (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
 /**
  * Analyze any customer-sent image (bank deposit slip, product photo, screenshot, design sample, etc.)
@@ -46,19 +48,19 @@ Analyze this image sent by a WhatsApp customer${caption ? ` with caption "${capt
 
 Perform TWO tasks accurately:
 1. Check if this image is a genuine bank transfer receipt, deposit slip, ATM/CDM receipt, or online banking/wallet payment proof (BOC, Commercial Bank, Sampath, HNB, People's Bank, Seylan, FriMi, Genie, eZ Cash, LOLC, etc.).
-2. Regardless of whether it is a bank slip or NOT (e.g., a product photo, screenshot, error message, design sample, price tag, inquiry, photo of an item, QR code, etc.), clearly describe EVERY important visual detail and visible text in the image so both our Sales AI and our human staff in the Web App Inbox immediately understand what the customer sent.
+2. Regardless of whether it is a bank slip or NOT (e.g., a product photo, earbuds case, clothes, screenshot, error message, design sample, inquiry, QR code, etc.), clearly describe what item/brand/text/details are shown in the image so our Sales AI and human staff immediately understand what the customer sent.
 
-Return ONLY a strict JSON object with no markdown fences:
+Return strict JSON matching these keys:
 {
-  "isBankSlip": true or false,
-  "bankName": "Bank or payment app name, or 'N/A'",
-  "amount": numeric LKR amount (e.g. 4500, or 0 if not a payment slip),
-  "referenceNumber": "Transaction reference number if visible, or 'N/A'",
-  "date": "Date if visible, or 'N/A'",
-  "confidence": 0.0 to 1.0,
-  "summary": "Brief 1-sentence summary in English/Sinhala",
-  "imageDescription": "Detailed factual visual description of what is shown in the image (visible text, numbers, product type, screenshot contents, UI errors, etc.) in plain clear language",
-  "customerIntent": "1-sentence interpretation of what the customer wants by sending this image"
+  "isBankSlip": boolean,
+  "bankName": "string or N/A",
+  "amount": number,
+  "referenceNumber": "string or N/A",
+  "date": "string or N/A",
+  "confidence": number,
+  "summary": "1-sentence concise summary",
+  "imageDescription": "Clear factual description of visible product/brand/text/UI in the image",
+  "customerIntent": "1-sentence guess of what customer wants"
 }`;
 
   const payload = {
@@ -75,7 +77,8 @@ Return ONLY a strict JSON object with no markdown fences:
     }],
     generationConfig: {
       temperature: 0.15,
-      maxOutputTokens: 650
+      maxOutputTokens: 2048,
+      responseMimeType: 'application/json'
     }
   };
 
@@ -84,7 +87,7 @@ Return ONLY a strict JSON object with no markdown fences:
     for (const key of keys) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-        const res = await fetch(url, {
+        const res = await fetchFn(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -106,7 +109,6 @@ Return ONLY a strict JSON object with no markdown fences:
           const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
           parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson);
         } catch (_) {
-          // If Gemini returned natural prose instead of strict JSON, preserve it as imageDescription
           return {
             isBankSlip: false,
             bankName: 'N/A',

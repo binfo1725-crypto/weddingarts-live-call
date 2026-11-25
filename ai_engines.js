@@ -457,6 +457,9 @@ const PromptInjectionShield = {
 const HybridFastCacheEngine = {
   resolve(text, business = {}, products = [], detectedLang = 'Sinhala') {
     if (!text || typeof text !== 'string') return null;
+    if (text.includes('[📷 Image Content:') || text.includes('[Image Sent:') || text.includes('[Customer Sent an Image]') || text.trim().startsWith('📷')) {
+      return null;
+    }
     const clean = text.trim().toLowerCase();
     const isEnglish = detectedLang === 'English';
     const bizName = business.name || 'OmniSix AI Software';
