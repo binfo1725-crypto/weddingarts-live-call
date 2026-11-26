@@ -143,7 +143,14 @@ const ENCODED_KEYS = [
   'QVEuQWI4Uk42SWhsaWhsU2hVTnZWOUpKTWt3azNrd0d4VmZsblotdmk2dXZqQVlBQWhFYmc=',
   'QVEuQWI4Uk42TFVmVEEwLU9YV0dNMmhYdzMtb0tfdWtXd2NDRzlxM2Vsd0ZSWG4tMzM1Y3c='
 ];
-const POOLED_GEMINI_API_KEYS = ENCODED_KEYS.map(k => Buffer.from(k, 'base64').toString('utf8'));
+const ENV_POOLED_KEYS = (process.env.GEMINI_API_KEYS || '')
+  .split(/[\s,]+/)
+  .map(k => k.trim())
+  .filter(k => k.length >= 15);
+const POOLED_GEMINI_API_KEYS = [...new Set([
+  ...ENV_POOLED_KEYS,
+  ...ENCODED_KEYS.map(k => Buffer.from(k, 'base64').toString('utf8'))
+])];
 if (DEFAULT_GEMINI_API_KEY && !POOLED_GEMINI_API_KEYS.includes(DEFAULT_GEMINI_API_KEY)) {
   POOLED_GEMINI_API_KEYS.unshift(DEFAULT_GEMINI_API_KEY);
 }
@@ -764,7 +771,15 @@ function sanitizeBusinessData(b, isAdmin = false) {
   return clone;
 }
 
-// Unified Role-Based Access Control (Admin or Valid Active Tenant Session)
+function getStaffSessionFromReq(req) {
+  const rawTok = req.headers['x-staff-token']
+    || (req.query && req.query.staffToken)
+    || ((typeof req.headers['x-admin-token'] === 'string' && req.headers['x-admin-token'].startsWith('stf_')) ? req.headers['x-admin-token'] : null);
+  if (!rawTok || typeof db.validateStaffSession !== 'function') return null;
+  return db.validateStaffSession(rawTok);
+}
+
+// Unified Role-Based Access Control (Admin, Active Tenant, Scoped Staff, or API Key)
 function requireSessionAuth(req, res, next) {
   if (isAdminReq(req)) {
     return next();
@@ -777,6 +792,7 @@ function requireSessionAuth(req, res, next) {
     if (lic && lic.status === 'Active' && lic.businessId) {
       const sub = db.isBusinessSubscriptionActive(lic.businessId);
       if (sub && sub.active && !sub.isExpired) {
+        req.tenantBusinessId = lic.businessId;
         return next();
       }
       return res.status(402).json({
@@ -785,6 +801,15 @@ function requireSessionAuth(req, res, next) {
         subscription: sub
       });
     }
+  }
+
+  const staffSess = getStaffSessionFromReq(req);
+  if (staffSess) {
+    req.staffUser = staffSess;
+    if (staffSess.businessId && staffSess.businessId !== 'all') {
+      req.tenantBusinessId = staffSess.businessId;
+    }
+    return next();
   }
 
   const apiKey = req.headers['x-api-key'] || (req.query && req.query.apiKey);
@@ -805,6 +830,10 @@ function isAdminReq(req) {
 
 function isTenantReq(req) {
   if (isAdminReq(req)) return false;
+  const staffSess = getStaffSessionFromReq(req);
+  if (staffSess) {
+    return !!(staffSess.businessId && staffSess.businessId !== 'all');
+  }
   const key = req.headers['x-license-key'] || (req.query && (req.query.licenseKey || req.query.key));
   if (!key || typeof key !== 'string') return false;
   const cleanKey = key.trim();
@@ -814,7 +843,18 @@ function isTenantReq(req) {
   return !!(sub && sub.active && !sub.isExpired);
 }
 
+function isOwnedByCaller(req, record) {
+  if (!record) return false;
+  if (!isTenantReq(req)) return true;
+  const bId = resolveReqBusinessId(req);
+  return !record.businessId || record.businessId === bId;
+}
+
 function resolveReqBusinessId(req) {
+  const staffSess = getStaffSessionFromReq(req);
+  if (staffSess && staffSess.businessId && staffSess.businessId !== 'all') {
+    return staffSess.businessId;
+  }
   const key = req.headers['x-license-key'] || (req.query && req.query.licenseKey) || (req.query && req.query.key);
   if (key) {
     const lic = db.getLicenseByKey(key);
@@ -852,8 +892,8 @@ function resolveReqBusinessId(req) {
     }
   }
 
-  // Admin Multi-Tab or Scoped requests: Only allow custom store switching if authenticated as Admin
-  if (isAdminReq(req)) {
+  // Admin Multi-Tab or Global Staff requests: Allow custom store switching
+  if (isAdminReq(req) || (staffSess && staffSess.businessId === 'all')) {
     const headerBizId = req.headers['x-business-id'];
     if (headerBizId && db.getBusiness(headerBizId)) {
       return headerBizId;
@@ -1622,7 +1662,7 @@ app.post('/api/google-sheets/test-sync', async (req, res) => {
 });
 
 // ─── 🤖 Autonomous 20-Agent Enterprise Fleet Endpoints ───────────────────────
-app.get('/api/agents', (req, res) => {
+app.get('/api/agents', requireSessionAuth, (req, res) => {
   const fleet = agentFleet.getFleet();
   const mode = agentFleet.getOperatingMode();
   const departments = {};
@@ -1640,25 +1680,25 @@ app.get('/api/agents', (req, res) => {
   });
 });
 
-app.post('/api/agents/:id/toggle', (req, res) => {
+app.post('/api/agents/:id/toggle', requireAdminAuth, (req, res) => {
   const { active } = req.body;
   const updated = agentFleet.toggleAgent(req.params.id, active);
   if (!updated) return res.status(404).json({ ok: false, error: 'Agent not found' });
   res.json({ ok: true, agent: updated });
 });
 
-app.post('/api/agents/mode', (req, res) => {
+app.post('/api/agents/mode', requireAdminAuth, (req, res) => {
   const { mode } = req.body;
   const currentMode = agentFleet.setOperatingMode(mode);
   res.json({ ok: true, mode: currentMode });
 });
 
-app.get('/api/agents/decisions', (req, res) => {
+app.get('/api/agents/decisions', requireSessionAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 30;
   res.json({ ok: true, decisions: agentFleet.getRecentDecisions(limit) });
 });
 
-app.post(['/api/agents/dispatch-test', '/api/agents/test-route'], (req, res) => {
+app.post(['/api/agents/dispatch-test', '/api/agents/test-route'], requireSessionAuth, (req, res) => {
   const { text, phone } = req.body;
   const agent = agentFleet.resolveBestAgent(text, { phone });
   const decision = agentFleet.recordDecision(
@@ -1804,12 +1844,21 @@ app.post('/api/products', requireSessionAuth, (req, res) => {
 
 app.post('/api/products/update', requireSessionAuth, (req, res) => {
   const { id, ...updates } = req.body;
+  const existing = (db.data.products || []).find(p => p.id === id);
+  if (!existing) return res.status(404).json({ ok: false, error: 'Product not found' });
+  if (!isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant product update denied.' });
+  }
   const product = db.updateProduct(id, updates);
   res.json({ ok: true, product });
 });
 
 app.post('/api/products/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
+  const existing = (db.data.products || []).find(p => p.id === id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant product delete denied.' });
+  }
   const success = db.deleteProduct(id);
   res.json({ ok: success });
 });
@@ -1879,12 +1928,21 @@ app.post('/api/flows', requireSessionAuth, (req, res) => {
 
 app.post('/api/flows/update', requireSessionAuth, (req, res) => {
   const { id, ...updates } = req.body;
+  const existing = (db.data.customFlows || []).find(f => f.id === id);
+  if (!existing) return res.status(404).json({ ok: false, error: 'Flow not found' });
+  if (!isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant flow update denied.' });
+  }
   const flow = db.updateCustomFlow(id, updates);
   res.json({ ok: true, flow });
 });
 
 app.post('/api/flows/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
+  const existing = (db.data.customFlows || []).find(f => f.id === id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant flow delete denied.' });
+  }
   const success = db.deleteCustomFlow(id);
   res.json({ ok: success });
 });
@@ -1924,9 +1982,9 @@ app.post('/api/gemini/verify-key', async (req, res) => {
   }
 
   const modelsToTry = [
-    'gemini-3.1-flash-lite',
-    'gemini-3.8-flash',
-    'gemini-3.5-flash-lite'
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite'
   ];
 
   let lastErrMsg = '';
@@ -1941,7 +1999,8 @@ app.post('/api/gemini/verify-key', async (req, res) => {
         body: JSON.stringify({
           contents: [{ parts: [{ text: 'Respond with "OK"' }] }],
           generationConfig: { maxOutputTokens: 5 }
-        })
+        }),
+        signal: AbortSignal.timeout(8000)
       });
 
       const data = await testRes.json();
@@ -2015,6 +2074,9 @@ app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
   const isTenant = isTenantReq(req);
   const bId = resolveReqBusinessId(req);
   const chat = db.getChat(chatId);
+  if (chat && !isOwnedByCaller(req, chat)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat access denied.' });
+  }
   const targetAccId = accountId || (chat && chat.accountId) || (isTenant ? ('wa_' + bId) : 'default');
 
   const targetJid = (chat && chat.remoteJid) || (chatId.includes('@') ? chatId : (chatId.length > 13 ? (chatId + '@lid') : chatId));
@@ -2033,8 +2095,96 @@ app.post('/api/chats/reply', requireSessionAuth, async (req, res) => {
   res.json({ ok: true, ...result });
 });
 
+app.post('/api/chats/read', requireSessionAuth, (req, res) => {
+  const { chatId } = req.body || {};
+  if (!chatId) return res.status(400).json({ ok: false, error: 'chatId required' });
+  const existing = db.getChat(chatId);
+  if (!existing) return res.status(404).json({ ok: false, error: 'Chat not found' });
+  if (!isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat access denied.' });
+  }
+  const chat = db.markChatRead(chatId);
+  res.json({ ok: true, chat });
+});
+
+app.post('/api/chats/delete', requireSessionAuth, (req, res) => {
+  const { chatId } = req.body || {};
+  if (!chatId) return res.status(400).json({ ok: false, error: 'chatId required' });
+  const existing = db.getChat(chatId);
+  if (!existing) return res.status(404).json({ ok: false, error: 'Chat not found' });
+  if (!isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat access denied.' });
+  }
+  const deleted = db.deleteChat(chatId);
+  res.json({ ok: deleted });
+});
+
+app.post('/api/chats/send-media', requireSessionAuth, async (req, res) => {
+  try {
+    const { chatId, accountId, mediaType, base64Data, mimeType, caption } = req.body || {};
+    if (!chatId || !mediaType || !base64Data) {
+      return res.status(400).json({ ok: false, error: 'chatId, mediaType, and base64Data are required' });
+    }
+    const existing = db.getChat(chatId);
+    if (existing && !isOwnedByCaller(req, existing)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat access denied.' });
+    }
+    const isTenant = isTenantReq(req);
+    const bId = resolveReqBusinessId(req);
+    const targetAccId = accountId || (existing && existing.accountId) || (isTenant ? ('wa_' + bId) : 'default');
+    const targetJid = (existing && existing.remoteJid) || (chatId.includes('@') ? chatId : (chatId.length > 13 ? (chatId + '@lid') : chatId));
+
+    const match = /^data:([^;]+);base64,(.+)$/s.exec(String(base64Data));
+    const cleanMime = (mimeType || (match && match[1]) || (mediaType === 'audio' ? 'audio/ogg; codecs=opus' : 'image/jpeg')).trim();
+    const rawB64 = match ? match[2] : String(base64Data);
+    const mediaBuf = Buffer.from(rawB64, 'base64');
+    if (!mediaBuf || mediaBuf.length === 0 || mediaBuf.length > 6 * 1024 * 1024) {
+      return res.status(400).json({ ok: false, error: 'Media payload must be between 1 byte and 6MB.' });
+    }
+
+    let sendRes = { ok: false, error: 'WhatsApp engine unavailable' };
+    if (waEngine) {
+      if (mediaType === 'image') {
+        sendRes = await waEngine.sendImageMessage(targetJid, mediaBuf, targetAccId, caption || '');
+      } else if (mediaType === 'audio') {
+        sendRes = await waEngine.sendVoiceMessage(targetJid, mediaBuf, targetAccId, true, cleanMime);
+      } else {
+        return res.status(400).json({ ok: false, error: 'Unsupported mediaType' });
+      }
+    }
+
+    const displayMsg = mediaType === 'image'
+      ? (caption ? `📷 ${caption}` : '📷 [Agent Sent Image]')
+      : '🎤 [Agent Sent Voice Note]';
+    const result = db.addChatMessage(
+      chatId,
+      'agent',
+      displayMsg,
+      (existing && existing.customerName) || 'Customer',
+      (existing && existing.customerPhone) || chatId,
+      bId,
+      mediaType === 'image'
+        ? { accountId: targetAccId, remoteJid: targetJid, imageBase64: rawB64, imageMimeType: cleanMime }
+        : { accountId: targetAccId, remoteJid: targetJid, audioBase64: rawB64, mimeType: cleanMime }
+    );
+
+    res.json({
+      ok: true,
+      delivered: !!(sendRes && sendRes.ok),
+      deliveryError: (sendRes && !sendRes.ok) ? sendRes.error : null,
+      ...result
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.post('/api/chats/mute', requireSessionAuth, (req, res) => {
   const { chatId, isMuted } = req.body;
+  const existing = db.getChat(chatId);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat access denied.' });
+  }
   const chat = db.setChatAiMute(chatId, !!isMuted);
   res.json({ ok: true, chat });
 });
@@ -2106,18 +2256,23 @@ function interpolateBroadcastTemplate(template, contact = {}) {
 }
 
 // ─── Safe Broadcast Campaigns with Anti-Ban Spintax & Human Delays ───────────
-app.get('/api/broadcasts', (req, res) => {
+app.get('/api/broadcasts', requireSessionAuth, (req, res) => {
+  const isTenant = isTenantReq(req);
+  const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
-    broadcasts: db.getBroadcasts()
+    broadcasts: db.getBroadcasts(isTenant ? bId : null)
   });
 });
 
-app.post('/api/broadcasts', async (req, res) => {
-  const activeBiz = db.getActiveBusiness();
-  const { title, message, contacts, minDelay = 8, maxDelay = 22 } = req.body;
+app.post('/api/broadcasts', requireSessionAuth, async (req, res) => {
+  const isTenant = isTenantReq(req);
+  const bId = resolveReqBusinessId(req) || db.getActiveBusiness().id;
+  const targetBiz = db.getBusiness(bId) || db.getActiveBusiness();
+  const targetAccId = isTenant ? ('wa_' + bId) : (req.body.accountId || null);
+  const { title, message, contacts, imageUrl, minDelay = 8, maxDelay = 22 } = req.body || {};
 
-  // Determine recipients list (custom CSV upload or existing customer database)
+  // Determine recipients list (custom CSV upload or existing store customer database)
   let targetContacts = [];
   if (Array.isArray(contacts) && contacts.length > 0) {
     targetContacts = contacts.map(c => ({
@@ -2127,7 +2282,7 @@ app.post('/api/broadcasts', async (req, res) => {
       var1: c.var1 || ''
     })).filter(c => c.phone.length >= 9);
   } else {
-    const chats = db.getChats();
+    const chats = db.getChats(bId);
     const seen = new Set();
     for (const c of chats) {
       const clean = String(c.customerPhone || '').replace(/\D/g, '');
@@ -2141,26 +2296,33 @@ app.post('/api/broadcasts', async (req, res) => {
   const broadcast = db.addBroadcast({
     title: title || 'Marketing Campaign',
     message: message || '',
-    targetAudience: req.body.targetAudience || (Array.isArray(contacts) ? 'Custom Upload List' : 'All Customers'),
+    targetAudience: req.body?.targetAudience || (Array.isArray(contacts) ? 'Custom Upload List' : 'All Customers'),
     targetCount: targetContacts.length,
     status: 'In Progress',
     sentCount: 0,
     failedCount: 0,
-    businessId: activeBiz.id
+    businessId: targetBiz.id
   });
 
   // Background Anti-Ban Drip Queue with Human Jitter
-  if (message && targetContacts.length > 0) {
+  if ((message || imageUrl) && targetContacts.length > 0) {
     (async () => {
       let sent = 0;
       let failed = 0;
       for (const recipient of targetContacts) {
         try {
-          const personalizedText = interpolateBroadcastTemplate(message, recipient);
-          const sendRes = await waEngine.sendTextMessage(recipient.phone, personalizedText);
+          const personalizedText = interpolateBroadcastTemplate(message || '', recipient);
+          let sendRes = { ok: false };
+          if (imageUrl) {
+            sendRes = await waEngine.sendImageMessage(recipient.phone, imageUrl, targetAccId, personalizedText);
+          } else {
+            sendRes = await waEngine.sendTextMessage(recipient.phone, personalizedText, targetAccId);
+          }
           if (sendRes.ok) {
             sent++;
-            db.addChatMessage(recipient.phone, 'ai', personalizedText, recipient.name, recipient.phone, activeBiz.id);
+            db.addChatMessage(recipient.phone, 'ai', personalizedText || '📷 [Broadcast Image]', recipient.name, recipient.phone, targetBiz.id, {
+              accountId: targetAccId || undefined
+            });
           } else {
             failed++;
           }
@@ -2169,14 +2331,16 @@ app.post('/api/broadcasts', async (req, res) => {
         }
 
         // Anti-ban human jitter delay (random between minDelay and maxDelay seconds)
-        const delaySec = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+        const minS = Math.max(1, Number(minDelay) || 8);
+        const maxS = Math.max(minS, Number(maxDelay) || 22);
+        const delaySec = Math.floor(Math.random() * (maxS - minS + 1)) + minS;
         await new Promise(r => setTimeout(r, delaySec * 1000));
       }
       broadcast.status = 'Completed';
       broadcast.sentCount = sent;
       broadcast.failedCount = failed;
       db.save();
-      console.log(`[broadcast] 📢 Completed campaign "${broadcast.title}": ${sent} sent, ${failed} failed.`);
+      console.log(`[broadcast] 📢 Completed campaign "${broadcast.title}" (${targetBiz.id}): ${sent} sent, ${failed} failed.`);
     })();
   }
 
@@ -2201,42 +2365,103 @@ app.get('/api/webhook/meta', (req, res) => {
 app.post('/api/webhook/meta', async (req, res) => {
   try {
     const body = req.body;
-    if (body.object === 'whatsapp_business_account') {
+    if (body && body.object === 'whatsapp_business_account') {
       const entry = body.entry?.[0];
       const changes = entry?.changes?.[0];
       const value = changes?.value;
       const message = value?.messages?.[0];
 
-      if (message && message.type === 'text') {
+      const extractedText =
+        message?.text?.body ||
+        message?.interactive?.button_reply?.title ||
+        message?.interactive?.list_reply?.title ||
+        message?.button?.text ||
+        message?.image?.caption ||
+        '';
+
+      if (message && extractedText) {
         const from = message.from;
         const customerName = value?.contacts?.[0]?.profile?.name || 'Customer';
-        const text = message.text?.body || '';
-        const activeBiz = db.getActiveBusiness();
+        const displayNum = String(value?.metadata?.display_phone_number || '').replace(/\D/g, '');
+        const allBiz = db.getAllBusinesses();
+        const targetBiz = (displayNum && allBiz.find(b => {
+          const bp = String(b.whatsappPhone || b.phone || '').replace(/\D/g, '');
+          return bp && displayNum.slice(-9) === bp.slice(-9);
+        })) || db.getActiveBusiness();
 
-        console.log(`[meta-webhook] 📩 Incoming Meta WhatsApp from +${from}: "${text}"`);
-        db.addChatMessage(from, 'customer', text, customerName, from, activeBiz.id);
+        const existingChat = db.getChat(from);
+        const settings = db.getTenantSettings(targetBiz.id) || db.getSettings();
+        const metaCfg = (settings && settings.metaCloudApi) || db.getSettings()?.metaCloudApi;
+        const accId = 'wa_' + targetBiz.id;
 
-        const tempSess = {
-          storeName: activeBiz.name,
-          businessId: activeBiz.id,
-          business: activeBiz,
-          customerName,
-          customerPhone: from,
-          dataset: activeBiz.dataset,
-          isWhatsApp: true,
-          isVoiceCall: false,
-          history: []
-        };
+        console.log(`[meta-webhook] 📩 Incoming Meta WhatsApp (${targetBiz.name}) from +${from}: "${extractedText}"`);
+        const savedIn = db.addChatMessage(from, 'customer', extractedText, customerName, from, targetBiz.id, {
+          accountId: accId,
+          channel: 'meta_cloud'
+        });
 
-        const aiReply = await getGeminiReply(text, tempSess);
-        if (aiReply) {
-          const settings = db.getSettings();
-          if (settings.metaCloudApi && settings.metaCloudApi.enabled) {
-            await waEngine.sendMetaCloudMessage(from, aiReply, settings.metaCloudApi);
-          } else {
-            await waEngine.sendTextMessage(from, aiReply);
+        const isMuted = existingChat && existingChat.aiMuted && Date.now() < (existingChat.aiMuteUntil || 0);
+        if (!isMuted) {
+          const history = ((savedIn && savedIn.chat && savedIn.chat.messages) || [])
+            .slice(0, -1)
+            .slice(-8)
+            .map(m => ({
+              role: m.sender === 'customer' ? 'user' : 'model',
+              parts: [{ text: m.text }]
+            }));
+
+          const tempSess = {
+            storeName: targetBiz.name,
+            businessId: targetBiz.id,
+            business: targetBiz,
+            customerName,
+            customerPhone: from,
+            dataset: targetBiz.dataset,
+            isWhatsApp: true,
+            isVoiceCall: false,
+            isCustomerImage: message.type === 'image',
+            rawCaption: message?.image?.caption || '',
+            history
+          };
+
+          const rawReply = await getGeminiReply(extractedText, tempSess);
+          if (rawReply) {
+            checkForOrderTag(rawReply, tempSess, from);
+            const photoMatch = waEngine.matchProductsForMessage({
+              businessId: targetBiz.id,
+              customerText: extractedText,
+              aiReply: rawReply,
+              isImage: message.type === 'image',
+              rawCaption: message?.image?.caption || ''
+            });
+            const aiReply = photoMatch.cleanedReply;
+
+            for (const prod of photoMatch.matchedProducts) {
+              const allImages = (Array.isArray(prod.images) && prod.images.length > 0)
+                ? prod.images.filter(Boolean)
+                : [prod.imageUrl].filter(Boolean);
+              for (let i = 0; i < allImages.length; i++) {
+                const cap = i === 0 ? `📸 *${prod.name}* - Rs. ${Number(prod.price || 0).toLocaleString()}` : `📸 *${prod.name}* (${i + 1}/${allImages.length})`;
+                await waEngine.sendImageMessage(from, allImages[i], accId, cap);
+              }
+              db.addChatMessage(from, 'ai', `📷 [Product Photos (${allImages.length}): ${prod.name}]`, customerName, from, targetBiz.id, {
+                accountId: accId,
+                productId: prod.id
+              });
+            }
+
+            if (aiReply) {
+              if (metaCfg && metaCfg.enabled && metaCfg.phoneNumberId && metaCfg.token) {
+                await waEngine.sendMetaCloudMessage(from, aiReply, metaCfg);
+              } else {
+                await waEngine.sendTextMessage(from, aiReply, accId);
+              }
+              db.addChatMessage(from, 'ai', aiReply, customerName, from, targetBiz.id, {
+                accountId: accId,
+                channel: 'meta_cloud'
+              });
+            }
           }
-          db.addChatMessage(from, 'ai', aiReply, customerName, from, activeBiz.id);
         }
       }
     }
@@ -2247,24 +2472,31 @@ app.post('/api/webhook/meta', async (req, res) => {
 });
 
 // ─── 👥 Multi-User Staff & Role-Based Access Control (RBAC) ─────────────────
-app.get('/api/staff', (req, res) => {
+app.get('/api/staff', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
-  res.json({ ok: true, staff: db.getStaff(bId) });
+  const list = (db.getStaff(bId) || []).map(({ password, ...safeMember }) => safeMember);
+  res.json({ ok: true, staff: list });
 });
 
-app.post('/api/staff/create', (req, res) => {
+app.post('/api/staff/create', requireSessionAuth, (req, res) => {
   try {
     const bId = resolveReqBusinessId(req);
     const member = db.addStaff({ ...req.body, businessId: bId });
-    res.json({ ok: true, member });
+    const { password, ...safeMember } = member;
+    res.json({ ok: true, member: safeMember });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-app.post('/api/staff/delete', (req, res) => {
+app.post('/api/staff/delete', requireSessionAuth, (req, res) => {
   try {
     const { id } = req.body;
+    const bId = resolveReqBusinessId(req);
+    const existing = (db.data.staff || []).find(s => s.id === id);
+    if (existing && isTenantReq(req) && existing.businessId !== bId) {
+      return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant staff deletion denied.' });
+    }
     db.deleteStaff(id);
     res.json({ ok: true });
   } catch (e) {
@@ -2273,11 +2505,13 @@ app.post('/api/staff/delete', (req, res) => {
 });
 
 app.post('/api/staff/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body || {};
   const staff = db.authenticateStaff(username, password);
   if (staff) {
+    const token = db.createStaffSession(staff);
     res.json({
       ok: true,
+      token,
       user: {
         id: staff.id,
         name: staff.name,
@@ -2292,7 +2526,7 @@ app.post('/api/staff/login', (req, res) => {
 });
 
 // ─── Multi-Account WhatsApp (Baileys Multi-Device) Endpoints ───────────────
-app.get('/api/whatsapp/status', (req, res) => {
+app.get('/api/whatsapp/status', requireSessionAuth, (req, res) => {
   if (isTenantReq(req)) {
     const bId = resolveReqBusinessId(req);
     const tenantAccounts = waEngine.getAccounts(bId);
@@ -2476,7 +2710,7 @@ app.post('/api/whatsapp/accounts/:id/delete', requireSessionAuth, async (req, re
   }
 });
 
-app.post('/api/whatsapp/pairing-code', async (req, res) => {
+app.post('/api/whatsapp/pairing-code', requireSessionAuth, async (req, res) => {
   try {
     const { phoneNumber } = req.body;
     let accountId = req.body.accountId || 'default';
@@ -2493,7 +2727,7 @@ app.post('/api/whatsapp/pairing-code', async (req, res) => {
   }
 });
 
-app.post('/api/whatsapp/logout', async (req, res) => {
+app.post('/api/whatsapp/logout', requireSessionAuth, async (req, res) => {
   let accountId = req.body.accountId || 'default';
   if (isTenantReq(req)) {
     const bId = resolveReqBusinessId(req);
@@ -2503,9 +2737,13 @@ app.post('/api/whatsapp/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/whatsapp/restart', async (req, res) => {
+app.post('/api/whatsapp/restart', requireSessionAuth, async (req, res) => {
   try {
-    const targetId = req.body && req.body.accountId;
+    let targetId = req.body && req.body.accountId;
+    if (isTenantReq(req)) {
+      const bId = resolveReqBusinessId(req);
+      targetId = 'wa_' + bId;
+    }
     if (targetId) {
       const result = await waEngine.restartAccount(targetId);
       return res.json(result);
@@ -2518,17 +2756,17 @@ app.post('/api/whatsapp/restart', async (req, res) => {
 });
 
 // ─── 1. WhatsApp Number Warmer API ───────────────────────────────────────────
-app.get('/api/warmer', (req, res) => {
+app.get('/api/warmer', requireSessionAuth, (req, res) => {
   res.json({ ok: true, warmer: db.getWarmer() });
 });
 
-app.post('/api/warmer/toggle', (req, res) => {
+app.post('/api/warmer/toggle', requireAdminAuth, (req, res) => {
   const { running } = req.body;
   const warmer = db.updateWarmer({ running: !!running });
   res.json({ ok: true, warmer });
 });
 
-app.post('/api/warmer/settings', (req, res) => {
+app.post('/api/warmer/settings', requireAdminAuth, (req, res) => {
   const { minDelay, maxDelay, intervalSeconds } = req.body;
   const warmer = db.updateWarmer({
     minDelay: Number(minDelay) || 20,
@@ -2538,18 +2776,18 @@ app.post('/api/warmer/settings', (req, res) => {
   res.json({ ok: true, warmer });
 });
 
-app.post('/api/warmer/scripts/add', (req, res) => {
+app.post('/api/warmer/scripts/add', requireAdminAuth, (req, res) => {
   const { question, answer } = req.body;
   const scripts = db.addWarmerScript(question, answer);
   res.json({ ok: true, scripts });
 });
 
-app.delete('/api/warmer/scripts/:id', (req, res) => {
+app.delete('/api/warmer/scripts/:id', requireAdminAuth, (req, res) => {
   const scripts = db.deleteWarmerScript(req.params.id);
   res.json({ ok: true, scripts });
 });
 
-app.post('/api/warmer/logs/clear', (req, res) => {
+app.post('/api/warmer/logs/clear', requireAdminAuth, (req, res) => {
   res.json(db.clearWarmerLogs());
 });
 
@@ -2644,7 +2882,7 @@ app.delete('/api/developer/keys/:id', requireAdminAuth, (req, res) => {
   res.json(db.revokeApiKey(req.params.id));
 });
 
-app.get('/api/developer/webhooks', (req, res) => {
+app.get('/api/developer/webhooks', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({
     ok: true,
@@ -2653,17 +2891,21 @@ app.get('/api/developer/webhooks', (req, res) => {
   });
 });
 
-app.post('/api/developer/webhooks', (req, res) => {
+app.post('/api/developer/webhooks', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const webhook = db.saveWebhook({ ...req.body, businessId: bId });
   res.json({ ok: true, webhook });
 });
 
-app.delete('/api/developer/webhooks/:id', (req, res) => {
+app.delete('/api/developer/webhooks/:id', requireSessionAuth, (req, res) => {
+  const existing = (db.data.webhooks || []).find(w => w.id === req.params.id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant webhook delete denied.' });
+  }
   res.json(db.deleteWebhook(req.params.id));
 });
 
-app.get('/api/developer/webhook-logs', (req, res) => {
+app.get('/api/developer/webhook-logs', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, logs: db.getWebhookLogs(bId) });
 });
@@ -2707,50 +2949,66 @@ app.delete('/api/team/agents/:id', requireAdminAuth, (req, res) => {
 });
 
 // ─── 7. Chat Metadata & Quick Replies ────────────────────────────────────────
-app.get('/api/chats/:id/metadata', (req, res) => {
+app.get('/api/chats/:id/metadata', requireSessionAuth, (req, res) => {
+  const existing = db.getChat(req.params.id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat metadata denied.' });
+  }
   res.json({ ok: true, metadata: db.getChatMetadata(req.params.id) });
 });
 
-app.post('/api/chats/:id/notes', (req, res) => {
+app.post('/api/chats/:id/notes', requireSessionAuth, (req, res) => {
+  const existing = db.getChat(req.params.id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat note denied.' });
+  }
   const { text, author } = req.body;
   const note = db.saveChatNote(req.params.id, text, author || 'Agent');
   res.json({ ok: true, note });
 });
 
-app.post('/api/chats/:id/status', (req, res) => {
+app.post('/api/chats/:id/status', requireSessionAuth, (req, res) => {
+  const existing = db.getChat(req.params.id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat status update denied.' });
+  }
   const { status } = req.body;
   const meta = db.updateChatStatus(req.params.id, status || 'open');
   res.json({ ok: true, metadata: meta });
 });
 
-app.post('/api/chats/:id/tags', (req, res) => {
+app.post('/api/chats/:id/tags', requireSessionAuth, (req, res) => {
+  const existing = db.getChat(req.params.id);
+  if (existing && !isOwnedByCaller(req, existing)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat tag update denied.' });
+  }
   const { tags } = req.body;
   const meta = db.updateChatTags(req.params.id, tags || []);
   res.json({ ok: true, metadata: meta });
 });
 
-app.get('/api/quick-replies', (req, res) => {
+app.get('/api/quick-replies', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, quickReplies: db.getQuickReplies(bId) });
 });
 
-app.post('/api/quick-replies', (req, res) => {
+app.post('/api/quick-replies', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
-  const reply = db.saveQuickReply(req.body);
+  const reply = db.saveQuickReply({ ...req.body, businessId: bId });
   res.json({ ok: true, reply });
 });
 
-app.delete('/api/quick-replies/:id', (req, res) => {
+app.delete('/api/quick-replies/:id', requireSessionAuth, (req, res) => {
   res.json(db.deleteQuickReply(req.params.id));
 });
 
 // ─── 8. Voice Call Logs API ──────────────────────────────────────────────────
-app.get('/api/calls/logs', (req, res) => {
+app.get('/api/calls/logs', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   res.json({ ok: true, logs: db.getCallLogs(bId) });
 });
 
-app.post('/api/calls/logs', (req, res) => {
+app.post('/api/calls/logs', requireSessionAuth, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const log = db.recordCallLog({ ...req.body, businessId: bId });
   res.json({ ok: true, log });
@@ -2915,12 +3173,62 @@ wss.on('error', (err) => {
   console.error('[wss] WebSocket Server error:', err && err.message ? err.message : err);
 });
 
+db.onChatUpdate((evt) => {
+  if (!evt) return;
+  const payload = JSON.stringify({
+    type: 'inbox_update',
+    businessId: evt.businessId || null,
+    chatId: evt.chatId || null,
+    sender: evt.sender || null,
+    unreadReset: !!evt.unreadReset,
+    deleted: !!evt.deleted
+  });
+  for (const client of wss.clients) {
+    if (client.readyState !== WebSocket.OPEN || !client.inboxSub) continue;
+    if (client.inboxSub.isAdmin || client.inboxSub.businessId === 'all' || (evt.businessId && client.inboxSub.businessId === evt.businessId)) {
+      safeSend(client, payload);
+    }
+  }
+});
+
 wss.on('connection', (browserWs, req) => {
   browserWs.on('error', (err) => {
     console.warn(`[ws] Client socket error:`, err && err.message ? err.message : err);
   });
-  db.recordLiveCall();
   const url = new URL(req.url, `http://localhost`);
+  if (url.searchParams.get('channel') === 'inbox') {
+    browserWs.on('message', (data) => {
+      try {
+        if (!data || data.length > 16384) return;
+        const msg = JSON.parse(data.toString());
+        if (msg.type === 'subscribe_inbox') {
+          if (msg.adminToken && isAdminTokenValid(msg.adminToken)) {
+            browserWs.inboxSub = { isAdmin: true, businessId: msg.businessId || 'all' };
+            return safeSend(browserWs, JSON.stringify({ type: 'inbox_subscribed', ok: true, isAdmin: true }));
+          }
+          if (msg.licenseKey && typeof msg.licenseKey === 'string') {
+            const lic = db.getLicenseByKey(msg.licenseKey.trim());
+            const sub = lic && lic.businessId ? db.isBusinessSubscriptionActive(lic.businessId) : null;
+            if (lic && lic.status === 'Active' && sub && sub.active && !sub.isExpired) {
+              browserWs.inboxSub = { isAdmin: false, businessId: lic.businessId };
+              return safeSend(browserWs, JSON.stringify({ type: 'inbox_subscribed', ok: true, businessId: lic.businessId }));
+            }
+          }
+          if (msg.staffToken && typeof db.validateStaffSession === 'function') {
+            const stf = db.validateStaffSession(msg.staffToken);
+            if (stf) {
+              browserWs.inboxSub = { isAdmin: stf.businessId === 'all', businessId: stf.businessId };
+              return safeSend(browserWs, JSON.stringify({ type: 'inbox_subscribed', ok: true, businessId: stf.businessId }));
+            }
+          }
+          safeSend(browserWs, JSON.stringify({ type: 'inbox_error', ok: false, error: 'Unauthorized inbox subscription' }));
+        }
+      } catch (_) {}
+    });
+    return;
+  }
+
+  db.recordLiveCall();
   const activeBiz = db.getActiveBusiness();
   const sessionId = url.searchParams.get('s');
   const customerName = url.searchParams.get('n') || 'Customer';

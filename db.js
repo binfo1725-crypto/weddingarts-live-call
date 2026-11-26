@@ -32,6 +32,7 @@ const PriceInquiryEngine = {
 const fs = require('fs');
 const path = require('path');
 const dns = require('dns');
+const crypto = require('crypto');
 
 let MongoClient;
 try {
@@ -131,6 +132,7 @@ class Database {
       licenses: [],    // Multi-Tenant SaaS Client License Keys
       whatsappAccounts: [], // Multi-Account WhatsApp Sessions
       adminSessions: {},   // Persistent Super Admin Auth Tokens
+      staffSessions: {},   // Persistent Scoped Staff RBAC Tokens
       leads: [],       // Unconfirmed Leads & Follow-Up Tracking
       whatsapp: {
         connected: false,
@@ -144,6 +146,7 @@ class Database {
         totalCalls: 0
       }
     };
+    this._chatListeners = [];
     this.load();
     this.initMongo().catch(err => console.warn('[db] MongoDB init error:', err.message));
   }
@@ -171,6 +174,12 @@ class Database {
           this.data.broadcasts = parsed.broadcasts || [];
           this.data.licenses = parsed.licenses || [];
           this.data.whatsappAccounts = parsed.whatsappAccounts || [];
+          if (parsed.adminSessions && typeof parsed.adminSessions === 'object') {
+            this.data.adminSessions = parsed.adminSessions;
+          }
+          if (parsed.staffSessions && typeof parsed.staffSessions === 'object') {
+            this.data.staffSessions = parsed.staffSessions;
+          }
           this.data.leads = parsed.leads || [];
           if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
           if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
@@ -333,12 +342,19 @@ class Database {
         const demoIdsSync = ['urbanstyle', 'royalcakes', 'techzone', 'glamour_salon', 'test_starter_store', 'test_pro_store', 'test_ent_store', 'boutique', 'salon', 'restaurant'];
         this.data.businesses = Array.from(bizMap.values()).filter(b => !demoIdsSync.includes(b.id));
 
-        // Merge Admin Sessions
+        // Merge Admin & Staff Sessions
         if (cloudData.adminSessions && typeof cloudData.adminSessions === 'object') {
           if (!this.data.adminSessions) this.data.adminSessions = {};
           const now = Date.now();
           for (const [tok, exp] of Object.entries(cloudData.adminSessions)) {
             if (exp > now) this.data.adminSessions[tok] = exp;
+          }
+        }
+        if (cloudData.staffSessions && typeof cloudData.staffSessions === 'object') {
+          if (!this.data.staffSessions) this.data.staffSessions = {};
+          const now = Date.now();
+          for (const [tok, sess] of Object.entries(cloudData.staffSessions)) {
+            if (sess && sess.exp > now) this.data.staffSessions[tok] = sess;
           }
         }
 
@@ -1016,7 +1032,68 @@ class Database {
     }
 
     this.save();
+    this.emitChatUpdate({
+      type: 'inbox_update',
+      businessId: assignedBizId,
+      chatId,
+      sender,
+      messageId: msgObj.id
+    });
     return { chat, message: msgObj };
+  }
+
+  onChatUpdate(listener) {
+    if (typeof listener !== 'function') return;
+    if (!this._chatListeners) this._chatListeners = [];
+    if (!this._chatListeners.includes(listener)) {
+      this._chatListeners.push(listener);
+    }
+  }
+
+  emitChatUpdate(event) {
+    if (!Array.isArray(this._chatListeners)) return;
+    for (const listener of this._chatListeners) {
+      try {
+        listener(event);
+      } catch (_) {}
+    }
+  }
+
+  markChatRead(chatId, businessId = null) {
+    const chat = (this.data.chats || []).find(c => c.id === chatId && (!businessId || c.businessId === businessId));
+    if (!chat) return null;
+    if ((chat.unread || 0) !== 0) {
+      chat.unread = 0;
+      this.save();
+      this.emitChatUpdate({
+        type: 'inbox_update',
+        businessId: chat.businessId,
+        chatId,
+        unreadReset: true
+      });
+    }
+    return chat;
+  }
+
+  deleteChat(chatId, businessId = null) {
+    const initialLen = (this.data.chats || []).length;
+    const target = (this.data.chats || []).find(c => c.id === chatId && (!businessId || c.businessId === businessId));
+    if (!target) return false;
+    this.data.chats = (this.data.chats || []).filter(c => !(c.id === chatId && (!businessId || c.businessId === businessId)));
+    if (this.data.chatMetadata && this.data.chatMetadata[chatId]) {
+      delete this.data.chatMetadata[chatId];
+    }
+    if (this.data.chats.length !== initialLen) {
+      this.save();
+      this.emitChatUpdate({
+        type: 'inbox_update',
+        businessId: target.businessId,
+        chatId,
+        deleted: true
+      });
+      return true;
+    }
+    return false;
   }
 
   setChatAiMute(chatId, isMuted, minutes = 30) {
@@ -1057,7 +1134,11 @@ class Database {
 
   // ─── Broadcast Campaigns ──────────────────────────────────────────────────────
   getBroadcasts(businessId) {
-    return this.data.broadcasts || [];
+    const list = this.data.broadcasts || [];
+    if (businessId) {
+      return list.filter(b => !b.businessId || b.businessId === businessId);
+    }
+    return list;
   }
 
   addBroadcast(bc) {
@@ -2187,6 +2268,45 @@ class Database {
     const u = (username || '').toLowerCase().trim();
     const member = (this.data.staff || []).find(s => s.username === u && s.password === password && s.active);
     return member || null;
+  }
+
+  createStaffSession(staffMember, ttlMs = 7 * 24 * 60 * 60 * 1000) {
+    if (!staffMember || !staffMember.id) return null;
+    if (!this.data.staffSessions || typeof this.data.staffSessions !== 'object') {
+      this.data.staffSessions = {};
+    }
+    const token = 'stf_' + crypto.randomBytes(24).toString('hex');
+    const now = Date.now();
+    // Prune expired tokens opportunistically
+    for (const [k, v] of Object.entries(this.data.staffSessions)) {
+      if (!v || !v.exp || v.exp <= now) delete this.data.staffSessions[k];
+    }
+    this.data.staffSessions[token] = {
+      id: staffMember.id,
+      name: staffMember.name,
+      username: staffMember.username,
+      role: staffMember.role || 'support',
+      businessId: staffMember.businessId || 'weddingarts',
+      exp: now + ttlMs
+    };
+    this.save();
+    return token;
+  }
+
+  validateStaffSession(token) {
+    if (!token || typeof token !== 'string') return null;
+    const clean = token.trim();
+    if (!clean.startsWith('stf_')) return null;
+    const store = this.data.staffSessions || {};
+    const sess = store[clean];
+    if (!sess || !sess.exp || sess.exp <= Date.now()) {
+      if (sess) {
+        delete store[clean];
+        this.save();
+      }
+      return null;
+    }
+    return sess;
   }
 
   initDefaults() {

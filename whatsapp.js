@@ -471,63 +471,15 @@ class WhatsAppAccountSession {
             }
 
             // Check if any store product photo(s) should be sent (via tag, keyword/category tokens, or photo/product inquiry)
-            const storeProducts = db.getProducts(activeBiz.id);
-            const prodsWithImage = (storeProducts || []).filter(p =>
-              !!((p.imageUrl && p.imageUrl.length > 20) || (Array.isArray(p.images) && p.images.some(img => img && img.length > 20)))
-            );
-
-            let matchedProductsToSend = [];
-            if (prodsWithImage.length > 0) {
-              // 1. Tag match from Gemini: [[SEND_PHOTO: ProductName]] or [[SEND_PRODUCT_IMAGE: ID]]
-              const photoTagRegex = /\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*([^\]]+)\]\]/gi;
-              let tagMatch;
-              while ((tagMatch = photoTagRegex.exec(aiReply)) !== null) {
-                const targetNameOrId = tagMatch[1].trim().toLowerCase();
-                const found = prodsWithImage.find(p =>
-                  (p.id && p.id.toLowerCase() === targetNameOrId) ||
-                  (p.name && p.name.toLowerCase().includes(targetNameOrId)) ||
-                  targetNameOrId.includes((p.name || '').toLowerCase())
-                );
-                if (found && !matchedProductsToSend.some(x => x.id === found.id)) {
-                  matchedProductsToSend.push(found);
-                }
-              }
-              aiReply = aiReply.replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*[^\]]+\]\]/gi, '').trim();
-
-              // 2. Smart Keyword / Token / Category / Photo Inquiry Match
-              // CRITICAL: Always inspect the customer's RAW message (NOT our synthesized "[📷 Image Content: ...]" description!)
-              // so uploading a photo of an external item NEVER triggers an automatic product photo dump!
-              const customerRawQuery = isImage ? (customerOriginalCaption || '') : text;
-              if (matchedProductsToSend.length === 0 && customerRawQuery) {
-                const isPhotoReq = /photo|image|img|pic|picture|sample|catalog|catlog|product|prodact|poto|fotto|ෆොටෝ|පින්තූර|පින්තුර|පොටෝ|බලන්න|දක්වන්න|ewanna|evanna|pennanna/i.test(customerRawQuery);
-                const textLower = customerRawQuery.toLowerCase();
-                const replyLower = aiReply.toLowerCase();
-
-                if (!isImage || isPhotoReq) {
-                  const scored = prodsWithImage.map(prod => {
-                    let score = 0;
-                    const pName = (prod.name || '').toLowerCase().trim();
-                    const pCat = (prod.category || '').toLowerCase().trim();
-                    if (pName && pName.length >= 3 && textLower.includes(pName)) score += 10;
-                    if (pName && pName.length >= 3 && isPhotoReq && replyLower.includes(pName)) score += 6;
-                    if (pCat && pCat.length >= 3 && textLower.includes(pCat)) score += 4;
-                    const tokens = [...pName.split(/\s+/), ...pCat.split(/\s+/)].filter(t => t.length >= 3);
-                    for (const tok of tokens) {
-                      if (textLower.includes(tok)) score += 2;
-                      else if (isPhotoReq && replyLower.includes(tok)) score += 1;
-                    }
-                    return { prod, score };
-                  }).filter(x => x.score >= (isPhotoReq ? 1 : 10)).sort((a, b) => b.score - a.score);
-
-                  if (scored.length > 0) {
-                    matchedProductsToSend.push(scored[0].prod);
-                  } else if (isPhotoReq && !isImage) {
-                    // Text inquiry explicitly asking for photos/products (e.g. "Prodact ewanna" / "Images ewanna")
-                    matchedProductsToSend = prodsWithImage.slice(0, 2);
-                  }
-                }
-              }
-            }
+            const photoMatch = this.manager.matchProductsForMessage({
+              businessId: activeBiz.id,
+              customerText: text,
+              aiReply,
+              isImage,
+              rawCaption: customerOriginalCaption
+            });
+            aiReply = photoMatch.cleanedReply;
+            const matchedProductsToSend = photoMatch.matchedProducts;
 
             // Deliver genuine multi-image product gallery directly to remoteJid (supports both @lid and @s.whatsapp.net)
             for (const matchedProductToSend of matchedProductsToSend) {
@@ -1137,7 +1089,184 @@ class MultiAccountWhatsAppManager {
     return sendRes.error ? sendRes : { ok: false, error: 'No connected WhatsApp account or Meta Cloud API available' };
   }
 
-  async sendImageMessage(toPhone, imageInput, accountId = null, caption = '') {
+  matchProductsForMessage({ businessId, customerText = '', aiReply = '', isImage = false, rawCaption = '' }) {
+    const storeProducts = db.getProducts(businessId);
+    const prodsWithImage = (storeProducts || []).filter(p =>
+      !!((p.imageUrl && p.imageUrl.length > 20) || (Array.isArray(p.images) && p.images.some(img => img && img.length > 20)))
+    );
+
+    const matchedProducts = [];
+    let cleanedReply = String(aiReply || '');
+    if (prodsWithImage.length === 0) {
+      cleanedReply = cleanedReply.replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*[^\]]+\]\]/gi, '').trim();
+      return { cleanedReply, matchedProducts };
+    }
+
+    const photoTagRegex = /\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*([^\]]+)\]\]/gi;
+    let tagMatch;
+    while ((tagMatch = photoTagRegex.exec(cleanedReply)) !== null) {
+      const targetNameOrId = tagMatch[1].trim().toLowerCase();
+      const found = prodsWithImage.find(p =>
+        (p.id && p.id.toLowerCase() === targetNameOrId) ||
+        (p.name && p.name.toLowerCase().includes(targetNameOrId)) ||
+        targetNameOrId.includes((p.name || '').toLowerCase())
+      );
+      if (found && !matchedProducts.some(x => x.id === found.id)) {
+        matchedProducts.push(found);
+      }
+    }
+    cleanedReply = cleanedReply.replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE):\s*[^\]]+\]\]/gi, '').trim();
+
+    const customerRawQuery = isImage ? (rawCaption || '') : String(customerText || '');
+    if (matchedProducts.length === 0 && customerRawQuery) {
+      const isPhotoReq = /photo|image|img|pic|picture|sample|catalog|catlog|product|prodact|poto|fotto|ෆොටෝ|පින්තූර|පින්තුර|පොටෝ|බලන්න|දක්වන්න|ewanna|evanna|pennanna/i.test(customerRawQuery);
+      const textLower = customerRawQuery.toLowerCase();
+      const replyLower = cleanedReply.toLowerCase();
+
+      if (!isImage || isPhotoReq) {
+        const scored = prodsWithImage.map(prod => {
+          let score = 0;
+          const pName = (prod.name || '').toLowerCase().trim();
+          const pCat = (prod.category || '').toLowerCase().trim();
+          if (pName && pName.length >= 3 && textLower.includes(pName)) score += 10;
+          if (pName && pName.length >= 3 && isPhotoReq && replyLower.includes(pName)) score += 6;
+          if (pCat && pCat.length >= 3 && textLower.includes(pCat)) score += 4;
+          const tokens = [...pName.split(/\s+/), ...pCat.split(/\s+/)].filter(t => t.length >= 3);
+          for (const tok of tokens) {
+            if (textLower.includes(tok)) score += 2;
+            else if (isPhotoReq && replyLower.includes(tok)) score += 1;
+          }
+          return { prod, score };
+        }).filter(x => x.score >= (isPhotoReq ? 1 : 10)).sort((a, b) => b.score - a.score);
+
+        if (scored.length > 0) {
+          matchedProducts.push(scored[0].prod);
+        } else if (isPhotoReq && !isImage) {
+          return { cleanedReply, matchedProducts: prodsWithImage.slice(0, 2) };
+        }
+      }
+    }
+
+    return { cleanedReply, matchedProducts };
+  }
+
+  _resolveMetaCfg(accountId) {
+    if (accountId && String(accountId).startsWith('wa_')) {
+      const bId = String(accountId).slice(3);
+      const tSettings = db.getTenantSettings(bId);
+      if (tSettings && tSettings.metaCloudApi && tSettings.metaCloudApi.enabled) {
+        return tSettings.metaCloudApi;
+      }
+    }
+    const globalSettings = db.getSettings();
+    return globalSettings && globalSettings.metaCloudApi ? globalSettings.metaCloudApi : null;
+  }
+
+  async sendMetaCloudMessage(toPhone, text, metaCfg) {
+    try {
+      const cfg = metaCfg || db.getSettings()?.metaCloudApi;
+      if (!cfg || !cfg.phoneNumberId || !cfg.token) {
+        return { ok: false, error: 'Meta Cloud API credentials missing' };
+      }
+      const cleanTo = String(toPhone || '').split('@')[0].replace(/\D/g, '');
+      const url = `https://graph.facebook.com/v20.0/${cfg.phoneNumberId}/messages`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${cfg.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: cleanTo,
+          type: 'text',
+          text: { preview_url: false, body: String(text || '') }
+        }),
+        signal: AbortSignal.timeout(12000)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: data?.error?.message || `Meta API HTTP ${res.status}` };
+      }
+      return { ok: true, id: data?.messages?.[0]?.id, provider: 'meta_cloud_api' };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async sendMetaCloudImage(toPhone, imageInput, caption = '', metaCfg) {
+    try {
+      const cfg = metaCfg || db.getSettings()?.metaCloudApi;
+      if (!cfg || !cfg.phoneNumberId || !cfg.token) {
+        return { ok: false, error: 'Meta Cloud API credentials missing' };
+      }
+      const cleanTo = String(toPhone || '').split('@')[0].replace(/\D/g, '');
+      let imagePayload = null;
+
+      if (typeof imageInput === 'string' && /^https?:\/\//i.test(imageInput)) {
+        imagePayload = { link: imageInput, caption: caption || '' };
+      } else {
+        let buf;
+        let mimeType = 'image/jpeg';
+        if (Buffer.isBuffer(imageInput)) {
+          buf = imageInput;
+        } else if (typeof imageInput === 'string' && imageInput.startsWith('data:')) {
+          const match = /^data:([^;]+);base64,(.+)$/s.exec(imageInput);
+          if (match) {
+            mimeType = match[1].trim();
+            buf = Buffer.from(match[2], 'base64');
+          }
+        } else if (typeof imageInput === 'string') {
+          buf = Buffer.from(imageInput, 'base64');
+        }
+        if (!buf || buf.length === 0) {
+          return { ok: false, error: 'Empty image payload for Meta Cloud upload' };
+        }
+        const ext = mimeType.includes('png') ? 'png' : (mimeType.includes('webp') ? 'webp' : 'jpg');
+        const form = new FormData();
+        form.append('messaging_product', 'whatsapp');
+        form.append('file', new Blob([buf], { type: mimeType }), `product.${ext}`);
+
+        const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${cfg.phoneNumberId}/media`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${cfg.token}` },
+          body: form,
+          signal: AbortSignal.timeout(15000)
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.id) {
+          return { ok: false, error: uploadData?.error?.message || `Meta media upload HTTP ${uploadRes.status}` };
+        }
+        imagePayload = { id: uploadData.id, caption: caption || '' };
+      }
+
+      const sendRes = await fetch(`https://graph.facebook.com/v20.0/${cfg.phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${cfg.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: cleanTo,
+          type: 'image',
+          image: imagePayload
+        }),
+        signal: AbortSignal.timeout(12000)
+      });
+      const sendData = await sendRes.json();
+      if (!sendRes.ok) {
+        return { ok: false, error: sendData?.error?.message || `Meta image HTTP ${sendRes.status}` };
+      }
+      return { ok: true, id: sendData?.messages?.[0]?.id, provider: 'meta_cloud_api' };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async sendVoiceMessage(toPhone, audioBuffer, accountId = null, ptt = true, mimeType = 'audio/ogg; codecs=opus') {
     let session = accountId ? this.sessions.get(accountId) : null;
     if (!session) {
       for (const [, s] of this.sessions.entries()) {
@@ -1150,7 +1279,37 @@ class MultiAccountWhatsAppManager {
     if (!session || !session.connected) {
       return { ok: false, error: 'No connected WhatsApp account available' };
     }
-    return await session.sendImageMessage(toPhone, imageInput, caption);
+    return await session.sendVoiceMessage(toPhone, audioBuffer, ptt, mimeType);
+  }
+
+  async sendImageMessage(toPhone, imageInput, accountId = null, caption = '') {
+    let session = accountId ? this.sessions.get(accountId) : null;
+    if (!session) {
+      for (const [, s] of this.sessions.entries()) {
+        if (s.connected) {
+          session = s;
+          break;
+        }
+      }
+    }
+    let sendRes = { ok: false };
+    if (session && session.connected) {
+      sendRes = await session.sendImageMessage(toPhone, imageInput, caption);
+      if (sendRes.ok) return sendRes;
+      console.warn(`[whatsapp-manager] Baileys image send failed (${sendRes.error}). Checking Meta Cloud API fallback...`);
+    }
+
+    try {
+      const metaCfg = this._resolveMetaCfg(accountId);
+      if (metaCfg && metaCfg.enabled && metaCfg.phoneNumberId && metaCfg.token) {
+        console.log('[whatsapp-manager] Triggering Meta Cloud API image fallback for ' + toPhone);
+        return await this.sendMetaCloudImage(toPhone, imageInput, caption, metaCfg);
+      }
+    } catch (e) {
+      console.error('[whatsapp-manager] Meta Cloud image fallback error:', e.message);
+    }
+
+    return sendRes.error ? sendRes : { ok: false, error: 'No connected WhatsApp account or Meta Cloud API available' };
   }
 
   // Send PDF document (with optional accountId target or round-robin)
