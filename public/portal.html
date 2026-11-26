@@ -3437,11 +3437,45 @@ table tr:hover td {
           <textarea id="bc-message" class="form-textarea" placeholder="විශේෂ මංගල වාරයේ දීමනාව! 16x24 UV Frames සඳහා නොමිලේ දිවයින පුරා බෙදාහැරීම. අදම ඇණවුම් කරන්න!" required></textarea>
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-group">
+            <label class="form-label">Schedule Send Time (Optional - පසුව යැවීමට)</label>
+            <input type="datetime-local" id="bc-scheduled-at" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Promo Image URL (Optional)</label>
+            <input type="url" id="bc-image-url" class="form-input" placeholder="https://.../promo.jpg or /api/media/...">
+          </div>
+        </div>
+
         <div style="display:flex;align-items:center;gap:12px;margin-top:20px;">
-          <button type="submit" class="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 9V4s3.03.55 4 2c1.08 1.62 0 5 0 5"/></svg> Launch Safe Broadcast Campaign</button>
-          <span style="font-size:0.75rem;color:var(--text-muted);">🛡️ Anti-ban jittered rate limiter enabled</span>
+          <button type="submit" class="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:4px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 9V4s3.03.55 4 2c1.08 1.62 0 5 0 5"/></svg> Launch / Schedule Broadcast</button>
+          <span style="font-size:0.75rem;color:var(--text-muted);">🛡️ Anti-ban jittered rate limiter & scheduler enabled</span>
         </div>
       </form>
+
+      <div style="margin-top:28px;border-top:1px solid var(--card-border);padding-top:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:1rem;font-weight:700;margin:0;">📅 Scheduled & Past Broadcast Campaigns</h3>
+          <button type="button" class="btn-secondary" onclick="fetchBroadcasts()" style="padding:5px 12px;font-size:0.78rem;">🔄 Refresh</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Audience</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Scheduled / Created</th>
+              </tr>
+            </thead>
+            <tbody id="broadcasts-history-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;">Loading campaigns...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- 7. BUSINESS & MASTER DATASET TAB -->
@@ -3542,6 +3576,25 @@ table tr:hover td {
         <div class="form-group">
           <label class="form-label">Bank Account Details (පාරිභෝගිකයාට ලැබෙන ගිණුම් විස්තර)</label>
           <input type="text" id="form-biz-bank" class="form-input" placeholder="Bank of Ceylon (BOC) | Account: 92949122 | Name: D T Rajapaksha">
+        </div>
+
+        <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:end;margin-bottom:14px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">White-Label Brand Color</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="color" id="form-biz-brand-color" value="#2563EB" style="width:44px;height:38px;border:none;background:transparent;cursor:pointer;">
+              <span id="form-biz-brand-hex" style="font-size:0.8rem;font-family:monospace;color:var(--text-secondary);">#2563EB</span>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">White-Label Store Logo (URL or Upload for Widget & Invoices)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="form-biz-logo-url" class="form-input" placeholder="https://... or /api/media/...">
+              <label class="btn-secondary" style="cursor:pointer;white-space:nowrap;padding:9px 12px;font-size:0.78rem;margin:0;">
+                📤 Upload <input type="file" id="form-biz-logo-file" accept="image/*" style="display:none;" onchange="uploadBusinessLogoFile(event)">
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Master Dataset File Upload (.TXT & .PDF) -->
@@ -3781,6 +3834,101 @@ table tr:hover td {
             <div class="form-group" style="margin-bottom:0;">
               <label class="form-label">Stage 2 Message Template (Urgency / Discount)</label>
               <input type="text" id="setting-followup-s2-msg" class="form-input" placeholder="ඔබගේ ඇණවුම අදම තහවුරු කළහොත් දිවයින පුරා බෙදාහැරීම නොමිලේ ලබාගත හැක.">
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 7A: PayHere / Online Payment Gateway -->
+        <div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.28);border-radius:14px;padding:18px;margin-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <h4 style="font-size:0.96rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
+              <span>💳</span> PayHere Online Payment Gateway & Auto-Links
+            </h4>
+            <div style="display:flex;gap:14px;align-items:center;">
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem;">
+                <input type="checkbox" id="setting-pg-enabled" style="accent-color:#10b981;width:15px;height:15px;">
+                <span style="font-weight:700;color:#34d399;">Enable PayHere</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem;">
+                <input type="checkbox" id="setting-pg-sandbox" checked style="accent-color:#f59e0b;width:15px;height:15px;">
+                <span style="color:#fbbf24;">Sandbox</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem;">
+                <input type="checkbox" id="setting-pg-autolink" style="accent-color:#38bdf8;width:15px;height:15px;">
+                <span style="color:#7dd3fc;">Auto-Send Link</span>
+              </label>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 110px;gap:10px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">PayHere Merchant ID</label>
+              <input type="text" id="setting-pg-merchant-id" class="form-input" placeholder="122XXXX">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">PayHere Merchant Secret</label>
+              <input type="password" id="setting-pg-merchant-secret" class="form-input" placeholder="Keep secret private">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Currency</label>
+              <select id="setting-pg-currency" class="form-select">
+                <option value="LKR">LKR</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 7B: Live Courier API Integration -->
+        <div style="background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.28);border-radius:14px;padding:18px;margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <h4 style="font-size:0.96rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
+              <span>🚚</span> Live Courier REST API (1-Click Dispatch & Tracking)
+            </h4>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem;">
+              <input type="checkbox" id="setting-courier-enabled" style="accent-color:#3b82f6;width:15px;height:15px;">
+              <span style="font-weight:700;color:#60a5fa;">Enable Courier API</span>
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:160px 1fr 1fr;gap:10px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Provider</label>
+              <select id="setting-courier-provider" class="form-select">
+                <option value="koombiyo">Koombiyo Delivery</option>
+                <option value="domex">Domex Courier</option>
+                <option value="promptx">Prompt X</option>
+                <option value="custom">Custom REST Webhook</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">API Key / Auth Token</label>
+              <input type="password" id="setting-courier-apikey" class="form-input" placeholder="Courier API Key">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Custom Endpoint Override (Optional)</label>
+              <input type="url" id="setting-courier-endpoint" class="form-input" placeholder="https://...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 7C: Meta Omnichannel (Messenger & Instagram DM) -->
+        <div style="background:rgba(236,72,153,0.05);border:1px solid rgba(236,72,153,0.28);border-radius:14px;padding:18px;margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <h4 style="font-size:0.96rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;margin:0;">
+              <span>💬📸</span> Meta Omnichannel (Facebook Messenger & Instagram DM)
+            </h4>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem;">
+              <input type="checkbox" id="setting-omnichannel-enabled" style="accent-color:#ec4899;width:15px;height:15px;">
+              <span style="font-weight:700;color:#f472b6;">Enable Messenger & IG</span>
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Page Access Token (Messenger / IG)</label>
+              <input type="password" id="setting-omnichannel-page-token" class="form-input" placeholder="EAAG...">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Instagram Business Account ID (Optional)</label>
+              <input type="text" id="setting-omnichannel-ig-id" class="form-input" placeholder="178414...">
             </div>
           </div>
         </div>
@@ -4797,6 +4945,16 @@ table tr:hover td {
         <label class="form-label">Minimum Floor Price (Lowest Bargain Price)</label>
         <input type="number" id="mp-floor" class="form-input" placeholder="12000">
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Stock Quantity (හිස්ව තැබුවොත් Unlimited)</label>
+          <input type="number" id="mp-stock-qty" class="form-input" min="0" placeholder="Unlimited">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Low Stock Alert Threshold</label>
+          <input type="number" id="mp-low-stock" class="form-input" min="1" value="3" placeholder="3">
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label">Description / Delivery details</label>
         <input type="text" id="mp-desc" class="form-input" placeholder="Includes free courier delivery">
@@ -5074,6 +5232,7 @@ function showTab(tabName) {
   if (tabName === 'inbox') fetchInbox();
   if (tabName === 'orders') fetchOrders();
   if (tabName === 'products') fetchProducts();
+  if (tabName === 'broadcast' && typeof fetchBroadcasts === 'function') fetchBroadcasts();
   if (tabName === 'flows') fetchFlows();
   if (tabName === 'business') loadBusinessForm();
   if (tabName === 'settings') loadSettingsForm();
@@ -5243,11 +5402,11 @@ async function fetchOverview() {
         if (qTier) qTier.textContent = r.activePlan.name;
         const qAiText = document.getElementById('quota-ai-text');
         const qAiBar = document.getElementById('quota-ai-bar');
-        const weeklyChats = Number(r.weeklyConversations !== undefined ? r.weeklyConversations : 0);
-        const limitText = (r.activePlan && r.activePlan.limits?.monthlyReplies) ? r.activePlan.limits.monthlyReplies : 1500;
-        if (qAiText) qAiText.textContent = `${weeklyChats} / ${limitText.toLocaleString('en-US')}`;
+        const monthlyReplies = Number(r.monthlyAiReplies !== undefined ? r.monthlyAiReplies : (r.weeklyConversations !== undefined ? r.weeklyConversations : 0));
+        const limitText = Number(r.monthlyAiLimit || (r.activePlan && (r.activePlan.limits?.aiReplies || r.activePlan.limits?.monthlyReplies)) || 1500);
+        if (qAiText) qAiText.textContent = `${monthlyReplies.toLocaleString('en-US')} / ${limitText.toLocaleString('en-US')}`;
         if (qAiBar) {
-          const pct = Math.min(100, Math.round((weeklyChats / limitText) * 100));
+          const pct = Math.min(100, Math.round((monthlyReplies / Math.max(1, limitText)) * 100));
           qAiBar.style.width = `${pct}%`;
         }
         const qProdText = document.getElementById('quota-products-text');
@@ -5437,13 +5596,53 @@ function renderOrdersFull(orders) {
           <option value="Cancelled" ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
         </select>
       </td>
-      <td>
+      <td style="white-space:nowrap;">
         <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="openInvoiceModal('${escapeHtml(o.id)}')">🧾 Invoice</button>
+        <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="sendOrderPaymentLink('${escapeHtml(o.id)}')">💳 Pay Link</button>
+        <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="dispatchOrderCourier('${escapeHtml(o.id)}')">🚚 Courier</button>
         <button class="btn-danger" onclick="deleteOrder('${escapeHtml(o.id)}')">Delete</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+async function sendOrderPaymentLink(orderId) {
+  try {
+    const sendWa = confirm('Customer ගේ WhatsApp වෙත Online Payment Link එක කෙලින්ම යවන්නද? (Cancel = Copy Only)');
+    const res = await fetch('/api/orders/payment-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, sendToWhatsApp: sendWa })
+    });
+    const data = await res.json();
+    if (data.ok && data.paymentUrl) {
+      try { await navigator.clipboard.writeText(data.paymentUrl); } catch (_) {}
+      alert((sendWa ? '💳 Payment link generated & sent via WhatsApp!\n' : '💳 Payment link copied!\n') + data.paymentUrl);
+      fetchOverview();
+    } else {
+      alert('⚠️ Payment Link Error: ' + (data.error || 'Failed'));
+    }
+  } catch (e) { alert('Payment Link Error: ' + e.message); }
+}
+
+async function dispatchOrderCourier(orderId) {
+  if (!confirm('Configure කර ඇති Courier API හරහා මෙම ඇණවුම Dispatch කරන්නද?')) return;
+  try {
+    const res = await fetch('/api/orders/courier-dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`🚚 Dispatched via ${data.provider || 'Courier'}!\nTracking #: ${data.trackingNumber || 'Generated'}`);
+      fetchOverview();
+      if (typeof fetchOrders === 'function') fetchOrders();
+    } else {
+      alert('⚠️ Courier Dispatch Failed: ' + (data.error || 'Check Courier API settings first'));
+    }
+  } catch (e) { alert('Courier Dispatch Error: ' + e.message); }
 }
 
 async function updateOrderStatus(orderId, newStatus) {
@@ -5575,6 +5774,9 @@ function renderProducts(products) {
         <span style="font-size:0.75rem;color:${p.inStock ? '#047857' : '#dc2626'};font-weight:700;">
           ${p.inStock ? '● In Stock' : '○ Out of Stock'}
         </span>
+        ${typeof p.stockQty === 'number'
+          ? `<div style="font-size:0.7rem;margin-top:2px;font-weight:700;color:${p.stockQty <= (p.lowStockThreshold || 3) ? '#fbbf24' : '#94a3b8'};">Qty: ${p.stockQty} left</div>`
+          : `<div style="font-size:0.68rem;margin-top:2px;color:var(--text-muted);">Qty: Unlimited</div>`}
       </td>
       <td style="white-space:nowrap;">
         <button class="btn-secondary" onclick="openEditProductModal('${p.id}')" style="margin-right:6px;padding:6px 10px;font-size:0.78rem;">✏️ Edit</button>
@@ -5680,6 +5882,8 @@ function openAddProductModal() {
   const costEl = document.getElementById('mp-cost'); if (costEl) costEl.value = '';
   const floorEl = document.getElementById('mp-floor'); if (floorEl) floorEl.value = '';
   const descEl = document.getElementById('mp-desc'); if (descEl) descEl.value = '';
+  const qtyEl = document.getElementById('mp-stock-qty'); if (qtyEl) qtyEl.value = '';
+  const lowEl = document.getElementById('mp-low-stock'); if (lowEl) lowEl.value = '3';
   const stockEl = document.getElementById('mp-instock'); if (stockEl) stockEl.checked = true;
   const titleEl = document.getElementById('mp-modal-title'); if (titleEl) titleEl.textContent = 'Add Product to Catalog';
   const btnEl = document.getElementById('mp-submit-btn'); if (btnEl) btnEl.textContent = 'Add Product';
@@ -5697,6 +5901,8 @@ function openEditProductModal(id) {
   document.getElementById('mp-cost').value = prod.cost || '';
   document.getElementById('mp-floor').value = prod.minFloorPrice || '';
   document.getElementById('mp-desc').value = prod.description || '';
+  const qtyEl = document.getElementById('mp-stock-qty'); if (qtyEl) qtyEl.value = (prod.stockQty !== null && prod.stockQty !== undefined) ? prod.stockQty : '';
+  const lowEl = document.getElementById('mp-low-stock'); if (lowEl) lowEl.value = prod.lowStockThreshold || 3;
   const stockEl = document.getElementById('mp-instock'); if (stockEl) stockEl.checked = (prod.inStock !== false);
   currentProductImages = (Array.isArray(prod.images) && prod.images.length > 0)
     ? [...prod.images.filter(Boolean)]
@@ -5716,6 +5922,7 @@ function closeAddProductModal() {
 async function submitNewProduct(e) {
   e.preventDefault();
   const editId = (document.getElementById('mp-id')?.value || '').trim();
+  const rawQty = (document.getElementById('mp-stock-qty')?.value || '').trim();
   const prod = {
     name: document.getElementById('mp-name').value,
     category: document.getElementById('mp-category').value,
@@ -5723,6 +5930,8 @@ async function submitNewProduct(e) {
     cost: Number(document.getElementById('mp-cost').value) || 0,
     minFloorPrice: Number(document.getElementById('mp-floor').value) || 0,
     description: document.getElementById('mp-desc').value,
+    stockQty: rawQty === '' ? null : Math.max(0, Number(rawQty)),
+    lowStockThreshold: Math.max(1, Number(document.getElementById('mp-low-stock')?.value) || 3),
     inStock: document.getElementById('mp-instock') ? document.getElementById('mp-instock').checked : true,
     images: currentProductImages,
     imageUrl: currentProductImages[0] || ''
@@ -6168,6 +6377,12 @@ function renderChatList(chats) {
     const linePhone = c.accountPhone ? `+${c.accountPhone.slice(-4)}` : '';
     const timeStr = formatChatTime(c.lastTime);
     const unreadPill = (c.unread && c.unread > 0) ? `<span class="unread-pill">${c.unread}</span>` : '';
+    const chLower = String(c.channel || '').toLowerCase();
+    const channelBadge = chLower === 'messenger'
+      ? `<span style="font-size:0.65rem;padding:1px 6px;border-radius:6px;background:rgba(59,130,246,0.18);color:#60a5fa;border:1px solid rgba(59,130,246,0.35);font-weight:700;">💬 Messenger</span>`
+      : (chLower === 'instagram'
+        ? `<span style="font-size:0.65rem;padding:1px 6px;border-radius:6px;background:rgba(236,72,153,0.18);color:#f472b6;border:1px solid rgba(236,72,153,0.35);font-weight:700;">📸 Instagram</span>`
+        : `<span class="badge-wa-line" title="${lineLabel} ${c.accountPhone ? ('(+' + c.accountPhone + ')') : ''}">📱 ${lineLabel} ${linePhone ? `<span style="opacity:0.8;">(${linePhone})</span>` : ''}</span>`);
 
     div.innerHTML = `
       <div class="chat-item-avatar">${escapeHtml(initial)}</div>
@@ -6181,9 +6396,7 @@ function renderChatList(chats) {
           ${unreadPill}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px;">
-          <span class="badge-wa-line" title="${lineLabel} ${c.accountPhone ? ('(+' + c.accountPhone + ')') : ''}">
-            📱 ${lineLabel} ${linePhone ? `<span style="opacity:0.8;">(${linePhone})</span>` : ''}
-          </span>
+          ${channelBadge}
           ${escTag}
         </div>
       </div>
@@ -6227,7 +6440,10 @@ function selectChat(chatId, fromPoll = false) {
 
   const badge = document.getElementById('chat-active-account-badge');
   if (badge) {
-    if (chat.accountLabel || chat.accountPhone) {
+    if (chat.channel === 'messenger' || chat.channel === 'instagram') {
+      badge.textContent = chat.channel === 'messenger' ? '💬 Facebook Messenger' : '📸 Instagram DM';
+      badge.style.display = 'inline-flex';
+    } else if (chat.accountLabel || chat.accountPhone) {
       badge.textContent = `📱 Line: ${chat.accountLabel || 'WhatsApp'}${chat.accountPhone ? ' (+' + chat.accountPhone + ')' : ''}`;
       badge.style.display = 'inline-flex';
     } else {
@@ -6268,13 +6484,15 @@ function selectChat(chatId, fromPoll = false) {
     let formattedText = escapeHtml(m.text || '').replace(/\n/g, '<br>');
 
     // 1. Voice Note Rendering (Customer Speech Transcribed + AI Gemini Voice)
-    if ((m.text && (m.text.startsWith('🎤') || m.text.startsWith('🎙️'))) || m.audioBase64) {
+    const isVoiceMsg = (m.text && (m.text.startsWith('🎤') || m.text.startsWith('🎙️'))) || !!m.audioBase64 || String(m.mimeType || '').startsWith('audio/');
+    if (isVoiceMsg) {
       const isIncoming = m.sender === 'customer' || (m.text && m.text.startsWith('🎤'));
       const cleanTranscript = escapeHtml((m.text || '').replace(/^(🎤|🎙️)\s*/, '')).replace(/\n/g, '<br>');
+      const cleanMime = (m.mimeType || (isIncoming ? 'audio/ogg' : 'audio/wav')).split(';')[0].trim() || 'audio/ogg';
+      const audioSrc = m.audioBase64 ? `data:${cleanMime};base64,${m.audioBase64}` : (m.mediaUrl || '');
       let audioPlayerHtml = '';
-      if (m.audioBase64) {
-        const cleanMime = (m.mimeType || (isIncoming ? 'audio/ogg' : 'audio/wav')).split(';')[0].trim() || 'audio/ogg';
-        audioPlayerHtml = `<div style="margin-top:8px;"><audio controls preload="metadata" src="data:${cleanMime};base64,${m.audioBase64}" style="width:100%;max-width:260px;height:36px;border-radius:8px;outline:none;"></audio></div>`;
+      if (audioSrc) {
+        audioPlayerHtml = `<div style="margin-top:8px;"><audio controls preload="metadata" src="${escapeHtml(audioSrc)}" style="width:100%;max-width:260px;height:36px;border-radius:8px;outline:none;"></audio></div>`;
       }
       formattedText = `
         <div style="display:inline-flex;align-items:center;gap:6px;background:${isIncoming ? 'rgba(34,197,94,0.16)' : 'rgba(56,189,248,0.16)'};color:${isIncoming ? '#4ade80' : '#38bdf8'};padding:3px 9px;border-radius:12px;font-size:0.74rem;font-weight:750;margin-bottom:6px;border:1px solid ${isIncoming ? 'rgba(34,197,94,0.32)' : 'rgba(56,189,248,0.32)'};">
@@ -6285,13 +6503,15 @@ function selectChat(chatId, fromPoll = false) {
       `;
     }
 
-    // 2. Customer Image + AI Vision Understanding Rendering
+    // 2. Customer Image + AI Vision Understanding Rendering (supports inline base64 + GridFS/disk mediaUrl)
     let mediaHtml = '';
-    if (m.imageBase64) {
-      const imgMime = (m.imageMimeType || 'image/jpeg').split(';')[0].trim();
-      const dataUrl = `data:${imgMime};base64,${m.imageBase64}`;
+    const hasMediaImgUrl = !!(m.mediaUrl && !isVoiceMsg && (String(m.imageMimeType || '').startsWith('image/') || (m.text || '').startsWith('📷') || !m.mimeType));
+    const imgSrc = m.imageBase64
+      ? `data:${(m.imageMimeType || 'image/jpeg').split(';')[0].trim()};base64,${m.imageBase64}`
+      : (hasMediaImgUrl ? m.mediaUrl : '');
+    if (imgSrc) {
       mediaHtml += `<div style="margin-bottom:8px;">
-        <img src="${dataUrl}" onclick="openChatImageLightbox(this.src)" title="Click to zoom" style="max-width:240px;max-height:220px;border-radius:10px;object-fit:cover;cursor:zoom-in;border:1px solid rgba(255,255,255,0.16);display:block;box-shadow:0 4px 12px rgba(0,0,0,0.3);" />
+        <img src="${escapeHtml(imgSrc)}" onclick="openChatImageLightbox(this.src)" title="Click to zoom" style="max-width:240px;max-height:220px;border-radius:10px;object-fit:cover;cursor:zoom-in;border:1px solid rgba(255,255,255,0.16);display:block;box-shadow:0 4px 12px rgba(0,0,0,0.3);" />
       </div>`;
     }
 
@@ -6634,20 +6854,56 @@ async function sendBroadcastCampaign(e) {
   const title = document.getElementById('bc-title').value;
   const msg = document.getElementById('bc-message').value;
   const aud = document.getElementById('bc-audience').value;
+  const rawSched = document.getElementById('bc-scheduled-at')?.value || '';
+  const scheduledAt = rawSched ? new Date(rawSched).toISOString() : null;
+  const imageUrl = document.getElementById('bc-image-url')?.value?.trim() || '';
 
   try {
     const res = await fetch('/api/broadcasts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, message: msg, targetAudience: aud })
+      body: JSON.stringify({ title, message: msg, targetAudience: aud, imageUrl, scheduledAt })
     });
     const data = await res.json();
     if (data.ok) {
-      alert(`🚀 Broadcast Campaign "${title}" launched successfully! Message is being dispatched safely via WhatsApp Multi-Device.`);
+      const isSched = data.scheduled || (data.broadcast && data.broadcast.status === 'Scheduled');
+      alert(isSched
+        ? `📅 Campaign "${title}" scheduled for ${new Date(scheduledAt).toLocaleString()}!`
+        : `🚀 Broadcast Campaign "${title}" launched successfully! Message is being dispatched safely via WhatsApp Multi-Device.`);
       document.getElementById('bc-title').value = '';
       document.getElementById('bc-message').value = '';
+      if (document.getElementById('bc-scheduled-at')) document.getElementById('bc-scheduled-at').value = '';
+      if (document.getElementById('bc-image-url')) document.getElementById('bc-image-url').value = '';
+      fetchBroadcasts();
+    } else {
+      alert('⚠️ Broadcast error: ' + (data.error || 'Failed'));
     }
   } catch(e) { alert('Broadcast error: ' + e.message); }
+}
+
+async function fetchBroadcasts() {
+  const tbody = document.getElementById('broadcasts-history-tbody');
+  if (!tbody) return;
+  try {
+    const res = await fetch('/api/broadcasts');
+    const data = await res.json();
+    const list = (data && Array.isArray(data.broadcasts)) ? data.broadcasts : [];
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">No broadcast campaigns yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(b => {
+      const when = b.scheduledAt ? ('📅 ' + new Date(b.scheduledAt).toLocaleString()) : (b.createdAt ? new Date(b.createdAt).toLocaleString() : '-');
+      const total = b.totalTargets || b.sentCount || 0;
+      return `<tr>
+        <td style="font-weight:700;">${escapeHtml(b.title || 'Campaign')}</td>
+        <td>${escapeHtml(b.targetAudience || 'All')}</td>
+        <td><span class="status-tag">${escapeHtml(b.status || 'Pending')}</span></td>
+        <td>${Number(b.sentCount || 0)} / ${total}${b.failedCount ? ` <span style="color:#f87171;">(${b.failedCount} fail)</span>` : ''}</td>
+        <td style="font-size:0.78rem;color:var(--text-muted);">${escapeHtml(when)}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {}
 }
 
 // ─── Digital Invoice Modal (Feature 1) ───────────────────────────────────────
@@ -6861,7 +7117,41 @@ function loadBusinessForm() {
   document.getElementById('form-biz-bank').value = activeBiz.bankDetails || '';
   document.getElementById('form-biz-delivery').value = activeBiz.deliveryPolicy || '';
   document.getElementById('form-biz-dataset').value = activeBiz.dataset || '';
+  const colorEl = document.getElementById('form-biz-brand-color');
+  const hexEl = document.getElementById('form-biz-brand-hex');
+  if (colorEl) {
+    colorEl.value = /^#[0-9A-Fa-f]{6}$/.test(activeBiz.brandColor || '') ? activeBiz.brandColor : '#2563EB';
+    if (hexEl) hexEl.textContent = colorEl.value;
+    colorEl.oninput = () => { if (hexEl) hexEl.textContent = colorEl.value.toUpperCase(); };
+  }
+  const logoEl = document.getElementById('form-biz-logo-url');
+  if (logoEl) logoEl.value = activeBiz.logoUrl || '';
   loadCategoryTemplates();
+}
+
+async function uploadBusinessLogoFile(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev) {
+    try {
+      const res = await fetch('/api/media/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl: ev.target.result, mimeType: file.type || 'image/png', source: 'store_logo' })
+      });
+      const data = await res.json();
+      if (data.ok && data.url) {
+        const logoEl = document.getElementById('form-biz-logo-url');
+        if (logoEl) logoEl.value = data.url;
+        alert('✅ Logo uploaded to Cloud Media! Remember to click Save Business Profile.');
+      } else {
+        alert('⚠️ Upload failed: ' + (data.error || 'Unknown'));
+      }
+    } catch (err) { alert('Logo upload error: ' + err.message); }
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
 async function saveBusinessProfile(e) {
@@ -6873,7 +7163,9 @@ async function saveBusinessProfile(e) {
     phone: document.getElementById('form-biz-phone').value,
     bankDetails: document.getElementById('form-biz-bank').value,
     deliveryPolicy: document.getElementById('form-biz-delivery').value,
-    dataset: document.getElementById('form-biz-dataset').value
+    dataset: document.getElementById('form-biz-dataset').value,
+    brandColor: document.getElementById('form-biz-brand-color')?.value || '#2563EB',
+    logoUrl: document.getElementById('form-biz-logo-url')?.value?.trim() || ''
   };
 
   try {
@@ -6886,7 +7178,8 @@ async function saveBusinessProfile(e) {
     if (data.ok) {
       activeBiz = data.business;
       populateBusinessSelect();
-      alert('✨ Business Profile & Master Dataset saved! Live AI is updated.');
+      if (typeof updateWidgetSnippetPreview === 'function') updateWidgetSnippetPreview();
+      alert('✨ Business Profile, Branding & Master Dataset saved! Live AI is updated.');
     }
   } catch(e) { alert('Error: ' + e.message); }
 }
@@ -6991,6 +7284,27 @@ async function loadSettingsForm() {
       if (fuS2DelayEl) fuS2DelayEl.value = s.followUpStage2DelayHours || 24;
       const fuS2MsgEl = document.getElementById('setting-followup-s2-msg');
       if (fuS2MsgEl) fuS2MsgEl.value = s.followUpStage2Message || '';
+
+      // Populate PayHere, Courier API & Meta Omnichannel settings
+      if (s.paymentGateway) {
+        const pgEn = document.getElementById('setting-pg-enabled'); if (pgEn) pgEn.checked = !!s.paymentGateway.enabled;
+        const pgSb = document.getElementById('setting-pg-sandbox'); if (pgSb) pgSb.checked = s.paymentGateway.sandbox !== false;
+        const pgAuto = document.getElementById('setting-pg-autolink'); if (pgAuto) pgAuto.checked = !!s.paymentGateway.autoSendLink;
+        const pgMid = document.getElementById('setting-pg-merchant-id'); if (pgMid) pgMid.value = s.paymentGateway.merchantId || '';
+        const pgSec = document.getElementById('setting-pg-merchant-secret'); if (pgSec) pgSec.value = s.paymentGateway.merchantSecret || '';
+        const pgCur = document.getElementById('setting-pg-currency'); if (pgCur) pgCur.value = s.paymentGateway.currency || 'LKR';
+      }
+      if (s.courierApi) {
+        const cEn = document.getElementById('setting-courier-enabled'); if (cEn) cEn.checked = !!s.courierApi.enabled;
+        const cProv = document.getElementById('setting-courier-provider'); if (cProv) cProv.value = s.courierApi.provider || 'koombiyo';
+        const cKey = document.getElementById('setting-courier-apikey'); if (cKey) cKey.value = s.courierApi.apiKey || '';
+        const cEp = document.getElementById('setting-courier-endpoint'); if (cEp) cEp.value = s.courierApi.apiUrl || s.courierApi.endpoint || '';
+      }
+      if (s.metaOmnichannel) {
+        const mEn = document.getElementById('setting-omnichannel-enabled'); if (mEn) mEn.checked = !!s.metaOmnichannel.enabled;
+        const mTok = document.getElementById('setting-omnichannel-page-token'); if (mTok) mTok.value = s.metaOmnichannel.pageAccessToken || '';
+        const mIg = document.getElementById('setting-omnichannel-ig-id'); if (mIg) mIg.value = s.metaOmnichannel.igAccountId || s.metaOmnichannel.instagramBusinessId || '';
+      }
     }
   } catch(e){}
 }
@@ -7015,7 +7329,27 @@ async function saveSettings(e) {
     followUpMessage: document.getElementById('setting-followup-msg')?.value || '',
     isFollowUpStage2Enabled: document.getElementById('setting-followup-enabled')?.checked || false,
     followUpStage2DelayHours: parseFloat(document.getElementById('setting-followup-s2-delay')?.value) || 24,
-    followUpStage2Message: document.getElementById('setting-followup-s2-msg')?.value || ''
+    followUpStage2Message: document.getElementById('setting-followup-s2-msg')?.value || '',
+    paymentGateway: {
+      enabled: document.getElementById('setting-pg-enabled')?.checked || false,
+      provider: 'payhere',
+      sandbox: document.getElementById('setting-pg-sandbox')?.checked !== false,
+      autoSendLink: document.getElementById('setting-pg-autolink')?.checked || false,
+      merchantId: document.getElementById('setting-pg-merchant-id')?.value?.trim() || '',
+      merchantSecret: document.getElementById('setting-pg-merchant-secret')?.value?.trim() || '',
+      currency: document.getElementById('setting-pg-currency')?.value || 'LKR'
+    },
+    courierApi: {
+      enabled: document.getElementById('setting-courier-enabled')?.checked || false,
+      provider: document.getElementById('setting-courier-provider')?.value || 'koombiyo',
+      apiKey: document.getElementById('setting-courier-apikey')?.value?.trim() || '',
+      apiUrl: document.getElementById('setting-courier-endpoint')?.value?.trim() || ''
+    },
+    metaOmnichannel: {
+      enabled: document.getElementById('setting-omnichannel-enabled')?.checked || false,
+      pageAccessToken: document.getElementById('setting-omnichannel-page-token')?.value?.trim() || '',
+      igAccountId: document.getElementById('setting-omnichannel-ig-id')?.value?.trim() || ''
+    }
   };
 
   try {

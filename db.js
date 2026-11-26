@@ -33,6 +33,7 @@ const fs = require('fs');
 const path = require('path');
 const dns = require('dns');
 const crypto = require('crypto');
+const mediaStore = require('./mediaStore.js');
 
 let MongoClient;
 try {
@@ -114,6 +115,31 @@ const DEFAULT_SETTINGS = {
   isInteractiveButtonsEnabled: true,
   // Delivery Details & Order Checkout Toggle (true = collect delivery/checkout; false = refer orders to owner number)
   isDeliveryDetailsEnabled: true,
+  // Payment Gateway Integration (PayHere / Koko / Custom Payment Link)
+  paymentGateway: {
+    enabled: false,
+    provider: 'payhere',
+    merchantId: '',
+    merchantSecret: '',
+    sandbox: true,
+    autoSendLink: false,
+    customPayUrl: ''
+  },
+  // Live Courier REST Dispatch Integration (Koombiyo, Domex, Prompt X, Custom)
+  courierApi: {
+    enabled: false,
+    provider: 'koombiyo',
+    apiKey: '',
+    apiUrl: '',
+    webhookSecret: ''
+  },
+  // Unified Meta Page & Instagram DM Inbox
+  metaOmnichannel: {
+    enabled: false,
+    pageAccessToken: '',
+    pageId: '',
+    igAccountId: ''
+  },
   // Customer Self-Service Gemini API Key
   geminiApiKey: ''
 };
@@ -294,6 +320,7 @@ class Database {
       await client.connect();
       this.mongoClient = client;
       this.mongoDb = client.db('omnisix');
+      mediaStore.initGridFs(this.mongoDb);
       this.mongoStateCol = this.mongoDb.collection('app_state');
       this.mongoOrdersCol = this.mongoDb.collection('orders');
       this.mongoProductsCol = this.mongoDb.collection('products');
@@ -763,7 +790,7 @@ class Database {
 
   createBusiness(biz) {
     const slug = (biz.name || 'store').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').slice(0, 20);
-    const id = slug ? `${slug}_${Date.now().toString().slice(-4)}` : `store_${Date.now()}`;
+    const id = biz.id ? String(biz.id).trim() : (slug ? `${slug}_${Date.now().toString().slice(-4)}` : `store_${Date.now()}`);
     const newBiz = {
       id,
       name: (biz.name || 'New Store').trim(),
@@ -774,6 +801,9 @@ class Database {
       bankDetails: (biz.bankDetails || '').trim(),
       deliveryPolicy: (biz.deliveryPolicy || '').trim(),
       currency: (biz.currency || 'Rs.').trim(),
+      brandColor: /^#[0-9A-Fa-f]{6}$/.test(biz.brandColor || '') ? biz.brandColor : '#2563EB',
+      logoUrl: (biz.logoUrl || '').trim(),
+      ...(biz.subscriptionPlan ? { subscriptionPlan: biz.subscriptionPlan } : {}),
       welcomeMessage: (biz.welcomeMessage || `ආයුබෝවන්! ${biz.name || 'Store'} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?`).trim(),
       dataset: biz.dataset || `Store: ${biz.name}\nContact: ${biz.phone}\nBank: ${biz.bankDetails}`,
       isActive: false
@@ -824,7 +854,15 @@ class Database {
       description: prod.description || '',
       images: rawImgs,
       imageUrl: rawImgs[0] || prod.imageUrl || prod.image || '',
-      inStock: prod.inStock !== false
+      stockQty: (prod.stockQty !== undefined && prod.stockQty !== '' && prod.stockQty !== null)
+        ? Math.max(0, parseInt(prod.stockQty, 10) || 0)
+        : null,
+      lowStockThreshold: (prod.lowStockThreshold !== undefined && prod.lowStockThreshold !== '')
+        ? Math.max(1, parseInt(prod.lowStockThreshold, 10) || 5)
+        : 5,
+      inStock: (prod.stockQty !== undefined && prod.stockQty !== '' && prod.stockQty !== null && (parseInt(prod.stockQty, 10) || 0) === 0)
+        ? false
+        : (prod.inStock !== false)
     };
     this.data.products.push(newProd);
     this.save();
@@ -840,11 +878,43 @@ class Database {
       } else if (updates.imageUrl && !updates.images) {
         updates.images = [updates.imageUrl];
       }
+      if (updates.stockQty !== undefined) {
+        if (updates.stockQty === '' || updates.stockQty === null) {
+          updates.stockQty = null;
+        } else {
+          const parsed = Math.max(0, parseInt(updates.stockQty, 10) || 0);
+          updates.stockQty = parsed;
+          if (parsed === 0) updates.inStock = false;
+        }
+      }
+      if (updates.lowStockThreshold !== undefined && updates.lowStockThreshold !== '') {
+        updates.lowStockThreshold = Math.max(1, parseInt(updates.lowStockThreshold, 10) || 5);
+      }
       this.data.products[idx] = { ...this.data.products[idx], ...updates };
       this.save();
       return this.data.products[idx];
     }
     return null;
+  }
+
+  decrementProductStock(itemText, businessId = null, qty = 1) {
+    const cleanText = String(itemText || '').toLowerCase().trim();
+    if (!cleanText) return null;
+    const storeProds = this.getProducts(businessId);
+    const matched = storeProds.find(p => p.name && (cleanText.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(cleanText)));
+    if (!matched || typeof matched.stockQty !== 'number') return null;
+
+    const decrementBy = Math.max(1, parseInt(qty, 10) || 1);
+    matched.stockQty = Math.max(0, matched.stockQty - decrementBy);
+    if (matched.stockQty === 0) {
+      matched.inStock = false;
+    }
+    this.save();
+    return {
+      matchedProduct: matched,
+      lowStockAlert: matched.stockQty <= (matched.lowStockThreshold || 5),
+      outOfStock: matched.stockQty === 0
+    };
   }
 
   deleteProduct(id) {
@@ -989,6 +1059,14 @@ class Database {
       source: order.source || 'Live Voice Call'
     };
     this.data.orders.unshift(newOrder);
+    const stockRes = this.decrementProductStock(newOrder.item, newOrder.businessId, parseInt(order.qty, 10) || 1);
+    if (stockRes && stockRes.lowStockAlert) {
+      newOrder.lowStockTriggered = {
+        productId: stockRes.matchedProduct.id,
+        name: stockRes.matchedProduct.name,
+        remaining: stockRes.matchedProduct.stockQty
+      };
+    }
     this.markLeadConfirmed(newOrder.customerPhone, newOrder.businessId);
     this.save();
     return newOrder;
@@ -1040,6 +1118,7 @@ class Database {
         accountId: extra.accountId || 'default',
         accountPhone: extra.accountPhone || '',
         accountLabel: extra.accountLabel || '',
+        channel: extra.channel || 'whatsapp',
         aiMuted: false,
         aiMuteUntil: 0,
         unread: 0,
@@ -1055,6 +1134,7 @@ class Database {
       if (extra.accountId) chat.accountId = extra.accountId;
       if (extra.accountPhone) chat.accountPhone = extra.accountPhone;
       if (extra.accountLabel) chat.accountLabel = extra.accountLabel;
+      if (extra.channel) chat.channel = extra.channel;
       if (extra.remoteJid) chat.remoteJid = extra.remoteJid;
       if (!chat.remoteJid && chat.id && chat.id.length > 13) chat.remoteJid = chat.id + '@lid';
     }
@@ -1071,6 +1151,8 @@ class Database {
       mimeType: extra.mimeType || null,
       imageBase64: safeImage,
       imageMimeType: extra.imageMimeType || null,
+      mediaUrl: extra.mediaUrl || null,
+      channel: extra.channel || null,
       visionSummary: extra.visionSummary || null,
       productId: extra.productId || null
     };
@@ -1211,15 +1293,68 @@ class Database {
       businessId: bc.businessId || this.getActiveBusiness().id,
       title: bc.title || 'Untitled Campaign',
       message: bc.message,
+      imageUrl: bc.imageUrl || null,
+      accountId: bc.accountId || null,
+      contacts: Array.isArray(bc.contacts) ? bc.contacts : null,
+      minDelay: Number(bc.minDelay) || 8,
+      maxDelay: Number(bc.maxDelay) || 22,
+      scheduledAt: bc.scheduledAt || null,
       targetAudience: bc.targetAudience || 'All Customers',
       targetCount: bc.targetCount || 0,
       sentCount: bc.sentCount || 0,
+      failedCount: bc.failedCount || 0,
       status: bc.status || 'Active',
       createdAt: new Date().toISOString()
     };
     this.data.broadcasts.unshift(newBc);
     this.save();
     return newBc;
+  }
+
+  getDueScheduledBroadcasts(nowMs = Date.now()) {
+    return (this.data.broadcasts || []).filter(b => {
+      if (b.status !== 'Scheduled' || !b.scheduledAt) return false;
+      const ts = new Date(b.scheduledAt).getTime();
+      return !isNaN(ts) && ts <= nowMs;
+    });
+  }
+
+  // ─── Monthly AI Reply Quota Metering ──────────────────────────────────────────
+  _currentUsageMonth() {
+    return new Date().toISOString().slice(0, 7);
+  }
+
+  checkAiQuota(businessId) {
+    const biz = businessId ? (this.getBusiness(businessId) || this.getActiveBusiness()) : this.getActiveBusiness();
+    const planId = (biz && biz.subscriptionPlan) || 'enterprise';
+    const plan = SUBSCRIPTION_PLANS[planId] || SUBSCRIPTION_PLANS.enterprise;
+    const limit = (plan.limits && plan.limits.aiReplies) || 25000;
+    const month = this._currentUsageMonth();
+    const usage = (biz && biz.usageStats && biz.usageStats.month === month)
+      ? biz.usageStats
+      : { month, aiReplies: 0 };
+    const used = Number(usage.aiReplies) || 0;
+    return {
+      allowed: used < limit,
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+      month,
+      planName: plan.name,
+      businessId: biz ? biz.id : null
+    };
+  }
+
+  recordAiReplyUsage(businessId, increment = 1) {
+    const biz = businessId ? (this.getBusiness(businessId) || this.getActiveBusiness()) : this.getActiveBusiness();
+    if (!biz) return null;
+    const month = this._currentUsageMonth();
+    if (!biz.usageStats || biz.usageStats.month !== month) {
+      biz.usageStats = { month, aiReplies: 0 };
+    }
+    biz.usageStats.aiReplies = (Number(biz.usageStats.aiReplies) || 0) + increment;
+    this.save();
+    return this.checkAiQuota(biz.id);
   }
 
   // ─── WhatsApp Status ────────────────────────────────────────────────────────
@@ -1816,9 +1951,12 @@ class Database {
 
     const planId = biz.subscriptionPlan || 'enterprise';
     const plan = SUBSCRIPTION_PLANS[planId] || SUBSCRIPTION_PLANS.enterprise;
+    const quota = this.checkAiQuota(biz.id);
 
     return {
       weeklyConversations: weeklyChats,
+      monthlyAiReplies: quota.used,
+      monthlyAiLimit: quota.limit,
       confirmedOrders: confirmedCount,
       conversionRate: `${conversionRate}%`,
       revenueLKR: revLKR,

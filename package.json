@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test --test-force-exit test/*.test.js",
-    "syntax": "node -c server.js && node -c db.js && node -c whatsapp.js && node -c ai_engines.js && node -c deliveryPolicyHelper.js"
+    "syntax": "node -c server.js && node -c db.js && node -c whatsapp.js && node -c ai_engines.js && node -c deliveryPolicyHelper.js && node -c mediaStore.js && node -c commerceIntegrations.js && node -c invoiceGenerator.js && node -c public/widget.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc14",

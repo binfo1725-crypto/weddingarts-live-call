@@ -94,6 +94,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const db = require('./db.js');
+const mediaStore = require('./mediaStore.js');
+const commerce = require('./commerceIntegrations.js');
 const { AgentFleetManager } = require('./agentTeam.js');
 const agentFleet = new AgentFleetManager(db);
 const waEngine = require('./whatsapp.js');
@@ -339,6 +341,7 @@ app.use(express.json({
     req.rawBody = buf;
   }
 }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // ─── 🛡️ Deep NoSQL Injection & MongoDB Operator Sanitizer ────────────────────
 function sanitizeNoSql(payload) {
@@ -1038,8 +1041,8 @@ app.get('/api/business', (req, res) => {
     });
   }
 
-  // Unauthenticated public visitor: ONLY return safe public active store metadata
-  const publicActive = db.getActiveBusiness();
+  // Unauthenticated public visitor: ONLY return safe public store metadata (optionally scoped by businessId)
+  const publicActive = (requestedBizId && db.getBusiness(requestedBizId)) || db.getActiveBusiness();
   const publicSettings = db.getTenantSettings(publicActive.id) || db.getSettings();
   res.json({
     ok: true,
@@ -1050,12 +1053,50 @@ app.get('/api/business', (req, res) => {
       phone: publicActive.phone,
       whatsappPhone: publicActive.whatsappPhone,
       currency: publicActive.currency || 'Rs.',
+      brandColor: publicActive.brandColor || '#2563EB',
+      logoUrl: publicActive.logoUrl || '',
       welcomeMessage: publicActive.welcomeMessage,
       deliveryPolicy: publicActive.deliveryPolicy,
       isDeliveryDetailsEnabled: isDeliveryEnabled(publicSettings)
     },
     businesses: [] // Strictly empty for unauthenticated public requests!
   });
+});
+
+// ─── ☁️ Cloud Media Offload Storage (MongoDB GridFS / Disk / Cloudinary) ─────
+app.get('/api/media/:id', async (req, res) => {
+  try {
+    const item = await mediaStore.getMedia(req.params.id);
+    if (!item || !item.buffer) {
+      return res.status(404).json({ ok: false, error: 'Media not found' });
+    }
+    res.setHeader('Content-Type', item.mimeType || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(item.buffer);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/media/upload', requireSessionAuth, async (req, res) => {
+  try {
+    const { base64Data, dataUrl, mimeType, purpose, source } = req.body || {};
+    const payload = base64Data || dataUrl;
+    if (!payload) {
+      return res.status(400).json({ ok: false, error: 'base64Data or dataUrl required' });
+    }
+    const bId = resolveReqBusinessId(req);
+    const saved = await mediaStore.saveMedia(payload, mimeType || 'image/jpeg', {
+      businessId: bId,
+      purpose: purpose || source || 'general'
+    });
+    if (!saved.ok) {
+      return res.status(400).json(saved);
+    }
+    res.json(saved);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 app.post(['/api/business/select', '/api/business/switch'], requireSessionAuth, (req, res) => {
@@ -1088,6 +1129,12 @@ app.post('/api/business/update', requireAdminAuth, (req, res) => {
     if (deliveryPolicy !== undefined) existing.deliveryPolicy = deliveryPolicy;
     if (welcomeMessage !== undefined) existing.welcomeMessage = welcomeMessage;
     if (dataset !== undefined) existing.dataset = dataset;
+    if (req.body.brandColor !== undefined && /^#[0-9A-Fa-f]{6}$/.test(req.body.brandColor)) {
+      existing.brandColor = req.body.brandColor;
+    }
+    if (req.body.logoUrl !== undefined) {
+      existing.logoUrl = String(req.body.logoUrl || '').trim();
+    }
     if (subscriptionPlan) {
       existing.subscriptionPlan = subscriptionPlan;
       db.updateBusinessPlan(id, subscriptionPlan);
@@ -1265,6 +1312,187 @@ app.post('/api/orders/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
   db.deleteOrder(id);
   res.json({ ok: true });
+});
+
+// ─── 💳 Sri Lankan Payment Gateways (PayHere / Koko / Custom Payment Link) ───
+app.post('/api/orders/payment-link', requireSessionAuth, async (req, res) => {
+  try {
+    const { orderId, sendToWhatsApp } = req.body || {};
+    if (!orderId) return res.status(400).json({ ok: false, error: 'orderId required' });
+    const bId = resolveReqBusinessId(req);
+    const order = (db.data.orders || []).find(o => o.id === orderId);
+    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+    if (!isOwnedByCaller(req, order)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant order access denied.' });
+    }
+    const biz = db.getBusiness(order.businessId || bId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const gwCfg = (settings && settings.paymentGateway) || {};
+    const baseUrl = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
+      ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+      : CALL_SERVER_URL;
+    const payUrl = commerce.buildCustomerPaymentUrl(order.id, baseUrl, gwCfg.merchantSecret, gwCfg.customPayUrl);
+
+    if (sendToWhatsApp && order.customerPhone && waEngine) {
+      const msg = `💳 *Online Payment Link — ${biz.name}*\n\n📦 *Order:* #${order.id} (${order.item})\n💰 *Amount:* Rs. ${commerce.parseLkrAmount(order.amount).toLocaleString()}\n\n👉 *පහත Link එක ඔබා Card / Visa / MasterCard / Koko මගින් ක්ෂණිකව ගෙවන්න:*\n${payUrl}\n\n_ගෙවීම තහවුරු වූ වහාම Digital Invoice එක WhatsApp වෙත ලැබෙනු ඇත._ 🙏✨`;
+      await waEngine.sendTextMessage(order.customerPhone, msg, `wa_${biz.id}`);
+      db.addChatMessage(order.customerPhone, 'agent', msg, order.customerName || 'Customer', order.customerPhone, biz.id);
+    }
+
+    res.json({ ok: true, paymentUrl: payUrl, orderId: order.id });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/payments/checkout/:orderId', (req, res) => {
+  const { orderId } = req.params;
+  const sig = req.query.sig;
+  const order = (db.data.orders || []).find(o => o.id === orderId);
+  if (!order) return res.status(404).send('<h2>Order not found</h2>');
+  const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
+  const settings = db.getTenantSettings(biz.id) || db.getSettings();
+  const gwCfg = (settings && settings.paymentGateway) || {};
+
+  if (!commerce.verifyOrderSignToken(orderId, sig, gwCfg.merchantSecret)) {
+    return res.status(403).send('<h2>Invalid or expired payment link</h2>');
+  }
+
+  const baseUrl = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
+    ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+    : CALL_SERVER_URL;
+  const checkout = commerce.buildPayHereCheckoutParams(order, biz, gwCfg, baseUrl);
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  if (gwCfg.enabled && checkout.fields.merchant_id && checkout.fields.hash) {
+    const inputs = Object.entries(checkout.fields)
+      .map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`)
+      .join('\n');
+    return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:48px;background:#0b0d14;color:#f8fafc;">
+      <h2>Redirecting to Secure PayHere Checkout...</h2>
+      <p>${esc(biz.name)} • Order #${esc(order.id)} • Rs. ${esc(checkout.fields.amount)}</p>
+      <form id="ph" method="post" action="${esc(checkout.actionUrl)}">${inputs}</form>
+      <script>document.getElementById('ph').submit();</script>
+    </body></html>`);
+  }
+
+  return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:48px auto;padding:28px;background:#0f172a;color:#f8fafc;border-radius:16px;border:1px solid #334155;">
+    <h2 style="margin-top:0;color:#38bdf8;">${esc(biz.name)} — Payment Summary</h2>
+    <p><strong>Order:</strong> #${esc(order.id)}</p>
+    <p><strong>Item:</strong> ${esc(order.item)}</p>
+    <p><strong>Total:</strong> Rs. ${commerce.parseLkrAmount(order.amount).toLocaleString()}</p>
+    <hr style="border-color:#334155;">
+    <p style="font-size:0.9rem;color:#cbd5e1;"><strong>Bank Transfer Details:</strong><br>${esc(biz.bankDetails || 'Contact Store Owner via WhatsApp')}</p>
+    <p style="font-size:0.8rem;color:#94a3b8;">ගෙවීම සිදුකළ පසු Slip පත WhatsApp වෙත එවන්න.</p>
+  </body></html>`);
+});
+
+app.get(['/api/payments/payhere/return', '/api/payments/payhere/cancel'], (req, res) => {
+  const isCancel = req.path.includes('cancel');
+  const oid = String(req.query.order_id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:56px;background:#0b0d14;color:#f8fafc;">
+    <h1 style="color:${isCancel ? '#f59e0b' : '#10b981'};">${isCancel ? 'Payment Cancelled' : '✅ Payment Submitted!'}</h1>
+    <p>Order #${oid} — You can return to WhatsApp now.</p>
+  </body></html>`);
+});
+
+app.post('/api/webhook/payhere', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const { order_id, status_code } = body;
+    if (!order_id) return res.sendStatus(400);
+    const order = (db.data.orders || []).find(o => o.id === order_id);
+    if (!order) return res.sendStatus(404);
+    const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const gwCfg = (settings && settings.paymentGateway) || {};
+
+    if (!commerce.verifyPayHereNotifySignature(body, gwCfg.merchantSecret)) {
+      return res.status(403).json({ ok: false, error: 'Invalid PayHere MD5 signature' });
+    }
+
+    if (String(status_code) === '2') {
+      order.status = 'Paid';
+      order.paymentMethod = 'PayHere Online';
+      db.save();
+      if (order.customerPhone && waEngine) {
+        const msg = `✅ *Payment Confirmed (PayHere Online)!*\n\n🏪 *${biz.name}*\n📦 *Order:* #${order.id}\n💰 *Paid:* Rs. ${commerce.parseLkrAmount(order.amount).toLocaleString()}\n\n_ස්තූතියි! ඔබගේ ඇණවුම සූදානම් කර Dispatch කෙරේ._ 🙏`;
+        waEngine.sendTextMessage(order.customerPhone, msg, `wa_${biz.id}`).catch(() => {});
+        try {
+          const pdfBuf = await generateInvoicePdf(order, biz);
+          await waEngine.sendDocumentMessage(order.customerPhone, pdfBuf, `Invoice-${order.id}.pdf`, `Official Receipt #${order.id}`, `wa_${biz.id}`);
+        } catch (_) {}
+      }
+      db.logAuditEvent({ type: 'PAYMENT_CONFIRMED', businessId: biz.id, status: 'SUCCESS', details: { orderId: order.id, provider: 'payhere' } });
+    }
+    res.sendStatus(200);
+  } catch (e) {
+    console.error('[payhere-webhook] Error:', e.message);
+    res.sendStatus(500);
+  }
+});
+
+// ─── 🚚 Live Courier REST Dispatch & Tracking Status Webhooks ────────────────
+app.post('/api/orders/courier-dispatch', requireSessionAuth, async (req, res) => {
+  try {
+    const { orderId, provider } = req.body || {};
+    if (!orderId) return res.status(400).json({ ok: false, error: 'orderId required' });
+    const bId = resolveReqBusinessId(req);
+    const order = (db.data.orders || []).find(o => o.id === orderId);
+    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+    if (!isOwnedByCaller(req, order)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant order dispatch denied.' });
+    }
+    const biz = db.getBusiness(order.businessId || bId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const courierCfg = {
+      ...(settings.courierApi || {}),
+      ...(provider ? { provider } : {})
+    };
+    const result = await commerce.dispatchOrderToCourier(order, biz, courierCfg);
+    if (!result.ok) {
+      return res.status(400).json(result);
+    }
+
+    const updated = db.updateOrderStatus(order.id, 'Dispatched', result.trackingNumber);
+    if (order.customerPhone && waEngine) {
+      const msg = `🚚 *ඇණවුම Courier (${result.providerName}) වෙත භාර දෙන ලදී!*\n\n📦 *Order:* #${order.id}\n🔢 *Waybill / Tracking:* *${result.trackingNumber}*\n📍 *Address:* ${order.address || 'Sri Lanka'}\n\n_ඉක්මනින් ඔබ අතට ලැබෙනු ඇත!_ 🙏`;
+      waEngine.sendTextMessage(order.customerPhone, msg, `wa_${biz.id}`).catch(() => {});
+    }
+    res.json({ ok: true, order: updated, trackingNumber: result.trackingNumber, provider: result.providerName });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/webhook/courier', async (req, res) => {
+  try {
+    const { orderId, status, trackingNumber, secret } = req.body || {};
+    if (!orderId) return res.status(400).json({ ok: false, error: 'orderId required' });
+    const order = (db.data.orders || []).find(o => o.id === orderId || (trackingNumber && o.trackingNumber === trackingNumber));
+    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+
+    const settings = db.getTenantSettings(order.businessId) || db.getSettings();
+    const expectedSecret = (settings.courierApi && settings.courierApi.webhookSecret) || process.env.COURIER_WEBHOOK_SECRET || '';
+    if (expectedSecret) {
+      const a = Buffer.from(String(secret || req.headers['x-courier-secret'] || ''));
+      const b = Buffer.from(String(expectedSecret));
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        return res.status(403).json({ ok: false, error: 'Invalid courier webhook secret' });
+      }
+    } else if (!isAdminReq(req) && !isTenantReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Configure Courier Webhook Secret or authenticate.' });
+    }
+
+    const updated = db.updateOrderStatus(order.id, status || 'Dispatched', trackingNumber || order.trackingNumber);
+    if (updated && updated.customerPhone && waEngine) {
+      const msg = `📦 *Courier Tracking Update — Order #${updated.id}*\n\n🔄 *Status:* ${updated.status}\n${updated.trackingNumber ? `🔢 *Tracking:* ${updated.trackingNumber}\n` : ''}_ස්තූතියි!_`;
+      waEngine.sendTextMessage(updated.customerPhone, msg, `wa_${updated.businessId}`).catch(() => {});
+    }
+    res.json({ ok: true, order: updated });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ─── 🧾 Invoice Dispatch via WhatsApp ─────────────────────────────────────────
@@ -2198,6 +2426,13 @@ app.post('/api/chats/send-media', requireSessionAuth, async (req, res) => {
       }
     }
 
+    const savedCloud = await mediaStore.saveMedia(mediaBuf, cleanMime, {
+      businessId: bId,
+      chatId,
+      mediaType,
+      sender: 'agent'
+    });
+
     const displayMsg = mediaType === 'image'
       ? (caption ? `📷 ${caption}` : '📷 [Agent Sent Image]')
       : '🎤 [Agent Sent Voice Note]';
@@ -2209,8 +2444,20 @@ app.post('/api/chats/send-media', requireSessionAuth, async (req, res) => {
       (existing && existing.customerPhone) || chatId,
       bId,
       mediaType === 'image'
-        ? { accountId: targetAccId, remoteJid: targetJid, imageBase64: rawB64, imageMimeType: cleanMime }
-        : { accountId: targetAccId, remoteJid: targetJid, audioBase64: rawB64, mimeType: cleanMime }
+        ? {
+            accountId: targetAccId,
+            remoteJid: targetJid,
+            mediaUrl: savedCloud.ok ? savedCloud.url : null,
+            imageBase64: rawB64.length <= 250000 ? rawB64 : null,
+            imageMimeType: cleanMime
+          }
+        : {
+            accountId: targetAccId,
+            remoteJid: targetJid,
+            mediaUrl: savedCloud.ok ? savedCloud.url : null,
+            audioBase64: rawB64.length <= 250000 ? rawB64 : null,
+            mimeType: cleanMime
+          }
     );
 
     res.json({
@@ -2301,7 +2548,86 @@ function interpolateBroadcastTemplate(template, contact = {}) {
   return res;
 }
 
-// ─── Safe Broadcast Campaigns with Anti-Ban Spintax & Human Delays ───────────
+function resolveBroadcastTargets(bId, contacts) {
+  if (Array.isArray(contacts) && contacts.length > 0) {
+    return contacts.map(c => ({
+      name: c.name || 'Customer',
+      phone: String(c.phone || c.mobile || '').replace(/\D/g, ''),
+      city: c.city || c.address || '',
+      var1: c.var1 || ''
+    })).filter(c => c.phone.length >= 9);
+  }
+  const chats = db.getChats(bId);
+  const seen = new Set();
+  const list = [];
+  for (const c of chats) {
+    const clean = String(c.customerPhone || '').replace(/\D/g, '');
+    if (clean.length >= 9 && !seen.has(clean)) {
+      seen.add(clean);
+      list.push({ name: c.customerName || 'Customer', phone: clean, city: '' });
+    }
+  }
+  return list;
+}
+
+async function executeBroadcastCampaign(broadcast) {
+  const bId = broadcast.businessId || db.getActiveBusiness().id;
+  const targetContacts = resolveBroadcastTargets(bId, broadcast.contacts);
+  const targetAccId = broadcast.accountId || null;
+  const minS = Math.max(1, Number(broadcast.minDelay) || 8);
+  const maxS = Math.max(minS, Number(broadcast.maxDelay) || 22);
+
+  broadcast.status = 'In Progress';
+  broadcast.targetCount = targetContacts.length;
+  db.save();
+
+  if ((!broadcast.message && !broadcast.imageUrl) || targetContacts.length === 0) {
+    broadcast.status = 'Completed';
+    db.save();
+    return;
+  }
+
+  let sent = 0;
+  let failed = 0;
+  for (const recipient of targetContacts) {
+    try {
+      const personalizedText = interpolateBroadcastTemplate(broadcast.message || '', recipient);
+      const sendRes = broadcast.imageUrl
+        ? await waEngine.sendImageMessage(recipient.phone, broadcast.imageUrl, targetAccId, personalizedText)
+        : await waEngine.sendTextMessage(recipient.phone, personalizedText, targetAccId);
+      if (sendRes.ok) {
+        sent++;
+        db.addChatMessage(recipient.phone, 'ai', personalizedText || '📷 [Broadcast Image]', recipient.name, recipient.phone, bId, {
+          accountId: targetAccId || undefined
+        });
+      } else {
+        failed++;
+      }
+    } catch (_) {
+      failed++;
+    }
+    const delaySec = Math.floor(Math.random() * (maxS - minS + 1)) + minS;
+    await new Promise(r => setTimeout(r, delaySec * 1000));
+  }
+
+  broadcast.status = 'Completed';
+  broadcast.sentCount = sent;
+  broadcast.failedCount = failed;
+  db.save();
+  console.log(`[broadcast] 📢 Completed campaign "${broadcast.title}" (${bId}): ${sent} sent, ${failed} failed.`);
+}
+
+const broadcastSchedulerTimer = setInterval(() => {
+  try {
+    const due = db.getDueScheduledBroadcasts(Date.now());
+    for (const bc of due) {
+      executeBroadcastCampaign(bc).catch(() => {});
+    }
+  } catch (_) {}
+}, 30 * 1000);
+if (broadcastSchedulerTimer.unref) broadcastSchedulerTimer.unref();
+
+// ─── Safe Broadcast Campaigns with Anti-Ban Spintax, Scheduling & Human Delays ─
 app.get('/api/broadcasts', requireSessionAuth, (req, res) => {
   const isTenant = isTenantReq(req);
   const bId = resolveReqBusinessId(req);
@@ -2316,78 +2642,31 @@ app.post('/api/broadcasts', requireSessionAuth, async (req, res) => {
   const bId = resolveReqBusinessId(req) || db.getActiveBusiness().id;
   const targetBiz = db.getBusiness(bId) || db.getActiveBusiness();
   const targetAccId = isTenant ? ('wa_' + bId) : (req.body.accountId || null);
-  const { title, message, contacts, imageUrl, minDelay = 8, maxDelay = 22 } = req.body || {};
+  const { title, message, contacts, imageUrl, scheduledAt, minDelay = 8, maxDelay = 22 } = req.body || {};
 
-  // Determine recipients list (custom CSV upload or existing store customer database)
-  let targetContacts = [];
-  if (Array.isArray(contacts) && contacts.length > 0) {
-    targetContacts = contacts.map(c => ({
-      name: c.name || 'Customer',
-      phone: String(c.phone || c.mobile || '').replace(/\D/g, ''),
-      city: c.city || c.address || '',
-      var1: c.var1 || ''
-    })).filter(c => c.phone.length >= 9);
-  } else {
-    const chats = db.getChats(bId);
-    const seen = new Set();
-    for (const c of chats) {
-      const clean = String(c.customerPhone || '').replace(/\D/g, '');
-      if (clean.length >= 9 && !seen.has(clean)) {
-        seen.add(clean);
-        targetContacts.push({ name: c.customerName || 'Customer', phone: clean, city: '' });
-      }
-    }
-  }
+  const targetContacts = resolveBroadcastTargets(bId, contacts);
+  const schedTs = scheduledAt ? new Date(scheduledAt).getTime() : NaN;
+  const isFutureScheduled = !isNaN(schedTs) && schedTs > Date.now() + 15000;
 
   const broadcast = db.addBroadcast({
     title: title || 'Marketing Campaign',
     message: message || '',
+    imageUrl: imageUrl || null,
+    accountId: targetAccId,
+    contacts: Array.isArray(contacts) ? targetContacts : null,
+    minDelay,
+    maxDelay,
+    scheduledAt: isFutureScheduled ? new Date(schedTs).toISOString() : null,
     targetAudience: req.body?.targetAudience || (Array.isArray(contacts) ? 'Custom Upload List' : 'All Customers'),
     targetCount: targetContacts.length,
-    status: 'In Progress',
+    status: isFutureScheduled ? 'Scheduled' : 'In Progress',
     sentCount: 0,
     failedCount: 0,
     businessId: targetBiz.id
   });
 
-  // Background Anti-Ban Drip Queue with Human Jitter
-  if ((message || imageUrl) && targetContacts.length > 0) {
-    (async () => {
-      let sent = 0;
-      let failed = 0;
-      for (const recipient of targetContacts) {
-        try {
-          const personalizedText = interpolateBroadcastTemplate(message || '', recipient);
-          let sendRes = { ok: false };
-          if (imageUrl) {
-            sendRes = await waEngine.sendImageMessage(recipient.phone, imageUrl, targetAccId, personalizedText);
-          } else {
-            sendRes = await waEngine.sendTextMessage(recipient.phone, personalizedText, targetAccId);
-          }
-          if (sendRes.ok) {
-            sent++;
-            db.addChatMessage(recipient.phone, 'ai', personalizedText || '📷 [Broadcast Image]', recipient.name, recipient.phone, targetBiz.id, {
-              accountId: targetAccId || undefined
-            });
-          } else {
-            failed++;
-          }
-        } catch (e) {
-          failed++;
-        }
-
-        // Anti-ban human jitter delay (random between minDelay and maxDelay seconds)
-        const minS = Math.max(1, Number(minDelay) || 8);
-        const maxS = Math.max(minS, Number(maxDelay) || 22);
-        const delaySec = Math.floor(Math.random() * (maxS - minS + 1)) + minS;
-        await new Promise(r => setTimeout(r, delaySec * 1000));
-      }
-      broadcast.status = 'Completed';
-      broadcast.sentCount = sent;
-      broadcast.failedCount = failed;
-      db.save();
-      console.log(`[broadcast] 📢 Completed campaign "${broadcast.title}" (${targetBiz.id}): ${sent} sent, ${failed} failed.`);
-    })();
+  if (!isFutureScheduled && (message || imageUrl) && targetContacts.length > 0) {
+    executeBroadcastCampaign(broadcast).catch(() => {});
   }
 
   res.json({ ok: true, broadcast });
@@ -2546,6 +2825,55 @@ app.post('/api/webhook/meta', async (req, res) => {
                 });
               }
             }
+          }
+        }
+      }
+    } else if (body && (body.object === 'page' || body.object === 'instagram')) {
+      const channelName = body.object === 'instagram' ? 'instagram' : 'messenger';
+      const entry = body.entry?.[0];
+      const msgEvt = entry?.messaging?.[0];
+      const senderId = msgEvt?.sender?.id;
+      const recipientId = msgEvt?.recipient?.id;
+      const incomingText = msgEvt?.message?.text || '';
+      if (senderId && incomingText && !msgEvt?.message?.is_echo) {
+        const allBiz = db.getAllBusinesses();
+        const matchedBiz = allBiz.find(b => {
+          const ts = db.getTenantSettings(b.id) || {};
+          const mo = ts.metaOmnichannel || {};
+          return recipientId && (mo.pageId === recipientId || mo.igAccountId === recipientId);
+        }) || db.getActiveBusiness();
+        const settings = db.getTenantSettings(matchedBiz.id) || db.getSettings();
+        const moCfg = settings.metaOmnichannel || {};
+        const chatKey = `${channelName}_${senderId}`;
+        const savedIn = db.addChatMessage(chatKey, 'customer', incomingText, `${channelName === 'instagram' ? 'IG' : 'FB'} User ${String(senderId).slice(-4)}`, senderId, matchedBiz.id, {
+          accountId: 'wa_' + matchedBiz.id,
+          channel: channelName
+        });
+        const isMuted = savedIn?.chat?.aiMuted && Date.now() < (savedIn.chat.aiMuteUntil || 0);
+        if (!isMuted) {
+          const history = (savedIn?.chat?.messages || []).slice(0, -1).slice(-8).map(m => ({
+            role: m.sender === 'customer' ? 'user' : 'model',
+            parts: [{ text: m.text }]
+          }));
+          const aiReply = await getGeminiReply(incomingText, {
+            storeName: matchedBiz.name,
+            businessId: matchedBiz.id,
+            business: matchedBiz,
+            customerName: 'Customer',
+            customerPhone: chatKey,
+            dataset: matchedBiz.dataset,
+            isWhatsApp: false,
+            isVoiceCall: false,
+            history
+          });
+          if (aiReply) {
+            if (moCfg.enabled && moCfg.pageAccessToken) {
+              await commerce.sendMetaSocialMessage(senderId, aiReply, moCfg.pageAccessToken);
+            }
+            db.addChatMessage(chatKey, 'ai', aiReply, 'Customer', senderId, matchedBiz.id, {
+              accountId: 'wa_' + matchedBiz.id,
+              channel: channelName
+            });
           }
         }
       }
@@ -3214,28 +3542,38 @@ app.get('/call', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Direct HTTP Chat API
+// Direct HTTP Chat API (supports Website Embedded Widget & /call screen)
 app.post('/api/chat', async (req, res) => {
-  const activeBiz = db.getActiveBusiness();
-  const { sessionId, message } = req.body;
-  const sess = sessions.get(sessionId) || {
-    customerName: 'Customer',
-    storeName: activeBiz.name,
-    voice: VOICE_NAME,
-    apiKey: DEFAULT_GEMINI_API_KEY,
-    isVoiceCall: false,
-    isWhatsApp: true,
-    history: [],
-    dataset: activeBiz.dataset || BUILTIN_DATASET
-  };
+  const { sessionId, message, businessId, storeName, skipAudio } = req.body || {};
+  const targetBiz = (businessId && db.getBusiness(businessId)) || db.getActiveBusiness();
+  const sid = sessionId || ('web_' + Date.now());
+  let sess = sessions.get(sid);
+  if (!sess) {
+    sess = {
+      businessId: targetBiz.id,
+      customerName: 'Customer',
+      storeName: storeName || targetBiz.name,
+      voice: VOICE_NAME,
+      apiKey: DEFAULT_GEMINI_API_KEY,
+      isVoiceCall: false,
+      isWhatsApp: true,
+      history: [],
+      dataset: targetBiz.dataset || BUILTIN_DATASET,
+      createdAt: Date.now()
+    };
+    sessions.set(sid, sess);
+  }
 
   try {
     const aiReply = await getGeminiReply(message, sess);
-    checkForOrderTag(aiReply, sess, sessionId);
-    const audioResult = await synthesizeVoiceAudio(aiReply, sess.voice, sess.apiKey);
+    checkForOrderTag(aiReply, sess, sid);
+    const audioResult = skipAudio ? { audioBase64: null, mimeType: null, isGemini: false } : await synthesizeVoiceAudio(aiReply, sess.voice, sess.apiKey);
 
     res.json({
       ok: true,
+      sessionId: sid,
+      storeName: targetBiz.name,
+      brandColor: targetBiz.brandColor || '#2563EB',
       reply: aiReply,
       audioBase64: audioResult.audioBase64,
       mimeType: audioResult.mimeType,
@@ -3478,6 +3816,12 @@ async function getGeminiReply(userMessage, sess, userLang) {
     console.warn(`[TRIAL-GUARD] AI reply stopped for ${activeBiz.name} (${activeBiz.id}): ${subStatus.reason}`);
     return `🔒 *OmniSix AI — Subscription Notice*\nඔබගේ නොමිලේ අත්හදා බැලීමේ කාලසීමාව (Free 3-Day Trial) අවසන් වී ඇත. සේවාව අඛණ්ඩව පවත්වා ගැනීමට කරුණාකර Paid Plan එකක් (Starter රු. 1,900 / Pro රු. 2,900 / Enterprise රු. 3,500) සක්‍රීය කරගන්න.\n📞 විස්තර සහ සහය සඳහා WhatsApp අමතන්න: 076 210 7601`;
   }
+  const quotaStatus = db.checkAiQuota(activeBiz.id);
+  if (!quotaStatus.allowed) {
+    console.warn(`[QUOTA-GUARD] Monthly AI reply quota exhausted for ${activeBiz.name} (${quotaStatus.used}/${quotaStatus.limit})`);
+    return `⚡ *${activeBiz.name} — Plan Limit Reached*\nමෙම මස (${quotaStatus.month}) ඔබගේ ${quotaStatus.planName} AI පිළිතුරු සීමාව (${quotaStatus.limit.toLocaleString()}) අවසන් වී ඇත. අඛණ්ඩව සේවාව ලබා ගැනීමට Dashboard හරහා Plan එක Upgrade කරන්න. 🙏`;
+  }
+  db.recordAiReplyUsage(activeBiz.id, 1);
   const settings = (sess && sess.businessId && db.getTenantSettings(sess.businessId)) || db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
   if (!sess.apiKey && (settings.geminiApiKey || activeBiz.geminiApiKey)) {
@@ -3848,20 +4192,35 @@ function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLan
   const isNegotiating = SmartNegotiationEngine.isBargaining(userMessage || '');
   const negotiationDirective = isNegotiating ? SmartNegotiationEngine.getNegotiationDirective(1) : '';
 
-  // 3.1 Products with Photos for Instant Dispatch
+  // 3.1 Live Stock Inventory & Products with Photos
   const storeProducts = db.getProducts(activeBiz.id);
   let catalogPhotoContext = '';
   if (storeProducts && storeProducts.length > 0) {
+    const trackedStockProds = storeProducts.filter(p => typeof p.stockQty === 'number' || p.inStock === false);
+    if (trackedStockProds.length > 0) {
+      catalogPhotoContext += `\n--- 📦 LIVE STOCK INVENTORY ---\n` +
+        trackedStockProds.map(p => {
+          const stockTag = typeof p.stockQty === 'number'
+            ? (p.stockQty === 0 ? '[OUT OF STOCK]' : `[Stock Left: ${p.stockQty}]`)
+            : '[OUT OF STOCK]';
+          return `• "${p.name}" (${p.category || 'General'}) — Rs. ${(p.price || 0).toLocaleString()} ${stockTag}`;
+        }).join('\n') +
+        `\n👉 If an item is marked [OUT OF STOCK], honestly tell the customer it is currently sold out and NEVER place an order for it.\n--- END LIVE STOCK INVENTORY ---\n`;
+    }
+
     const prodsWithImg = storeProducts.filter(p =>
-      !!((p.imageUrl && p.imageUrl.length > 20) || (Array.isArray(p.images) && p.images.some(img => img && img.length > 20)))
+      !!((p.imageUrl && p.imageUrl.length > 10) || (Array.isArray(p.images) && p.images.some(img => img && img.length > 10)))
     );
     if (prodsWithImg.length > 0) {
-      catalogPhotoContext = `\n--- 📸 PRODUCTS WITH GENUINE PHOTOS AVAILABLE IN SYSTEM ---\n` +
+      catalogPhotoContext += `\n--- 📸 PRODUCTS WITH GENUINE PHOTOS AVAILABLE IN SYSTEM ---\n` +
         prodsWithImg.map(p => {
           const cnt = (Array.isArray(p.images) && p.images.length > 0) ? p.images.length : 1;
-          return `• Product: "${p.name}" | Category: "${p.category || 'General'}" | Price: Rs. ${(p.price || 0).toLocaleString()} [${cnt} PHOTO(S) AVAILABLE]`;
+          const stockTag = typeof p.stockQty === 'number'
+            ? (p.stockQty === 0 ? ' [OUT OF STOCK]' : ` [Stock Left: ${p.stockQty}]`)
+            : (p.inStock === false ? ' [OUT OF STOCK]' : '');
+          return `• Product: "${p.name}" | Category: "${p.category || 'General'}" | Price: Rs. ${(p.price || 0).toLocaleString()} [${cnt} PHOTO(S) AVAILABLE]${stockTag}`;
         }).join('\n') +
-        `\n👉 WHENEVER A CUSTOMER ASKS FOR PRODUCT PHOTOS / IMAGES / SAMPLES / DETAILS of any product (e.g. "photo ewanna", "prodact ewanna", "product balanna", "sample", "pics please", "monawada thiyenne"), reply warmly and APPEND THIS EXACT TAG AT THE END of your reply: [[SEND_PHOTO: ProductName]]\nThe WhatsApp engine will automatically deliver ALL genuine photos of that product directly to the customer!\n--- END PRODUCTS WITH PHOTOS ---\n`;
+        `\n👉 WHENEVER A CUSTOMER ASKS FOR PRODUCT PHOTOS / IMAGES / SAMPLES / DETAILS of any product (e.g. "photo ewanna", "prodact ewanna", "product balanna", "sample", "pics please", "monawada thiyenne"), reply warmly and APPEND THIS EXACT TAG AT THE END of your reply: [[SEND_PHOTO: ProductName]]\n👉 If any item has [OUT OF STOCK], inform the customer honestly and do NOT confirm an order for it.\nThe WhatsApp engine will automatically deliver ALL genuine photos of that product directly to the customer!\n--- END PRODUCTS WITH PHOTOS ---\n`;
     }
   }
 
@@ -4020,7 +4379,13 @@ function checkForOrderTag(text, sess, sessionId) {
   notifyOwnerOfNewOrder(newOrder, activeBiz);
 
   if (customerPhone && waEngine) {
-    const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}\n\n_Thank you! Your order has been recorded._ 🙏`;
+    let paySection = '';
+    const gwCfg = (settings && settings.paymentGateway) || {};
+    if (gwCfg.enabled && gwCfg.autoSendLink) {
+      const payUrl = commerce.buildCustomerPaymentUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret, gwCfg.customPayUrl);
+      paySection = `\n\n💳 *Pay Online (Card / Visa / Master / Koko):*\n${payUrl}`;
+    }
+    const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}${paySection}\n\n_Thank you! Your order has been recorded._ 🙏`;
     waEngine.sendTextMessage(customerPhone, confirmMsg, sess.businessId ? `wa_${sess.businessId}` : null).catch(() => {});
   }
 
@@ -4126,6 +4491,9 @@ async function notifyOwnerOfNewOrder(order, biz) {
     const ownerPhone = (settings.ownerAlertPhone || '').replace(/\D/g, '');
     if (!settings.isOwnerAlertEnabled || !ownerPhone || ownerPhone.length < 9) return;
 
+    const stockWarn = order.lowStockTriggered
+      ? `\n\n⚠️ *LOW STOCK ALERT:* ${order.lowStockTriggered.name} (Remaining Qty: ${order.lowStockTriggered.remaining})`
+      : '';
     const alertMsg = `🚨 *NEW ORDER NOTIFICATION!*\n\n` +
       `🏪 *Store:* ${biz.name}\n` +
       `📦 *Item:* ${order.item}\n` +
@@ -4133,7 +4501,7 @@ async function notifyOwnerOfNewOrder(order, biz) {
       `👤 *Customer:* ${order.customerName} (${order.customerPhone || 'N/A'})\n` +
       `📍 *Address:* ${order.address || 'Standard Delivery'}\n` +
       `💳 *Status:* ${order.status}\n` +
-      `⏰ *Time:* ${new Date().toLocaleTimeString()}\n\n` +
+      `⏰ *Time:* ${new Date().toLocaleTimeString()}${stockWarn}\n\n` +
       `_Check your OmniSix Dashboard to review and dispatch._ 📱`;
 
     let targetAccId = null;

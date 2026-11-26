@@ -28,13 +28,14 @@ function generateInvoicePdf(order, business = {}) {
       doc.on('error', err => reject(err));
 
       const storeName = business.name || order.store || 'OmniSix AI Store';
+      const brandColor = /^#[0-9A-Fa-f]{6}$/.test(business.brandColor || '') ? business.brandColor : '#2563EB';
       const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
       const orderTime = order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       const orderId = String(order.id || 'ORD-001').toUpperCase();
       const status = (order.status || 'Pending').toUpperCase();
 
       // ─── Header Accent Bar ───────────────────────────────────────────────
-      doc.rect(40, 40, 515, 6).fill('#2563EB'); // Primary Blue / Indigo accent
+      doc.rect(40, 40, 515, 6).fill(brandColor); // Dynamic White-Label Store Brand Color
 
       // ─── Store Brand & Title ─────────────────────────────────────────────
       doc.fillColor('#0F172A').fontSize(22).font('Helvetica-Bold')

@@ -18,6 +18,7 @@ const fs = require('fs');
 const db = require('./db.js');
 const { LanguageDetectionEngine } = require('./ai_engines.js');
 const { verifyBankSlipWithGeminiVision } = require('./slipVerifier.js');
+const mediaStore = require('./mediaStore.js');
 const {
   isDeliveryEnabled,
   buildQuickOrderReply,
@@ -352,17 +353,49 @@ class WhatsAppAccountSession {
                 (matchedOrder ? `📦 අදාළ ඇණවුම: *#${matchedOrder.id}*\n\n` : `\n`) +
                 `අපගේ කාර්ය මණ්ඩලය විසින් ඔබගේ ඇණවුම සූදානම් කර කඩිනමින් කුරියර් වෙත භාරදෙනු ඇත. ඔබට ස්තූතියි! 🙏✨`;
 
+              let savedSlipMedia = null;
+              if (rawImgBase64) {
+                savedSlipMedia = await mediaStore.saveMedia(Buffer.from(rawImgBase64, 'base64'), rawImgMime || 'image/jpeg', {
+                  source: 'wa_slip',
+                  businessId: activeBiz.id,
+                  phone: senderPhone
+                }).catch(() => null);
+              }
+              const slipInlineB64 = (rawImgBase64 && (!savedSlipMedia || rawImgBase64.length <= 250000)) ? rawImgBase64 : null;
+
               await this.sock.sendMessage(remoteJid, { text: confirmText });
               db.addChatMessage(senderPhone, 'customer', `📷 [Bank Slip Attached: Rs. ${slipResult.amount}]`, senderName, senderPhone, activeBiz.id, {
-                accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid,
-                ...(rawImgBase64 ? { imageBase64: rawImgBase64, imageMimeType: rawImgMime, visionSummary: imageVisionDescription || `Bank Slip Verified: Rs. ${slipResult.amount}` } : {})
+                accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid, channel: 'whatsapp',
+                ...(savedSlipMedia ? { mediaUrl: savedSlipMedia.url } : {}),
+                ...(slipInlineB64 ? { imageBase64: slipInlineB64, imageMimeType: rawImgMime } : (rawImgBase64 ? { imageMimeType: rawImgMime } : {})),
+                ...(rawImgBase64 ? { visionSummary: imageVisionDescription || `Bank Slip Verified: Rs. ${slipResult.amount}` } : {})
               });
-              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid });
+              db.addChatMessage(senderPhone, 'ai', confirmText, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid, channel: 'whatsapp' });
               continue;
             }
 
-            // Store message in unified database with receiving account tag, media preview & AI Vision summary
+            // Store message in unified database with receiving account tag, Cloud Media offload & AI Vision summary
             const cleanAudioMime = isVoiceNote ? ((audioMsg.mimetype || 'audio/ogg').split(';')[0].trim() || 'audio/ogg') : null;
+            let savedInboundMedia = null;
+            if (isVoiceNote && rawAudioBuffer) {
+              savedInboundMedia = await mediaStore.saveMedia(rawAudioBuffer, cleanAudioMime, {
+                source: 'wa_voice_in',
+                businessId: activeBiz.id,
+                phone: senderPhone
+              }).catch(() => null);
+            } else if (isImage && rawImgBase64) {
+              savedInboundMedia = await mediaStore.saveMedia(Buffer.from(rawImgBase64, 'base64'), rawImgMime || 'image/jpeg', {
+                source: 'wa_image_in',
+                businessId: activeBiz.id,
+                phone: senderPhone
+              }).catch(() => null);
+            }
+            const inlineAudioB64 = (isVoiceNote && rawAudioBuffer && (!savedInboundMedia || rawAudioBuffer.length <= 250000))
+              ? rawAudioBuffer.toString('base64')
+              : null;
+            const inlineImgB64 = (isImage && rawImgBase64 && (!savedInboundMedia || rawImgBase64.length <= 250000))
+              ? rawImgBase64
+              : null;
             const storedText = isVoiceNote
               ? `🎤 ${text.trim()}`
               : (isImage ? (customerOriginalCaption ? `📷 ${customerOriginalCaption}` : '📷 [Customer Sent an Image]') : text.trim());
@@ -378,8 +411,10 @@ class WhatsAppAccountSession {
                 accountPhone: this.phoneNumber || '',
                 accountLabel: this.label || '',
                 remoteJid: remoteJid,
-                ...(isVoiceNote && rawAudioBuffer ? { audioBase64: rawAudioBuffer.toString('base64'), mimeType: cleanAudioMime } : {}),
-                ...(isImage && rawImgBase64 ? { imageBase64: rawImgBase64, imageMimeType: rawImgMime, visionSummary: imageVisionDescription || null } : {})
+                channel: 'whatsapp',
+                ...(savedInboundMedia ? { mediaUrl: savedInboundMedia.url } : {}),
+                ...(isVoiceNote ? { mimeType: cleanAudioMime, ...(inlineAudioB64 ? { audioBase64: inlineAudioB64 } : {}) } : {}),
+                ...(isImage && rawImgBase64 ? { imageMimeType: rawImgMime, ...(inlineImgB64 ? { imageBase64: inlineImgB64 } : {}), visionSummary: imageVisionDescription || null } : {})
               }
             );
 
@@ -574,8 +609,17 @@ class WhatsAppAccountSession {
                   await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 }
 
-                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid,
-                  audioBase64: voiceAudioBase64,
+                const savedAiVoice = await mediaStore.saveMedia(voiceBuf, voiceMimeType, {
+                  source: 'wa_voice_out',
+                  businessId: activeBiz.id,
+                  phone: senderPhone
+                }).catch(() => null);
+                const inlineAiVoiceB64 = (!savedAiVoice || voiceBuf.length <= 250000) ? voiceAudioBase64 : null;
+
+                db.addChatMessage(senderPhone, 'ai', `🎙️ ${aiReply}`, senderName, senderPhone, activeBiz.id, {
+                  accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', remoteJid: remoteJid, channel: 'whatsapp',
+                  ...(savedAiVoice ? { mediaUrl: savedAiVoice.url } : {}),
+                  ...(inlineAiVoiceB64 ? { audioBase64: inlineAiVoiceB64 } : {}),
                   mimeType: voiceMimeType
                 });
               } else {
@@ -586,7 +630,7 @@ class WhatsAppAccountSession {
                 await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
                 console.log(`[whatsapp-acc:${this.id}] 🤖 Replied [${detectedL}] to ${senderPhone}: "${aiReply.slice(0, 50)}..."`);
 
-                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '' });
+                db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', channel: 'whatsapp' });
               }
             }
           } catch (msgErr) {
