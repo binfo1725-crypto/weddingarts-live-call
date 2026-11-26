@@ -2926,8 +2926,8 @@ table tr:hover td {
     <!-- User Avatar -->
     <div class="whatzi-nav-btn" style="padding:4px 10px;background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.3);border-radius:10px;display:inline-flex;align-items:center;gap:6px;" title="Super Admin Master Security PIN (Admin Only)">
       <span style="font-size:0.75rem;font-weight:700;color:#f472b6;">MASTER PIN:</span>
-      <code id="admin-header-pin-badge" style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#fff;font-size:0.82rem;letter-spacing:0.08em;">486485</code>
-      <button type="button" onclick="navigator.clipboard.writeText('486485');alert('Master PIN (486485) Copy කරගන්නා ලදී!');" style="background:none;border:none;color:#f472b6;cursor:pointer;font-size:0.75rem;padding:0;" title="Copy PIN">📋</button>
+      <code id="admin-header-pin-badge" style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#fff;font-size:0.82rem;letter-spacing:0.08em;">••••••</code>
+      <button type="button" onclick="const p=document.getElementById('admin-header-pin-badge')?.textContent||'';if(p&&!p.includes('•')){navigator.clipboard.writeText(p);alert('Master PIN Copy කරගන්නා ලදී!');}" style="background:none;border:none;color:#f472b6;cursor:pointer;font-size:0.75rem;padding:0;" title="Copy PIN">📋</button>
     </div>
     <div class="whatzi-user-avatar" onclick="showTab('overview')" title="Administrator">AK</div>
 
@@ -3960,16 +3960,16 @@ table tr:hover td {
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn-primary" onclick="openAddOrderModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add New Order</button>
-          <a href="/api/export/orders.csv" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Export Orders (CSV)</a>
+          <a href="/api/export/orders.csv" onclick="return downloadSecureFile(event, '/api/export/orders.csv', 'orders.csv')" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Export Orders (CSV)</a>
           <div style="position:relative;display:inline-block;" id="courier-export-dropdown">
             <button type="button" class="btn-secondary" onclick="toggleCourierDropdown()" style="display:inline-flex;align-items:center;gap:6px;font-size:0.84rem;padding:9px 14px;">
               <span>🚚</span> Export Courier Waybill ▼
             </button>
             <div id="courier-menu" style="display:none;position:absolute;right:0;top:105%;background:#10121b;border:1px solid rgba(255,255,255,0.15);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.8);z-index:999;min-width:190px;overflow:hidden;">
-              <a href="/api/export/courier-waybill.csv?provider=koombiyo" download="koombiyo_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">📦 Koombiyo CSV</a>
-              <a href="/api/export/courier-waybill.csv?provider=domex" download="domex_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">🚚 Domex CSV</a>
-              <a href="/api/export/courier-waybill.csv?provider=promptx" download="promptx_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">⚡ Prompt X CSV</a>
-              <a href="/api/export/courier-waybill.csv?provider=fardar" download="fardar_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;">📮 Fardar Express CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=koombiyo" onclick="return downloadSecureFile(event, this.getAttribute('href'), 'koombiyo_waybill.csv')" download="koombiyo_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">📦 Koombiyo CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=domex" onclick="return downloadSecureFile(event, this.getAttribute('href'), 'domex_waybill.csv')" download="domex_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">🚚 Domex CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=promptx" onclick="return downloadSecureFile(event, this.getAttribute('href'), 'promptx_waybill.csv')" download="promptx_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.06);">⚡ Prompt X CSV</a>
+              <a href="/api/export/courier-waybill.csv?provider=fardar" onclick="return downloadSecureFile(event, this.getAttribute('href'), 'fardar_waybill.csv')" download="fardar_waybill.csv" style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#f8fafc;text-decoration:none;font-size:0.84rem;">📮 Fardar Express CSV</a>
             </div>
           </div>
         </div>
@@ -5857,6 +5857,9 @@ table tr:hover td {
     <div style="background: #07080c;border-top:1px solid var(--card-border);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
       <button type="button" class="btn-secondary" onclick="closeInvoiceModal()">✕ Close</button>
       <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-secondary" id="btn-download-pdf-invoice" onclick="downloadInvoicePdf()" style="display:flex;align-items:center;gap:6px;">
+          📄 Download PDF
+        </button>
         <button type="button" class="btn-secondary" onclick="printInvoice()" style="display:flex;align-items:center;gap:6px;">
           🖨️ Print / Save PDF
         </button>
@@ -6069,7 +6072,7 @@ table tr:hover td {
 
 <script>
 // ─── Super Admin Security & Session Interceptor ─────────────────────────────
-let adminToken = sessionStorage.getItem('omnisix_admin_token') || localStorage.getItem('omnisix_admin_token') || '486485';
+let adminToken = sessionStorage.getItem('omnisix_admin_token') || localStorage.getItem('omnisix_admin_token') || '';
 
 // Multi-Tab store isolation from URL query
 const initialUrlParams = new URLSearchParams(window.location.search);
@@ -6078,30 +6081,23 @@ if (initialStoreParam) {
   sessionStorage.setItem('omnisix_current_biz_id', initialStoreParam);
 }
 
-// Wrap fetch with transparent Master Admin token injection & self-healing 401 retry
 const _adminOriginalFetch = window.fetch;
-let isRefreshingAdminToken = false;
-let refreshSubscribers = [];
-
-function onAdminTokenRefreshed(newToken) {
-  refreshSubscribers.forEach(cb => { try { cb(newToken); } catch(_) {} });
-  refreshSubscribers = [];
-}
 
 window.fetch = async function(url, init = {}) {
   init = init || {};
   init.headers = init.headers || {};
 
   const applyHeaders = (hdrs, token) => {
-    const effectiveToken = token || adminToken || '486485';
-    if (hdrs instanceof Headers) {
-      hdrs.set('x-admin-token', effectiveToken);
-    } else if (Array.isArray(hdrs)) {
-      const idx = hdrs.findIndex(([k]) => k && k.toLowerCase() === 'x-admin-token');
-      if (idx >= 0) hdrs[idx][1] = effectiveToken;
-      else hdrs.push(['x-admin-token', effectiveToken]);
-    } else {
-      hdrs['x-admin-token'] = effectiveToken;
+    if (token) {
+      if (hdrs instanceof Headers) {
+        hdrs.set('x-admin-token', token);
+      } else if (Array.isArray(hdrs)) {
+        const idx = hdrs.findIndex(([k]) => k && k.toLowerCase() === 'x-admin-token');
+        if (idx >= 0) hdrs[idx][1] = token;
+        else hdrs.push(['x-admin-token', token]);
+      } else {
+        hdrs['x-admin-token'] = token;
+      }
     }
 
     const currentTabBizId = sessionStorage.getItem('omnisix_current_biz_id');
@@ -6118,53 +6114,31 @@ window.fetch = async function(url, init = {}) {
     }
   };
 
-  applyHeaders(init.headers, adminToken || '486485');
+  applyHeaders(init.headers, adminToken);
 
-  let res;
-  try {
-    res = await _adminOriginalFetch(url, init);
-  } catch (netErr) {
-    throw netErr;
+  const res = await _adminOriginalFetch(url, init);
+  if (res && res.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/admin/login') && !url.includes('/api/admin/verify')) {
+    console.warn('[Admin Auth] 401 detected on ' + url + '. Showing Super Admin Lock Screen.');
+    adminToken = '';
+    sessionStorage.removeItem('omnisix_admin_token');
+    localStorage.removeItem('omnisix_admin_token');
+    showLockScreen();
   }
-
-  // Self-Healing Interceptor: When 401 occurs on any API route, seamlessly re-authenticate with Master PIN & retry
-  if (res && res.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/admin/login')) {
-    console.warn('[Admin Auth] 401 detected on ' + url + '. Self-healing session with Master PIN...');
-    if (!isRefreshingAdminToken) {
-      isRefreshingAdminToken = true;
-      try {
-        const loginRes = await _adminOriginalFetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: '486485' })
-        });
-        const loginData = await loginRes.json();
-        if (loginData.ok && loginData.token) {
-          adminToken = loginData.token;
-          sessionStorage.setItem('omnisix_admin_token', adminToken);
-          localStorage.setItem('omnisix_admin_token', adminToken);
-          onAdminTokenRefreshed(adminToken);
-        } else {
-          adminToken = '486485';
-          sessionStorage.setItem('omnisix_admin_token', adminToken);
-          onAdminTokenRefreshed(adminToken);
-        }
-      } catch (err) {
-        adminToken = '486485';
-        onAdminTokenRefreshed(adminToken);
-      } finally {
-        isRefreshingAdminToken = false;
-      }
-    } else {
-      await new Promise(resolve => refreshSubscribers.push(resolve));
-    }
-
-    applyHeaders(init.headers, adminToken);
-    res = await _adminOriginalFetch(url, init);
-  }
-
   return res;
 };
+
+async function loadMasterPinBadge() {
+  try {
+    const res = await _adminOriginalFetch('/api/admin/master-info', {
+      headers: adminToken ? { 'x-admin-token': adminToken } : {}
+    });
+    const data = await res.json();
+    const el = document.getElementById('admin-header-pin-badge');
+    if (data.ok && data.masterPin && el) {
+      el.textContent = data.masterPin;
+    }
+  } catch (_) {}
+}
 
 function revealDashboard() {
   const overlay = document.getElementById('admin-lock-overlay');
@@ -6173,6 +6147,7 @@ function revealDashboard() {
   if (overlay) overlay.style.display = 'none';
   if (header) header.style.display = 'flex';
   if (container) container.style.display = 'flex';
+  loadMasterPinBadge();
 }
 
 function showLockScreen() {
@@ -6189,39 +6164,20 @@ function showLockScreen() {
 }
 
 async function checkAdminAuth() {
-  if (!adminToken) {
-    adminToken = '486485';
+  if (adminToken) {
+    try {
+      const res = await _adminOriginalFetch('/api/admin/verify', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      if (data.ok && data.authenticated) {
+        revealDashboard();
+        return true;
+      }
+    } catch(e) {}
   }
-  try {
-    const res = await _adminOriginalFetch('/api/admin/verify', {
-      headers: { 'x-admin-token': adminToken }
-    });
-    const data = await res.json();
-    if (data.ok && data.authenticated) {
-      revealDashboard();
-      return true;
-    }
-  } catch(e) {}
 
-  // Auto-login fallback with Master PIN if session was invalidated
-  try {
-    const loginRes = await _adminOriginalFetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: '486485' })
-    });
-    const loginData = await loginRes.json();
-    if (loginData.ok && loginData.token) {
-      adminToken = loginData.token;
-      sessionStorage.setItem('omnisix_admin_token', adminToken);
-      localStorage.setItem('omnisix_admin_token', adminToken);
-      revealDashboard();
-      return true;
-    }
-  } catch (e) {}
-
-  // If both failed, show lock screen
-  adminToken = null;
+  adminToken = '';
   sessionStorage.removeItem('omnisix_admin_token');
   localStorage.removeItem('omnisix_admin_token');
   showLockScreen();
@@ -6260,6 +6216,7 @@ async function handleAdminLogin(e) {
     if (data.ok && data.token) {
       adminToken = data.token;
       sessionStorage.setItem('omnisix_admin_token', adminToken);
+      localStorage.setItem('omnisix_admin_token', adminToken);
       msg.style.display = 'block';
       msg.style.background = 'rgba(16,185,129,0.15)';
       msg.style.color = '#34d399';
@@ -6272,7 +6229,12 @@ async function handleAdminLogin(e) {
       btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock Super Admin Panel';
       
       // Initialize dashboard data
-      fetchBusinesses();
+      await fetchBusinesses();
+      loadSettingsForm();
+      loadAgentFleet();
+      fetchProducts();
+      fetchOverview();
+      initInboxWebSocket();
       fetchOverview();
       if (typeof loadLicenses === 'function') loadLicenses();
     } else {
@@ -8376,7 +8338,72 @@ async function deleteCurrentChat() {
   }
 }
 
-function handleInboxCustomImageUpload(event) {
+function compressInboxImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = (ev) => {
+      const rawDataUrl = ev.target.result;
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 1400;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve({
+            dataUrl: canvas.toDataURL('image/jpeg', 0.84),
+            mimeType: 'image/jpeg'
+          });
+        } catch (_) {
+          resolve({ dataUrl: rawDataUrl, mimeType: file.type || 'image/jpeg' });
+        }
+      };
+      img.onerror = () => resolve({ dataUrl: rawDataUrl, mimeType: file.type || 'image/jpeg' });
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function downloadSecureFile(evt, url, filename) {
+  if (evt) evt.preventDefault();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Download failed (HTTP ' + res.status + ')');
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename || 'export';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+  } catch (e) {
+    alert('Download failed: ' + e.message);
+  }
+  return false;
+}
+
+function downloadInvoicePdf() {
+  if (!activeInvoiceOrderId) return;
+  downloadSecureFile(null, '/api/orders/' + encodeURIComponent(activeInvoiceOrderId) + '/invoice.pdf', 'Invoice-' + activeInvoiceOrderId + '.pdf');
+}
+
+async function handleInboxCustomImageUpload(event) {
   const file = event.target?.files?.[0];
   event.target.value = '';
   if (!file) return;
@@ -8388,37 +8415,34 @@ function handleInboxCustomImageUpload(event) {
   const input = document.getElementById('chat-reply-input');
   const caption = input ? input.value.trim() : '';
 
-  const reader = new FileReader();
-  reader.onload = async (ev) => {
-    try {
-      const res = await fetch('/api/chats/send-media', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: activeChatId,
-          accountId: activeChat?.accountId || undefined,
-          mediaType: 'image',
-          base64Data: ev.target.result,
-          mimeType: file.type || 'image/jpeg',
-          caption
-        })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        if (input && caption) input.value = '';
-        await fetchInbox(true);
-        selectChat(activeChatId, true);
-        if (!data.delivered && data.deliveryError) {
-          alert('Image saved in inbox, WhatsApp delivery note: ' + data.deliveryError);
-        }
-      } else {
-        alert('Failed to send image: ' + (data.error || 'Unknown error'));
+  try {
+    const compressed = await compressInboxImageFile(file);
+    const res = await fetch('/api/chats/send-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chatId: activeChatId,
+        accountId: activeChat?.accountId || undefined,
+        mediaType: 'image',
+        base64Data: compressed.dataUrl,
+        mimeType: compressed.mimeType,
+        caption
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (input && caption) input.value = '';
+      await fetchInbox(true);
+      selectChat(activeChatId, true);
+      if (!data.delivered && data.deliveryError) {
+        alert('Image saved in inbox, WhatsApp delivery note: ' + data.deliveryError);
       }
-    } catch (err) {
-      alert('Image upload error: ' + err.message);
+    } else {
+      alert('Failed to send image: ' + (data.error || 'Unknown error'));
     }
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    alert('Image upload error: ' + err.message);
+  }
 }
 
 async function toggleInboxVoiceRecording() {

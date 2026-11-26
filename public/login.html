@@ -229,6 +229,11 @@
     <div id="alert-error" class="alert-box alert-error"></div>
     <div id="alert-success" class="alert-box alert-success"></div>
 
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;background:#F1F5F9;padding:4px;border-radius:12px;border:1px solid var(--card-border);">
+      <button type="button" id="tab-mode-license" onclick="switchLoginMode('license')" style="padding:10px 8px;border:none;border-radius:9px;font-weight:700;font-size:0.82rem;cursor:pointer;background:#FFFFFF;color:var(--accent-emerald);box-shadow:var(--shadow-sm);">🔑 License Key</button>
+      <button type="button" id="tab-mode-staff" onclick="switchLoginMode('staff')" style="padding:10px 8px;border:none;border-radius:9px;font-weight:700;font-size:0.82rem;cursor:pointer;background:transparent;color:var(--text-secondary);">👥 Staff Login</button>
+    </div>
+
     <form id="login-form" onsubmit="handleLogin(event)">
       <div class="form-group">
         <label class="form-label">Enter License Key (License අංකය)</label>
@@ -248,6 +253,20 @@
       </button>
     </form>
 
+    <form id="staff-login-form" onsubmit="handleStaffLogin(event)" style="display:none;">
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Staff Username</label>
+        <input type="text" id="staff-username" class="key-input" style="font-family:inherit;letter-spacing:normal;text-align:left;" placeholder="e.g. kasun_support" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="staff-password" class="key-input" style="font-family:inherit;letter-spacing:normal;text-align:left;" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" id="btn-staff-submit" class="btn-login" style="background:var(--accent-blue);">
+        <span>👥 Sign In as Staff Member</span>
+      </button>
+    </form>
+
     <div class="trial-banner">
       <p>✨ නව පාරිභෝගිකයෙක්ද? නොමිලේ අත්හදා බලන්න!</p>
       <a href="/free" class="btn-trial">⚡ Get 3-Day Free Trial (දින 3ක් නොමිලේ)</a>
@@ -263,6 +282,35 @@
   </div>
 
   <script>
+    function switchLoginMode(mode) {
+      const licForm = document.getElementById('login-form');
+      const stfForm = document.getElementById('staff-login-form');
+      const tabLic = document.getElementById('tab-mode-license');
+      const tabStf = document.getElementById('tab-mode-staff');
+      document.getElementById('alert-error').style.display = 'none';
+      document.getElementById('alert-success').style.display = 'none';
+
+      if (mode === 'staff') {
+        licForm.style.display = 'none';
+        stfForm.style.display = 'block';
+        tabStf.style.background = '#FFFFFF';
+        tabStf.style.color = 'var(--accent-blue)';
+        tabStf.style.boxShadow = 'var(--shadow-sm)';
+        tabLic.style.background = 'transparent';
+        tabLic.style.color = 'var(--text-secondary)';
+        tabLic.style.boxShadow = 'none';
+      } else {
+        stfForm.style.display = 'none';
+        licForm.style.display = 'block';
+        tabLic.style.background = '#FFFFFF';
+        tabLic.style.color = 'var(--accent-emerald)';
+        tabLic.style.boxShadow = 'var(--shadow-sm)';
+        tabStf.style.background = 'transparent';
+        tabStf.style.color = 'var(--text-secondary)';
+        tabStf.style.boxShadow = 'none';
+      }
+    }
+
     // Auto-fill from localStorage if previously logged in
     window.addEventListener('DOMContentLoaded', () => {
       const savedKey = localStorage.getItem('omnisix_license_key');
@@ -295,8 +343,12 @@
           throw new Error(data.error || 'Authentication failed.');
         }
 
-        // Store license session in localStorage
+        // Clear any prior staff token and store license session
+        localStorage.removeItem('omnisix_staff_token');
+        localStorage.removeItem('omnisix_staff_user');
+        sessionStorage.removeItem('omnisix_staff_token');
         localStorage.setItem('omnisix_license_key', data.license.key);
+        sessionStorage.setItem('omnisix_license_key', data.license.key);
         localStorage.setItem('omnisix_client_name', data.license.clientName);
         localStorage.setItem('omnisix_business_id', data.business.id);
         localStorage.setItem('omnisix_plan', data.license.plan);
@@ -314,6 +366,51 @@
         errBox.style.display = 'block';
         btn.disabled = false;
         btn.innerHTML = '<span>🔓 Sign In to Dashboard</span>';
+      }
+    }
+
+    async function handleStaffLogin(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('alert-error');
+      const succBox = document.getElementById('alert-success');
+      const btn = document.getElementById('btn-staff-submit');
+      const username = document.getElementById('staff-username').value.trim();
+      const password = document.getElementById('staff-password').value;
+
+      errBox.style.display = 'none';
+      succBox.style.display = 'none';
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Signing In...</span>';
+
+      try {
+        const res = await fetch('/api/staff/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.ok || !data.token) {
+          throw new Error(data.error || 'Invalid username or password.');
+        }
+
+        localStorage.removeItem('omnisix_license_key');
+        sessionStorage.removeItem('omnisix_license_key');
+        localStorage.setItem('omnisix_staff_token', data.token);
+        sessionStorage.setItem('omnisix_staff_token', data.token);
+        localStorage.setItem('omnisix_staff_user', JSON.stringify(data.user || {}));
+
+        succBox.textContent = `✅ Welcome ${data.user?.name || username}! Opening workspace...`;
+        succBox.style.display = 'block';
+
+        setTimeout(() => {
+          window.location.href = '/portal';
+        }, 700);
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<span>👥 Sign In as Staff Member</span>';
       }
     }
   </script>

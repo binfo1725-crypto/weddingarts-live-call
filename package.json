@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "node --test --test-force-exit test/*.test.js",
+    "syntax": "node -c server.js && node -c db.js && node -c whatsapp.js && node -c ai_engines.js && node -c deliveryPolicyHelper.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc14",

@@ -52,7 +52,11 @@ test('Unauthenticated requests to newly secured routes return 401 and admin/staf
       '/api/calls/logs',
       '/api/agents',
       '/api/agents/decisions',
-      '/api/chats/test_chat/metadata'
+      '/api/chats/test_chat/metadata',
+      '/api/export/courier-waybill.csv',
+      '/api/orders/invoice/ORD-1',
+      '/api/orders/ORD-1/invoice.pdf',
+      '/api/contacts/groups'
     ];
     for (const p of securedGets) {
       const r = await fetch(`${base}${p}`);
@@ -65,7 +69,10 @@ test('Unauthenticated requests to newly secured routes return 401 and admin/staf
       ['/api/chats/send-media', { chatId: '123', mediaType: 'image', base64Data: 'aGk=' }],
       ['/api/broadcasts', { title: 'Test', message: 'Hi' }],
       ['/api/whatsapp/restart', {}],
-      ['/api/warmer/toggle', { running: false }]
+      ['/api/warmer/toggle', { running: false }],
+      ['/api/whatsapp/incoming', { text: 'Hi' }],
+      ['/api/subscription/request-upgrade', { planId: 'pro' }],
+      ['/api/google-sheets/test-sync', { webhookUrl: 'https://example.com' }]
     ];
     for (const [p, body] of securedPosts) {
       const r = await fetch(`${base}${p}`, {
@@ -76,7 +83,7 @@ test('Unauthenticated requests to newly secured routes return 401 and admin/staf
       assert.equal(r.status, 401, `Expected 401 on unauthenticated POST ${p}, got ${r.status}`);
     }
 
-    // 2. Provision two stores, scoped staff user, cross-tenant records
+    // 2. Provision two stores, scoped staff user with scrypt hashing, cross-tenant records
     db.saveBusiness({ id: 'tenant_alpha', name: 'Alpha Shop' });
     db.saveBusiness({ id: 'tenant_beta', name: 'Beta Shop' });
     const staffAlpha = db.addStaff({
@@ -88,6 +95,21 @@ test('Unauthenticated requests to newly secured routes return 401 and admin/staf
       businessId: 'tenant_alpha'
     });
     assert.ok(staffAlpha);
+    assert.ok(String(staffAlpha.password).startsWith('scrypt$'), 'Staff password MUST be scrypt-hashed at rest');
+
+    // Legacy plaintext password auto-upgrades to scrypt on login
+    db.data.staff.push({
+      id: 'stf_legacy_1',
+      name: 'Legacy User',
+      username: 'legacy_staff_test',
+      password: 'plain_legacy_password',
+      role: 'support',
+      businessId: 'tenant_alpha',
+      active: true
+    });
+    const authedLegacy = db.authenticateStaff('legacy_staff_test', 'plain_legacy_password');
+    assert.ok(authedLegacy);
+    assert.ok(String(authedLegacy.password).startsWith('scrypt$'), 'Legacy plaintext staff password must upgrade to scrypt hash on login');
 
     db.addProduct({ id: 'prod_alpha_1', businessId: 'tenant_alpha', name: 'Alpha Watch', category: 'Watch', price: 3000 });
     db.addProduct({ id: 'prod_beta_1', businessId: 'tenant_beta', name: 'Beta Ring', category: 'Ring', price: 5000 });
@@ -121,6 +143,16 @@ test('Unauthenticated requests to newly secured routes return 401 and admin/staf
     const bcJson = await bcRes.json();
     assert.equal(bcJson.broadcasts.length, 1);
     assert.equal(bcJson.broadcasts[0].businessId, 'tenant_alpha');
+
+    // Staff token works seamlessly against /api/portal/store without needing a client License Key
+    const portalStaffRes = await fetch(`${base}/api/portal/store`, {
+      headers: { 'x-staff-token': loginData.token }
+    });
+    assert.equal(portalStaffRes.status, 200);
+    const portalStaffJson = await portalStaffRes.json();
+    assert.equal(portalStaffJson.ok, true);
+    assert.equal(portalStaffJson.isStaff, true);
+    assert.equal(portalStaffJson.business.id, 'tenant_alpha');
 
     // Cross-tenant product update & chat delete MUST return 403
     const crossProdRes = await fetch(`${base}/api/products/update`, {
@@ -252,6 +284,7 @@ test('WhatsApp manager exposes Meta Cloud API & voice helpers and preserves cust
   try {
     assert.equal(typeof waManager.sendMetaCloudMessage, 'function');
     assert.equal(typeof waManager.sendMetaCloudImage, 'function');
+    assert.equal(typeof waManager.downloadMetaCloudMedia, 'function');
     assert.equal(typeof waManager.sendVoiceMessage, 'function');
     assert.equal(typeof waManager.matchProductsForMessage, 'function');
 
@@ -308,10 +341,24 @@ test('admin.html & portal.html inline JS compile cleanly and contain Edit Produc
       'openEditFlowModal(',
       'deleteCurrentChat(',
       'handleInboxCustomImageUpload(',
+      'compressInboxImageFile(',
+      'downloadSecureFile(',
+      'downloadInvoicePdf(',
       'toggleInboxVoiceRecording(',
       'initInboxWebSocket('
     ]) {
       assert.ok(html.includes(token), `Missing ${token} in ${file}`);
     }
+  }
+
+  // Also ensure admin.html no longer hardcodes Super Admin PIN and login.html includes Staff Login
+  const adminHtml = fs.readFileSync(path.join(SERVER_DIR, 'public', 'admin.html'), 'utf8');
+  assert.equal(adminHtml.includes('486485'), false, 'admin.html MUST NOT leak Super Admin PIN in client bundle');
+
+  const loginHtml = fs.readFileSync(path.join(SERVER_DIR, 'public', 'login.html'), 'utf8');
+  const loginJs = extractHtmlInlineScripts(loginHtml);
+  assert.doesNotThrow(() => new vm.Script(loginJs, { filename: 'login.html' }));
+  for (const tok of ['id="staff-login-form"', '/api/staff/login', 'omnisix_staff_token', 'switchLoginMode(']) {
+    assert.ok(loginHtml.includes(tok), `Missing ${tok} in login.html`);
   }
 });

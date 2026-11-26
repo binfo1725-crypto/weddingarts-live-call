@@ -181,6 +181,15 @@ class Database {
             this.data.staffSessions = parsed.staffSessions;
           }
           this.data.leads = parsed.leads || [];
+          const extraCollections = [
+            'contacts', 'contactGroups', 'kanbanDeals', 'forms', 'apiKeys',
+            'webhooks', 'webhookLogs', 'agents', 'chatMetadata', 'quickReplies',
+            'callLogs', 'staff', 'warmer', 'agentFleet', 'agentFleetMode',
+            'customerNotes', 'blacklist'
+          ];
+          for (const key of extraCollections) {
+            if (parsed[key] !== undefined) this.data[key] = parsed[key];
+          }
           if (parsed.whatsapp) this.data.whatsapp = { ...this.data.whatsapp, ...parsed.whatsapp };
           if (parsed.analytics) this.data.analytics = { ...this.data.analytics, ...parsed.analytics };
 
@@ -369,6 +378,60 @@ class Database {
           }
           this.data.customFlows = Array.from(flowMap.values());
         }
+
+        // Reconcile Live Inbox Chats (preserve messages across Render deploys & retain local media)
+        if (Array.isArray(cloudData.chats)) {
+          const chatMap = new Map((this.data.chats || []).map(c => [c.id, c]));
+          for (const cc of cloudData.chats) {
+            const localChat = chatMap.get(cc.id);
+            if (!localChat) {
+              chatMap.set(cc.id, cc);
+            } else {
+              const msgMap = new Map((cc.messages || []).map(m => [m.id, m]));
+              for (const lm of (localChat.messages || [])) {
+                const cloudMsg = msgMap.get(lm.id);
+                if (!cloudMsg) {
+                  msgMap.set(lm.id, lm);
+                } else {
+                  msgMap.set(lm.id, {
+                    ...cloudMsg,
+                    audioBase64: lm.audioBase64 || cloudMsg.audioBase64,
+                    imageBase64: lm.imageBase64 || cloudMsg.imageBase64
+                  });
+                }
+              }
+              localChat.messages = Array.from(msgMap.values())
+                .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+                .slice(-100);
+              if (cc.lastTime && (!localChat.lastTime || new Date(cc.lastTime) > new Date(localChat.lastTime))) {
+                localChat.lastTime = cc.lastTime;
+                localChat.lastMessage = cc.lastMessage || localChat.lastMessage;
+              }
+            }
+          }
+          this.data.chats = Array.from(chatMap.values())
+            .sort((a, b) => new Date(b.lastTime || 0) - new Date(a.lastTime || 0))
+            .slice(0, 1000);
+        }
+
+        // Reconcile array collections by id cleanly
+        for (const col of ['contacts', 'broadcasts', 'leads', 'callLogs', 'kanbanDeals', 'forms', 'webhooks', 'quickReplies', 'staff', 'apiKeys']) {
+          if (Array.isArray(cloudData[col])) {
+            const localList = Array.isArray(this.data[col]) ? this.data[col] : [];
+            const idMap = new Map(localList.map(item => [item.id || item.key, item]));
+            for (const item of cloudData[col]) {
+              const k = item && (item.id || item.key);
+              if (k && !idMap.has(k)) idMap.set(k, item);
+            }
+            this.data[col] = Array.from(idMap.values());
+          }
+        }
+        for (const mapKey of ['chatMetadata', 'customerNotes', 'blacklist']) {
+          if (cloudData[mapKey] && typeof cloudData[mapKey] === 'object') {
+            this.data[mapKey] = { ...cloudData[mapKey], ...(this.data[mapKey] || {}) };
+          }
+        }
+        if (cloudData.warmer && !this.data.warmer) this.data.warmer = cloudData.warmer;
 
         this.saveToDiskSync();
         console.log(`🍃 [MongoDB Atlas] Restored & reconciled state from cloud: ${(this.data.orders || []).length} orders, ${(this.data.products || []).length} products, ${(this.data.licenses || []).length} licenses.`);
@@ -2228,6 +2291,26 @@ class Database {
   }
 
   // ─── Multi-User Staff & Role-Based Access Control (RBAC) ─────────────────────
+  _hashPassword(plain) {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const derived = crypto.scryptSync(String(plain || ''), salt, 64).toString('hex');
+    return `scrypt$${salt}$${derived}`;
+  }
+
+  _verifyPassword(plain, stored) {
+    if (!plain || !stored) return false;
+    const str = String(stored);
+    if (str.startsWith('scrypt$')) {
+      const parts = str.split('$');
+      if (parts.length !== 3) return false;
+      const [, salt, expectedHex] = parts;
+      const expectedBuf = Buffer.from(expectedHex, 'hex');
+      const actualBuf = crypto.scryptSync(String(plain), salt, 64);
+      return expectedBuf.length === actualBuf.length && crypto.timingSafeEqual(expectedBuf, actualBuf);
+    }
+    return String(plain) === str;
+  }
+
   getStaff(businessId = null) {
     this.initDefaults();
     if (!this.data.staff) this.data.staff = [];
@@ -2239,11 +2322,13 @@ class Database {
     this.initDefaults();
     if (!this.data.staff) this.data.staff = [];
     const id = staffMember.id || 'staff_' + Date.now();
+    const rawPw = staffMember.password || '123456';
+    const hashedPassword = String(rawPw).startsWith('scrypt$') ? rawPw : this._hashPassword(rawPw);
     const entry = {
       id,
       name: staffMember.name || 'Staff Member',
       username: (staffMember.username || `user_${Date.now()}`).toLowerCase().trim(),
-      password: staffMember.password || '123456',
+      password: hashedPassword,
       role: staffMember.role || 'support', // 'admin' | 'support' | 'dispatch'
       businessId: staffMember.businessId || this.getActiveBusiness().id,
       active: staffMember.active !== false,
@@ -2266,7 +2351,11 @@ class Database {
   authenticateStaff(username, password) {
     this.initDefaults();
     const u = (username || '').toLowerCase().trim();
-    const member = (this.data.staff || []).find(s => s.username === u && s.password === password && s.active);
+    const member = (this.data.staff || []).find(s => s.username === u && s.active && this._verifyPassword(password, s.password));
+    if (member && member.password && !String(member.password).startsWith('scrypt$')) {
+      member.password = this._hashPassword(password);
+      this.save();
+    }
     return member || null;
   }
 

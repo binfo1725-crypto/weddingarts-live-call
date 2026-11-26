@@ -1266,6 +1266,38 @@ class MultiAccountWhatsAppManager {
     }
   }
 
+  async downloadMetaCloudMedia(mediaId, metaCfg) {
+    try {
+      const cfg = metaCfg || db.getSettings()?.metaCloudApi;
+      if (!cfg || !cfg.token || !mediaId) {
+        return { ok: false, error: 'Meta Cloud API token or mediaId missing' };
+      }
+      const metaRes = await fetch(`https://graph.facebook.com/v20.0/${encodeURIComponent(mediaId)}`, {
+        headers: { 'Authorization': `Bearer ${cfg.token}` },
+        signal: AbortSignal.timeout(10000)
+      });
+      const metaInfo = await metaRes.json();
+      if (!metaRes.ok || !metaInfo.url) {
+        return { ok: false, error: metaInfo?.error?.message || `Meta media lookup HTTP ${metaRes.status}` };
+      }
+      const binRes = await fetch(metaInfo.url, {
+        headers: { 'Authorization': `Bearer ${cfg.token}` },
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!binRes.ok) {
+        return { ok: false, error: `Meta media binary download HTTP ${binRes.status}` };
+      }
+      const arrBuf = await binRes.arrayBuffer();
+      return {
+        ok: true,
+        buffer: Buffer.from(arrBuf),
+        mimeType: metaInfo.mime_type || binRes.headers.get('content-type') || 'application/octet-stream'
+      };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
   async sendVoiceMessage(toPhone, audioBuffer, accountId = null, ptt = true, mimeType = 'audio/ogg; codecs=opus') {
     let session = accountId ? this.sessions.get(accountId) : null;
     if (!session) {
