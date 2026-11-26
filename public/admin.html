@@ -4686,6 +4686,26 @@ table tr:hover td {
               </select>
             </div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;padding-top:12px;border-top:1px dashed rgba(255,255,255,0.1);">
+            <div class="form-group" style="margin:0;">
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;margin-bottom:6px;">
+                <input type="checkbox" id="setting-pg-koko-enabled" style="accent-color:#a855f7;width:14px;height:14px;">
+                <span style="font-weight:700;color:#d8b4fe;">Enable Koko (3x BNPL)</span>
+              </label>
+              <input type="text" id="setting-pg-koko-merchant-id" class="form-input" placeholder="Koko Merchant ID">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Koko API Key</label>
+              <input type="password" id="setting-pg-koko-apikey" class="form-input" placeholder="Koko HMAC / API Key">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;margin-bottom:6px;">
+                <input type="checkbox" id="setting-pg-mintpay-enabled" style="accent-color:#38bdf8;width:14px;height:14px;">
+                <span style="font-weight:700;color:#7dd3fc;">Enable Mintpay (3x)</span>
+              </label>
+              <input type="text" id="setting-pg-mintpay-merchant-id" class="form-input" placeholder="Mintpay Merchant ID">
+            </div>
+          </div>
         </div>
 
         <!-- Feature 7B: Live Courier API Integration -->
@@ -7485,6 +7505,7 @@ function renderOrdersFull(orders) {
         <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="openInvoiceModal('${escapeHtml(o.id)}')">🧾 Invoice</button>
         <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="sendOrderPaymentLink('${escapeHtml(o.id)}')">💳 Pay Link</button>
         <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="dispatchOrderCourier('${escapeHtml(o.id)}')">🚚 Courier</button>
+        <button class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;margin-right:4px;" onclick="openOrderTrackLink('${escapeHtml(o.id)}')">🔍 Track</button>
         <button class="btn-danger" onclick="deleteOrder('${escapeHtml(o.id)}')">Delete</button>
       </td>
     `;
@@ -7527,6 +7548,19 @@ async function dispatchOrderCourier(orderId) {
       alert('⚠️ Courier Dispatch Failed: ' + (data.error || 'Check Courier API settings first'));
     }
   } catch (e) { alert('Courier Dispatch Error: ' + e.message); }
+}
+
+async function openOrderTrackLink(orderId) {
+  try {
+    const res = await fetch('/api/orders/' + encodeURIComponent(orderId) + '/track-link');
+    const data = await res.json();
+    if (data.ok && data.trackUrl) {
+      try { await navigator.clipboard.writeText(data.trackUrl); } catch (_) {}
+      window.open(data.trackUrl, '_blank');
+    } else {
+      alert('⚠️ Tracking Link Error: ' + (data.error || 'Failed'));
+    }
+  } catch (e) { alert('Tracking Link Error: ' + e.message); }
 }
 
 async function updateOrderStatus(orderId, newStatus) {
@@ -9319,6 +9353,11 @@ async function loadSettingsForm() {
         const pgMid = document.getElementById('setting-pg-merchant-id'); if (pgMid) pgMid.value = s.paymentGateway.merchantId || '';
         const pgSec = document.getElementById('setting-pg-merchant-secret'); if (pgSec) pgSec.value = s.paymentGateway.merchantSecret || '';
         const pgCur = document.getElementById('setting-pg-currency'); if (pgCur) pgCur.value = s.paymentGateway.currency || 'LKR';
+        const kokoEn = document.getElementById('setting-pg-koko-enabled'); if (kokoEn) kokoEn.checked = !!s.paymentGateway.kokoEnabled;
+        const kokoMid = document.getElementById('setting-pg-koko-merchant-id'); if (kokoMid) kokoMid.value = s.paymentGateway.kokoMerchantId || '';
+        const kokoKey = document.getElementById('setting-pg-koko-apikey'); if (kokoKey) kokoKey.value = s.paymentGateway.kokoApiKey || '';
+        const mpEn = document.getElementById('setting-pg-mintpay-enabled'); if (mpEn) mpEn.checked = !!s.paymentGateway.mintpayEnabled;
+        const mpMid = document.getElementById('setting-pg-mintpay-merchant-id'); if (mpMid) mpMid.value = s.paymentGateway.mintpayMerchantId || '';
       }
       if (s.courierApi) {
         const cEn = document.getElementById('setting-courier-enabled'); if (cEn) cEn.checked = !!s.courierApi.enabled;
@@ -9374,7 +9413,12 @@ async function saveSettings(e) {
       autoSendLink: document.getElementById('setting-pg-autolink')?.checked || false,
       merchantId: document.getElementById('setting-pg-merchant-id')?.value?.trim() || '',
       merchantSecret: document.getElementById('setting-pg-merchant-secret')?.value?.trim() || '',
-      currency: document.getElementById('setting-pg-currency')?.value || 'LKR'
+      currency: document.getElementById('setting-pg-currency')?.value || 'LKR',
+      kokoEnabled: document.getElementById('setting-pg-koko-enabled')?.checked || false,
+      kokoMerchantId: document.getElementById('setting-pg-koko-merchant-id')?.value?.trim() || '',
+      kokoApiKey: document.getElementById('setting-pg-koko-apikey')?.value?.trim() || '',
+      mintpayEnabled: document.getElementById('setting-pg-mintpay-enabled')?.checked || false,
+      mintpayMerchantId: document.getElementById('setting-pg-mintpay-merchant-id')?.value?.trim() || ''
     },
     courierApi: {
       enabled: document.getElementById('setting-courier-enabled')?.checked || false,

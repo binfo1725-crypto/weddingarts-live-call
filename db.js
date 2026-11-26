@@ -123,7 +123,13 @@ const DEFAULT_SETTINGS = {
     merchantSecret: '',
     sandbox: true,
     autoSendLink: false,
-    customPayUrl: ''
+    customPayUrl: '',
+    kokoEnabled: false,
+    kokoMerchantId: '',
+    kokoApiKey: '',
+    kokoSandbox: true,
+    mintpayEnabled: false,
+    mintpayMerchantId: ''
   },
   // Live Courier REST Dispatch Integration (Koombiyo, Domex, Prompt X, Custom)
   courierApi: {
@@ -897,24 +903,78 @@ class Database {
     return null;
   }
 
-  decrementProductStock(itemText, businessId = null, qty = 1) {
-    const cleanText = String(itemText || '').toLowerCase().trim();
-    if (!cleanText) return null;
-    const storeProds = this.getProducts(businessId);
-    const matched = storeProds.find(p => p.name && (cleanText.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(cleanText)));
-    if (!matched || typeof matched.stockQty !== 'number') return null;
+  parseOrderLineItems(itemText, defaultQty = 1) {
+    const raw = String(itemText || '').trim();
+    if (!raw) return [];
+    return raw.split(/[,+\n&]+/).map(part => {
+      let seg = part.trim();
+      if (!seg) return null;
+      let qty = defaultQty;
+      const leadMatch = /^(\d+)\s*[xX*]\s+(.+)$/.exec(seg);
+      const trailMatch = /^(.+?)\s*[xX*]\s*(\d+)$/.exec(seg);
+      const parenMatch = /^(.+?)\s*\((\d+)\s*(?:pcs?|units?|qty)?\)$/i.exec(seg);
+      if (leadMatch) {
+        qty = Math.max(1, parseInt(leadMatch[1], 10) || 1);
+        seg = leadMatch[2].trim();
+      } else if (trailMatch) {
+        seg = trailMatch[1].trim();
+        qty = Math.max(1, parseInt(trailMatch[2], 10) || 1);
+      } else if (parenMatch) {
+        seg = parenMatch[1].trim();
+        qty = Math.max(1, parseInt(parenMatch[2], 10) || 1);
+      }
+      return { name: seg, qty };
+    }).filter(Boolean);
+  }
 
-    const decrementBy = Math.max(1, parseInt(qty, 10) || 1);
-    matched.stockQty = Math.max(0, matched.stockQty - decrementBy);
-    if (matched.stockQty === 0) {
-      matched.inStock = false;
+  decrementOrderItemsStock(order, fallbackQty = 1) {
+    const bId = order?.businessId || null;
+    const explicitItems = Array.isArray(order?.items) && order.items.length > 0
+      ? order.items.map(it => ({ name: it.name || it.item || '', qty: Math.max(1, parseInt(it.qty, 10) || 1) })).filter(it => it.name)
+      : this.parseOrderLineItems(order?.item || '', fallbackQty);
+
+    const decrements = [];
+    const lowStockItems = [];
+    const usedProductIds = new Set();
+
+    for (const line of explicitItems) {
+      const cleanLine = line.name.toLowerCase().trim();
+      if (!cleanLine) continue;
+      const storeProds = this.getProducts(bId);
+      const matched = storeProds.find(p =>
+        !usedProductIds.has(p.id) &&
+        p.name &&
+        (cleanLine.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(cleanLine))
+      );
+      if (!matched || typeof matched.stockQty !== 'number') continue;
+      usedProductIds.add(matched.id);
+
+      const decrementBy = Math.max(1, parseInt(line.qty, 10) || 1);
+      matched.stockQty = Math.max(0, matched.stockQty - decrementBy);
+      if (matched.stockQty === 0) {
+        matched.inStock = false;
+      }
+      const entry = {
+        matchedProduct: matched,
+        lowStockAlert: matched.stockQty <= (matched.lowStockThreshold || 5),
+        outOfStock: matched.stockQty === 0
+      };
+      decrements.push(entry);
+      if (entry.lowStockAlert) {
+        lowStockItems.push({
+          productId: matched.id,
+          name: matched.name,
+          remaining: matched.stockQty
+        });
+      }
     }
-    this.save();
-    return {
-      matchedProduct: matched,
-      lowStockAlert: matched.stockQty <= (matched.lowStockThreshold || 5),
-      outOfStock: matched.stockQty === 0
-    };
+    if (decrements.length > 0) this.save();
+    return { decrements, lowStockItems };
+  }
+
+  decrementProductStock(itemText, businessId = null, qty = 1) {
+    const res = this.decrementOrderItemsStock({ item: itemText, businessId }, qty);
+    return res.decrements[0] || null;
   }
 
   deleteProduct(id) {
@@ -1050,6 +1110,7 @@ class Database {
       customerName: String(order.name || order.customerName || 'Customer').trim(),
       customerPhone: String(order.phone || order.customerPhone || '').trim(),
       item: String(order.item || 'Custom Order').trim(),
+      ...(Array.isArray(order.items) && order.items.length > 0 ? { items: order.items } : {}),
       amount: safeAmount,
       address: String(order.address || order.note || 'To be confirmed').trim(),
       paymentMethod: order.paymentMethod || 'Bank Transfer',
@@ -1059,13 +1120,10 @@ class Database {
       source: order.source || 'Live Voice Call'
     };
     this.data.orders.unshift(newOrder);
-    const stockRes = this.decrementProductStock(newOrder.item, newOrder.businessId, parseInt(order.qty, 10) || 1);
-    if (stockRes && stockRes.lowStockAlert) {
-      newOrder.lowStockTriggered = {
-        productId: stockRes.matchedProduct.id,
-        name: stockRes.matchedProduct.name,
-        remaining: stockRes.matchedProduct.stockQty
-      };
+    const stockBatch = this.decrementOrderItemsStock(newOrder, parseInt(order.qty, 10) || 1);
+    if (stockBatch.lowStockItems.length > 0) {
+      newOrder.lowStockTriggered = stockBatch.lowStockItems[0];
+      newOrder.lowStockItems = stockBatch.lowStockItems;
     }
     this.markLeadConfirmed(newOrder.customerPhone, newOrder.businessId);
     this.save();

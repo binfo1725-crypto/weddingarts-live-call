@@ -96,6 +96,45 @@ function buildCustomerPaymentUrl(orderId, baseUrl, signSecret, customLink = '') 
   return `${cleanBase}/api/payments/checkout/${encodeURIComponent(orderId)}?sig=${sig}`;
 }
 
+function buildCustomerTrackingUrl(orderId, baseUrl, signSecret) {
+  const cleanBase = String(baseUrl || 'https://omnisix-ai.onrender.com').replace(/\/+$/, '');
+  const sig = buildOrderSignToken(orderId, signSecret);
+  return `${cleanBase}/track/${encodeURIComponent(orderId)}?sig=${sig}`;
+}
+
+function buildBnplInstallmentBreakdown(amount) {
+  const total = parseLkrAmount(amount);
+  const installment = total > 0 ? Math.round((total / 3) * 100) / 100 : 0;
+  return { total, count: 3, installment };
+}
+
+function buildKokoCheckoutParams(order, business = {}, gatewayCfg = {}, baseUrl = '') {
+  const merchantId = String(gatewayCfg.kokoMerchantId || '').trim();
+  const apiKey = String(gatewayCfg.kokoApiKey || '').trim();
+  const total = parseLkrAmount(order.amount);
+  const cleanBase = String(baseUrl || 'https://omnisix-ai.onrender.com').replace(/\/+$/, '');
+  const dataStr = `${merchantId}${order.id}${total.toFixed(2)}LKR`;
+  const signature = apiKey
+    ? crypto.createHmac('sha256', apiKey).update(dataStr).digest('hex')
+    : '';
+  return {
+    actionUrl: gatewayCfg.kokoSandbox !== false
+      ? 'https://qaapi.paykoko.com/api/merchants/orderCreate'
+      : 'https://api.paykoko.com/api/merchants/orderCreate',
+    fields: {
+      _mId: merchantId,
+      _orderId: String(order.id),
+      _amount: total.toFixed(2),
+      _currency: 'LKR',
+      _description: String(order.item || `${business.name || 'Store'} Order`),
+      _returnUrl: `${cleanBase}/api/payments/payhere/return?order_id=${encodeURIComponent(order.id)}`,
+      _cancelUrl: `${cleanBase}/api/payments/payhere/cancel?order_id=${encodeURIComponent(order.id)}`,
+      _responseUrl: `${cleanBase}/api/webhook/koko`,
+      signature
+    }
+  };
+}
+
 // ─── 2. Live Courier REST Dispatch (Koombiyo, Domex, Prompt X, Custom) ────────
 const COURIER_PRESETS = {
   koombiyo: {
@@ -218,6 +257,35 @@ async function sendMetaSocialMessage(recipientId, text, pageAccessToken) {
   }
 }
 
+async function sendMetaSocialImage(recipientId, imageUrl, pageAccessToken) {
+  if (!recipientId || !imageUrl || !pageAccessToken || !/^https?:\/\//i.test(imageUrl)) {
+    return { ok: false, error: 'Missing Meta recipientId, valid HTTP imageUrl, or Page Access Token' };
+  }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v20.0/me/messages?access_token=${encodeURIComponent(pageAccessToken)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipient: { id: String(recipientId) },
+        message: {
+          attachment: {
+            type: 'image',
+            payload: { url: String(imageUrl), is_reusable: true }
+          }
+        }
+      }),
+      signal: AbortSignal.timeout(12000)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: data?.error?.message || `Meta Image HTTP ${res.status}` };
+    }
+    return { ok: true, id: data?.message_id, recipientId };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 module.exports = {
   md5Upper,
   parseLkrAmount,
@@ -226,7 +294,11 @@ module.exports = {
   buildPayHereCheckoutParams,
   verifyPayHereNotifySignature,
   buildCustomerPaymentUrl,
+  buildCustomerTrackingUrl,
+  buildBnplInstallmentBreakdown,
+  buildKokoCheckoutParams,
   dispatchOrderToCourier,
   sendMetaSocialMessage,
+  sendMetaSocialImage,
   COURIER_PRESETS
 };

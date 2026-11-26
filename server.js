@@ -1314,6 +1314,140 @@ app.post('/api/orders/delete', requireSessionAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── 🛒 Multi-Item Cart Order Endpoint ───────────────────────────────────────
+app.post('/api/orders/cart', requireSessionAuth, (req, res) => {
+  try {
+    const bId = req.body.businessId || resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+    const rawItems = Array.isArray(req.body.items) ? req.body.items : [];
+    if (rawItems.length === 0) {
+      return res.status(400).json({ ok: false, error: 'Cart items array is required' });
+    }
+    const storeProds = db.getProducts(bId) || [];
+    let totalAmount = 0;
+    const normalizedItems = rawItems.map(it => {
+      const prod = (it.productId && storeProds.find(p => p.id === it.productId)) ||
+        (it.name && storeProds.find(p => p.name.toLowerCase() === String(it.name).toLowerCase())) || null;
+      const qty = Math.max(1, parseInt(it.qty, 10) || 1);
+      const unitPrice = it.price !== undefined ? (parseFloat(it.price) || 0) : (prod ? (parseFloat(prod.price) || 0) : 0);
+      totalAmount += unitPrice * qty;
+      return {
+        productId: prod ? prod.id : (it.productId || null),
+        name: prod ? prod.name : String(it.name || 'Item').trim(),
+        qty,
+        unitPrice
+      };
+    });
+    const itemSummary = normalizedItems.map(i => `${i.qty}x ${i.name}`).join(', ');
+    const finalAmount = req.body.amount !== undefined ? req.body.amount : totalAmount;
+    const order = db.addOrder({
+      businessId: biz.id,
+      customerName: req.body.customerName || 'Customer',
+      customerPhone: req.body.customerPhone || '',
+      address: req.body.address || 'To be confirmed',
+      item: itemSummary,
+      items: normalizedItems,
+      amount: finalAmount,
+      source: req.body.source || 'Multi-Item Cart'
+    });
+    notifyOwnerOfNewOrder(order, biz);
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const gwCfg = (settings && settings.paymentGateway) || {};
+    const baseUrl = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
+      ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+      : CALL_SERVER_URL;
+    const trackUrl = commerce.buildCustomerTrackingUrl(order.id, baseUrl, gwCfg.merchantSecret);
+    res.json({ ok: true, order, trackUrl });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── 🔍 Customer Public Order Tracking Portal & Signed Link ──────────────────
+app.get('/api/orders/:orderId/track-link', requireSessionAuth, (req, res) => {
+  const { orderId } = req.params;
+  const order = (db.data.orders || []).find(o => o.id === orderId);
+  if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+  if (!isOwnedByCaller(req, order)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant tracking access denied.' });
+  }
+  const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
+  const settings = db.getTenantSettings(biz.id) || db.getSettings();
+  const gwCfg = (settings && settings.paymentGateway) || {};
+  const baseUrl = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
+    ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+    : CALL_SERVER_URL;
+  const trackUrl = commerce.buildCustomerTrackingUrl(order.id, baseUrl, gwCfg.merchantSecret);
+  res.json({ ok: true, orderId: order.id, trackUrl });
+});
+
+app.get('/track/:orderId', (req, res) => {
+  const { orderId } = req.params;
+  const sig = req.query.sig;
+  const order = (db.data.orders || []).find(o => o.id === orderId);
+  if (!order) return res.status(404).send('<h2>Order not found</h2>');
+  const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
+  const settings = db.getTenantSettings(biz.id) || db.getSettings();
+  const gwCfg = (settings && settings.paymentGateway) || {};
+  if (!commerce.verifyOrderSignToken(orderId, sig, gwCfg.merchantSecret)) {
+    return res.status(403).send('<h2>Invalid or expired tracking link</h2>');
+  }
+
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const brandColor = /^#[0-9A-Fa-f]{6}$/.test(biz.brandColor || '') ? biz.brandColor : '#2563EB';
+  const statusStr = String(order.status || 'Pending Payment');
+  const stepIdx = /delivered/i.test(statusStr) ? 3
+    : (/dispatched/i.test(statusStr) ? 2
+      : (/(paid|confirmed|production|verified)/i.test(statusStr) ? 1 : 0));
+  const steps = ['Order Placed', 'Confirmed / Paid', 'Courier Dispatched', 'Delivered'];
+  const baseUrl = req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host']
+    ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+    : CALL_SERVER_URL;
+  const isPaid = /paid|delivered|cancelled/i.test(statusStr);
+  const payUrl = !isPaid && (gwCfg.enabled || gwCfg.kokoEnabled || gwCfg.mintpayEnabled)
+    ? commerce.buildCustomerPaymentUrl(order.id, baseUrl, gwCfg.merchantSecret, gwCfg.customPayUrl)
+    : '';
+  const waNum = String(biz.whatsappPhone || biz.phone || '').replace(/\D/g, '');
+  const cleanWa = waNum.startsWith('0') ? '94' + waNum.slice(1) : waNum;
+
+  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Track #${esc(order.id)} — ${esc(biz.name)}</title></head>
+  <body style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#07080c;color:#f8fafc;padding:24px;">
+    <div style="max-width:560px;margin:20px auto;background:#10121b;border:1px solid rgba(255,255,255,0.1);border-radius:18px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+      <div style="background:${esc(brandColor)};padding:20px 24px;display:flex;align-items:center;gap:12px;">
+        ${biz.logoUrl ? `<img src="${esc(biz.logoUrl)}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,0.2);">` : ''}
+        <div>
+          <div style="font-size:1.15rem;font-weight:800;">${esc(biz.name)}</div>
+          <div style="font-size:0.82rem;opacity:0.9;">Live Order Tracking • #${esc(order.id)}</div>
+        </div>
+      </div>
+      <div style="padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:0.85rem;color:#94a3b8;">Current Status</span>
+          <span style="background:rgba(16,185,129,0.16);color:#34d399;border:1px solid rgba(16,185,129,0.35);padding:5px 12px;border-radius:999px;font-weight:700;font-size:0.82rem;">${esc(statusStr)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px;">
+          ${steps.map((label, i) => `
+            <div style="text-align:center;">
+              <div style="height:6px;border-radius:4px;background:${i <= stepIdx ? esc(brandColor) : 'rgba(255,255,255,0.1)'};margin-bottom:6px;"></div>
+              <div style="font-size:0.72rem;font-weight:${i <= stepIdx ? '700' : '500'};color:${i <= stepIdx ? '#f8fafc' : '#64748b'};">${esc(label)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="background:#07080c;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;font-size:0.88rem;line-height:1.7;">
+          <div><strong>Item(s):</strong> ${esc(order.item)}</div>
+          <div><strong>Total:</strong> Rs. ${commerce.parseLkrAmount(order.amount).toLocaleString()}</div>
+          <div><strong>Customer:</strong> ${esc(order.customerName)}</div>
+          <div><strong>Courier Tracking #:</strong> <code style="color:#38bdf8;">${esc(order.trackingNumber || 'Pending Dispatch')}</code></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+          ${payUrl ? `<a href="${esc(payUrl)}" style="flex:1;text-align:center;background:${esc(brandColor)};color:#fff;padding:12px 16px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.88rem;">💳 Pay Online Now</a>` : ''}
+          ${cleanWa ? `<a href="https://wa.me/${esc(cleanWa)}?text=${encodeURIComponent('Hi, checking order #' + order.id)}" target="_blank" style="flex:1;text-align:center;background:#25D366;color:#fff;padding:12px 16px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.88rem;">💬 Contact Store</a>` : ''}
+        </div>
+      </div>
+    </div>
+  </body></html>`);
+});
+
 // ─── 💳 Sri Lankan Payment Gateways (PayHere / Koko / Custom Payment Link) ───
 app.post('/api/orders/payment-link', requireSessionAuth, async (req, res) => {
   try {
@@ -1362,9 +1496,12 @@ app.get('/api/payments/checkout/:orderId', (req, res) => {
     ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
     : CALL_SERVER_URL;
   const checkout = commerce.buildPayHereCheckoutParams(order, biz, gwCfg, baseUrl);
+  const bnpl = commerce.buildBnplInstallmentBreakdown(order.amount);
+  const hasBnpl = !!(gwCfg.kokoEnabled || gwCfg.mintpayEnabled);
+  const koko = gwCfg.kokoEnabled ? commerce.buildKokoCheckoutParams(order, biz, gwCfg, baseUrl) : null;
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
-  if (gwCfg.enabled && checkout.fields.merchant_id && checkout.fields.hash) {
+  if (gwCfg.enabled && checkout.fields.merchant_id && checkout.fields.hash && !hasBnpl) {
     const inputs = Object.entries(checkout.fields)
       .map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`)
       .join('\n');
@@ -1376,15 +1513,68 @@ app.get('/api/payments/checkout/:orderId', (req, res) => {
     </body></html>`);
   }
 
-  return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:48px auto;padding:28px;background:#0f172a;color:#f8fafc;border-radius:16px;border:1px solid #334155;">
-    <h2 style="margin-top:0;color:#38bdf8;">${esc(biz.name)} — Payment Summary</h2>
+  const phInputs = (gwCfg.enabled && checkout.fields.merchant_id && checkout.fields.hash)
+    ? Object.entries(checkout.fields).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('\n')
+    : '';
+  const kokoInputs = (koko && koko.fields._mId)
+    ? Object.entries(koko.fields).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('\n')
+    : '';
+
+  return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:500px;margin:40px auto;padding:28px;background:#0f172a;color:#f8fafc;border-radius:16px;border:1px solid #334155;">
+    <h2 style="margin-top:0;color:#38bdf8;">${esc(biz.name)} — Checkout</h2>
     <p><strong>Order:</strong> #${esc(order.id)}</p>
     <p><strong>Item:</strong> ${esc(order.item)}</p>
-    <p><strong>Total:</strong> Rs. ${commerce.parseLkrAmount(order.amount).toLocaleString()}</p>
+    <p><strong>Total:</strong> Rs. ${bnpl.total.toLocaleString()}</p>
+    ${phInputs ? `<form method="post" action="${esc(checkout.actionUrl)}" style="margin:14px 0;">${phInputs}<button type="submit" style="width:100%;padding:12px;border:none;border-radius:10px;background:#2563EB;color:#fff;font-weight:700;cursor:pointer;">💳 Pay Full Amount with PayHere (Visa / Master)</button></form>` : ''}
+    ${hasBnpl ? `<div style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);border-radius:12px;padding:14px;margin:14px 0;">
+      <div style="font-weight:700;color:#d8b4fe;margin-bottom:6px;">🛍️ Pay in 3 Interest-Free Installments (Koko / Mintpay)</div>
+      <div style="font-size:0.88rem;color:#e2e8f0;">3 x <strong>Rs. ${bnpl.installment.toLocaleString()}</strong> (0% Interest)</div>
+      ${kokoInputs ? `<form method="post" action="${esc(koko.actionUrl)}" style="margin-top:10px;">${kokoInputs}<button type="submit" style="width:100%;padding:10px;border:none;border-radius:8px;background:#9333ea;color:#fff;font-weight:700;cursor:pointer;">⚡ Pay 3x Rs. ${bnpl.installment.toLocaleString()} with Koko</button></form>` : ''}
+      ${gwCfg.mintpayEnabled ? `<div style="margin-top:8px;font-size:0.8rem;color:#cbd5e1;">Mintpay Merchant ID: <strong>${esc(gwCfg.mintpayMerchantId || 'Configured')}</strong></div>` : ''}
+    </div>` : ''}
     <hr style="border-color:#334155;">
     <p style="font-size:0.9rem;color:#cbd5e1;"><strong>Bank Transfer Details:</strong><br>${esc(biz.bankDetails || 'Contact Store Owner via WhatsApp')}</p>
     <p style="font-size:0.8rem;color:#94a3b8;">ගෙවීම සිදුකළ පසු Slip පත WhatsApp වෙත එවන්න.</p>
   </body></html>`);
+});
+
+app.post('/api/webhook/koko', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const orderId = body.orderId || body._orderId || body.order_id;
+    const status = String(body.status || '').toUpperCase();
+    if (!orderId) return res.sendStatus(400);
+    const order = (db.data.orders || []).find(o => o.id === orderId);
+    if (!order) return res.sendStatus(404);
+    const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const gwCfg = (settings && settings.paymentGateway) || {};
+
+    if (gwCfg.kokoApiKey) {
+      const providedSig = String(body.signature || req.headers['x-koko-signature'] || '');
+      const expected = commerce.buildKokoCheckoutParams(order, biz, gwCfg, CALL_SERVER_URL).fields.signature;
+      const a = Buffer.from(providedSig);
+      const b = Buffer.from(expected);
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        return res.status(403).json({ ok: false, error: 'Invalid Koko signature' });
+      }
+    } else if (!isAdminReq(req) && !isTenantReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Configure Koko API Key or authenticate.' });
+    }
+
+    if (status === 'SUCCESS' || status === 'PAID' || status === '2') {
+      order.status = 'Paid';
+      order.paymentMethod = 'Koko BNPL (3x)';
+      db.save();
+      if (order.customerPhone && waEngine) {
+        const msg = `✅ *Koko 3x Installment Confirmed!*\n\n🏪 *${biz.name}*\n📦 *Order:* #${order.id}\n💰 *Total:* Rs. ${commerce.parseLkrAmount(order.amount).toLocaleString()}\n\n_ස්තූතියි! ඔබගේ ඇණවුම සූදානම් කර Dispatch කෙරේ._ 🙏`;
+        waEngine.sendTextMessage(order.customerPhone, msg, `wa_${biz.id}`).catch(() => {});
+      }
+    }
+    res.json({ ok: true, order });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 app.get(['/api/payments/payhere/return', '/api/payments/payhere/cancel'], (req, res) => {
@@ -2834,8 +3024,9 @@ app.post('/api/webhook/meta', async (req, res) => {
       const msgEvt = entry?.messaging?.[0];
       const senderId = msgEvt?.sender?.id;
       const recipientId = msgEvt?.recipient?.id;
-      const incomingText = msgEvt?.message?.text || '';
-      if (senderId && incomingText && !msgEvt?.message?.is_echo) {
+      const attachments = Array.isArray(msgEvt?.message?.attachments) ? msgEvt.message.attachments : [];
+      let incomingText = msgEvt?.message?.text || '';
+      if (senderId && (incomingText || attachments.length > 0) && !msgEvt?.message?.is_echo) {
         const allBiz = db.getAllBusinesses();
         const matchedBiz = allBiz.find(b => {
           const ts = db.getTenantSettings(b.id) || {};
@@ -2845,35 +3036,102 @@ app.post('/api/webhook/meta', async (req, res) => {
         const settings = db.getTenantSettings(matchedBiz.id) || db.getSettings();
         const moCfg = settings.metaOmnichannel || {};
         const chatKey = `${channelName}_${senderId}`;
-        const savedIn = db.addChatMessage(chatKey, 'customer', incomingText, `${channelName === 'instagram' ? 'IG' : 'FB'} User ${String(senderId).slice(-4)}`, senderId, matchedBiz.id, {
-          accountId: 'wa_' + matchedBiz.id,
-          channel: channelName
-        });
-        const isMuted = savedIn?.chat?.aiMuted && Date.now() < (savedIn.chat.aiMuteUntil || 0);
-        if (!isMuted) {
-          const history = (savedIn?.chat?.messages || []).slice(0, -1).slice(-8).map(m => ({
-            role: m.sender === 'customer' ? 'user' : 'model',
-            parts: [{ text: m.text }]
-          }));
-          const aiReply = await getGeminiReply(incomingText, {
-            storeName: matchedBiz.name,
-            businessId: matchedBiz.id,
-            business: matchedBiz,
-            customerName: 'Customer',
-            customerPhone: chatKey,
-            dataset: matchedBiz.dataset,
-            isWhatsApp: false,
-            isVoiceCall: false,
-            history
-          });
-          if (aiReply) {
-            if (moCfg.enabled && moCfg.pageAccessToken) {
-              await commerce.sendMetaSocialMessage(senderId, aiReply, moCfg.pageAccessToken);
+        const extraMsgData = { accountId: 'wa_' + matchedBiz.id, channel: channelName };
+        let hasImageAttachment = false;
+        const rawCaption = incomingText;
+
+        for (const att of attachments) {
+          const attUrl = att?.payload?.url;
+          if (!attUrl || !/^https?:\/\//i.test(attUrl)) continue;
+          try {
+            const dlRes = await fetch(attUrl, { signal: AbortSignal.timeout(10000) });
+            if (!dlRes.ok) continue;
+            const buf = Buffer.from(await dlRes.arrayBuffer());
+            const mime = (dlRes.headers.get('content-type') || (att.type === 'audio' ? 'audio/mp4' : 'image/jpeg')).split(';')[0].trim();
+            const savedMedia = await mediaStore.saveMedia(buf, mime, { source: `${channelName}_in`, businessId: matchedBiz.id, senderId }).catch(() => null);
+            if (savedMedia && savedMedia.url) extraMsgData.mediaUrl = savedMedia.url;
+            if (att.type === 'image') {
+              hasImageAttachment = true;
+              extraMsgData.imageMimeType = mime;
+              const vis = await analyzeImageBuffer(buf, mime, rawCaption, matchedBiz.name, settings.geminiApiKey);
+              if (vis && vis.imageDescription) {
+                extraMsgData.visionSummary = vis.imageDescription;
+                incomingText = `[📷 Image Content: ${vis.imageDescription}]${rawCaption ? `\nCustomer Caption: ${rawCaption}` : ''}`;
+              } else if (!incomingText) {
+                incomingText = '📷 [Customer Sent an Image]';
+              }
+            } else if (att.type === 'audio') {
+              extraMsgData.mimeType = mime;
+              const transcript = await transcribeAudioBuffer(buf, mime);
+              if (transcript) {
+                incomingText = `🎤 ${transcript}`;
+              } else if (!incomingText) {
+                incomingText = '🎤 [Customer Voice Message]';
+              }
             }
-            db.addChatMessage(chatKey, 'ai', aiReply, 'Customer', senderId, matchedBiz.id, {
-              accountId: 'wa_' + matchedBiz.id,
-              channel: channelName
+          } catch (_) {}
+        }
+
+        if (incomingText) {
+          const savedIn = db.addChatMessage(chatKey, 'customer', incomingText, `${channelName === 'instagram' ? 'IG' : 'FB'} User ${String(senderId).slice(-4)}`, senderId, matchedBiz.id, extraMsgData);
+          const isMuted = savedIn?.chat?.aiMuted && Date.now() < (savedIn.chat.aiMuteUntil || 0);
+          if (!isMuted) {
+            const history = (savedIn?.chat?.messages || []).slice(0, -1).slice(-8).map(m => ({
+              role: m.sender === 'customer' ? 'user' : 'model',
+              parts: [{ text: m.text }]
+            }));
+            const rawReply = await getGeminiReply(incomingText, {
+              storeName: matchedBiz.name,
+              businessId: matchedBiz.id,
+              business: matchedBiz,
+              customerName: 'Customer',
+              customerPhone: chatKey,
+              dataset: matchedBiz.dataset,
+              isWhatsApp: false,
+              isVoiceCall: false,
+              isCustomerImage: hasImageAttachment,
+              rawCaption,
+              history
             });
+            if (rawReply) {
+              const photoMatch = waEngine.matchProductsForMessage({
+                businessId: matchedBiz.id,
+                customerText: incomingText,
+                aiReply: rawReply,
+                isImage: hasImageAttachment,
+                rawCaption
+              });
+              const aiReply = photoMatch.cleanedReply;
+              for (const prod of photoMatch.matchedProducts) {
+                const imgs = (Array.isArray(prod.images) && prod.images.length > 0) ? prod.images.filter(Boolean) : [prod.imageUrl].filter(Boolean);
+                for (const imgSrc of imgs.slice(0, 3)) {
+                  let pubUrl = imgSrc;
+                  if (imgSrc.startsWith('/api/media/')) {
+                    pubUrl = `${CALL_SERVER_URL.replace(/\/+$/, '')}${imgSrc}`;
+                  } else if (imgSrc.startsWith('data:')) {
+                    const up = await mediaStore.saveMedia(imgSrc, 'image/jpeg', { source: `${channelName}_prod`, businessId: matchedBiz.id }).catch(() => null);
+                    if (up && up.url) pubUrl = up.url.startsWith('http') ? up.url : `${CALL_SERVER_URL.replace(/\/+$/, '')}${up.url}`;
+                  }
+                  if (moCfg.enabled && moCfg.pageAccessToken && /^https?:\/\//i.test(pubUrl)) {
+                    await commerce.sendMetaSocialImage(senderId, pubUrl, moCfg.pageAccessToken);
+                  }
+                }
+                db.addChatMessage(chatKey, 'ai', `📷 [Product Photos (${imgs.length}): ${prod.name}]`, 'Customer', senderId, matchedBiz.id, {
+                  accountId: 'wa_' + matchedBiz.id,
+                  channel: channelName,
+                  productId: prod.id
+                });
+              }
+              if (aiReply) {
+                if (moCfg.enabled && moCfg.pageAccessToken) {
+                  await commerce.sendMetaSocialMessage(senderId, aiReply, moCfg.pageAccessToken);
+                }
+                db.addChatMessage(chatKey, 'ai', aiReply, 'Customer', senderId, matchedBiz.id, {
+                  accountId: 'wa_' + matchedBiz.id,
+                  channel: channelName
+                });
+              }
+            }
           }
         }
       }
@@ -4385,7 +4643,8 @@ function checkForOrderTag(text, sess, sessionId) {
       const payUrl = commerce.buildCustomerPaymentUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret, gwCfg.customPayUrl);
       paySection = `\n\n💳 *Pay Online (Card / Visa / Master / Koko):*\n${payUrl}`;
     }
-    const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}${paySection}\n\n_Thank you! Your order has been recorded._ 🙏`;
+    const trackUrl = commerce.buildCustomerTrackingUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret);
+    const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}${paySection}\n\n🔍 *Track Order Live:* ${trackUrl}\n\n_Thank you! Your order has been recorded._ 🙏`;
     waEngine.sendTextMessage(customerPhone, confirmMsg, sess.businessId ? `wa_${sess.businessId}` : null).catch(() => {});
   }
 
