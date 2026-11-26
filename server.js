@@ -110,6 +110,13 @@ const {
   LanguageDetectionEngine,
   HybridFastCacheEngine
 } = require('./ai_engines.js');
+const {
+  isDeliveryEnabled,
+  stripDeliveryDetailsFromDataset,
+  buildOwnerOrderReferralReply,
+  buildProductPhotoCaption,
+  buildDeliveryDisabledPromptBlock
+} = require('./deliveryPolicyHelper.js');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -180,7 +187,7 @@ try {
 // ─── Session Store ───────────────────────────────────────────────────────────
 const sessions = new Map();
 
-setInterval(() => {
+const sessionCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [id, s] of sessions.entries()) {
     if (now - s.createdAt > 60 * 60 * 1000) {
@@ -190,6 +197,7 @@ setInterval(() => {
     }
   }
 }, 10 * 60 * 1000);
+if (sessionCleanupTimer.unref) sessionCleanupTimer.unref();
 
 // ─── Express App ─────────────────────────────────────────────────────────────
 const app = express();
@@ -246,7 +254,7 @@ app.use((req, res, next) => {
 // ─── In-Memory Rate Limiting Engine (Anti-Brute Force & Anti-DDoS) ───────────
 function createRateLimiter({ windowMs, maxRequests, message }) {
   const ipHits = new Map();
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [ip, timestamps] of ipHits.entries()) {
       const valid = timestamps.filter(t => now - t < windowMs);
@@ -254,6 +262,7 @@ function createRateLimiter({ windowMs, maxRequests, message }) {
       else ipHits.set(ip, valid);
     }
   }, windowMs);
+  if (cleanupTimer.unref) cleanupTimer.unref();
 
   return (req, res, next) => {
     const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
@@ -585,7 +594,8 @@ function pruneAdminSessions() {
     }
   }
 }
-setInterval(pruneAdminSessions, 30 * 60 * 1000);
+const adminPruneTimer = setInterval(pruneAdminSessions, 30 * 60 * 1000);
+if (adminPruneTimer.unref) adminPruneTimer.unref();
 
 function requireAdminAuth(req, res, next) {
   const token = req.headers['x-admin-token'] || (req.query && req.query.adminToken);
@@ -956,6 +966,7 @@ app.get('/api/business', (req, res) => {
 
   // Unauthenticated public visitor: ONLY return safe public active store metadata
   const publicActive = db.getActiveBusiness();
+  const publicSettings = db.getTenantSettings(publicActive.id) || db.getSettings();
   res.json({
     ok: true,
     active: {
@@ -966,7 +977,8 @@ app.get('/api/business', (req, res) => {
       whatsappPhone: publicActive.whatsappPhone,
       currency: publicActive.currency || 'Rs.',
       welcomeMessage: publicActive.welcomeMessage,
-      deliveryPolicy: publicActive.deliveryPolicy
+      deliveryPolicy: publicActive.deliveryPolicy,
+      isDeliveryDetailsEnabled: isDeliveryEnabled(publicSettings)
     },
     businesses: [] // Strictly empty for unauthenticated public requests!
   });
@@ -1825,11 +1837,13 @@ app.post('/api/products/send-photo', requireSessionAuth, async (req, res) => {
       targetAccId = 'wa_' + req.tenantBusinessId;
     }
 
+    const bizSettings = db.getTenantSettings(bId) || db.getSettings();
+    const activeBiz = db.getBusiness(bId) || db.getActiveBusiness();
     let sentCount = 0;
     let lastResult = { ok: false, error: 'Failed to send' };
     for (let i = 0; i < allImgs.length; i++) {
       const caption = (i === 0)
-        ? (customCaption || `📸 *${prod.name}*${allImgs.length > 1 ? ` (Photo 1/${allImgs.length})` : ''}\n💰 මිල: Rs. ${(prod.price || 0).toLocaleString()}\n${prod.description ? prod.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`)
+        ? (customCaption || buildProductPhotoCaption(prod, i, allImgs.length, activeBiz, bizSettings, 'Sinhala'))
         : `📸 *${prod.name}* (${i + 1}/${allImgs.length})`;
       lastResult = await waEngine.sendImageMessage(sendTarget, allImgs[i], targetAccId, caption);
       if (lastResult && lastResult.ok) sentCount++;
@@ -1877,20 +1891,27 @@ app.post('/api/flows/delete', requireSessionAuth, (req, res) => {
 
 // ─── Store & AI Persona Settings (From APK & Scoped Multi-Tenant) ─────────────
 app.get('/api/settings', requireSessionAuth, (req, res) => {
-  if (isTenantReq(req)) {
-    const bId = resolveReqBusinessId(req);
+  const bId = resolveReqBusinessId(req);
+  if (bId) {
     return res.json({ ok: true, settings: db.getTenantSettings(bId) });
   }
   res.json({ ok: true, settings: db.getSettings() });
 });
 
 app.post('/api/settings', requireSessionAuth, (req, res) => {
-  if (isTenantReq(req)) {
-    const bId = resolveReqBusinessId(req);
+  const bId = resolveReqBusinessId(req);
+  const activeBiz = db.getActiveBusiness();
+  if (bId) {
     const settings = db.updateTenantSettings(bId, req.body);
+    if (activeBiz && activeBiz.id === bId) {
+      db.updateSettings(req.body);
+    }
     return res.json({ ok: true, settings });
   }
   const settings = db.updateSettings(req.body);
+  if (activeBiz && activeBiz.id) {
+    db.updateTenantSettings(activeBiz.id, req.body);
+  }
   res.json({ ok: true, settings });
 });
 
@@ -3111,7 +3132,8 @@ async function getGeminiReply(userMessage, sess, userLang) {
 
   // 4. Ultra-Fast Zero-Latency Hybrid Fast-Cache Engine (skip for image inputs so Vision context goes to Gemini)
   const storeProducts = db.getProducts(activeBiz.id);
-  const fastReply = sess.isCustomerImage ? null : HybridFastCacheEngine.resolve(userMessage, activeBiz, storeProducts, detectedLang);
+  const fastReply = sess.isCustomerImage ? null : HybridFastCacheEngine.resolve(userMessage, activeBiz, storeProducts, detectedLang, settings);
+  const deliveryEnabled = isDeliveryEnabled(settings);
   if (fastReply) {
     console.log(`[ai-engine] ⚡ Hybrid Fast-Cache instant reply (0ms API latency) for: "${(userMessage || '').substring(0, 40)}"`);
     sess.history.push({ role: 'user', parts: [{ text: userMessage }] });
@@ -3175,7 +3197,8 @@ async function getGeminiReply(userMessage, sess, userLang) {
       initialModelAck = `Purinjithu. Official dataset padi sariyana details Tanglish la solren.`;
     } else if (detectedLang === 'Singlish') {
       // 🗣️ Quad-Language Smart Detection: Colloquial Singlish Matching
-      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Singlish (Sinhala written in Latin letters, e.g. "mewaye price eka kiyada"). Reply strictly in natural, friendly, polite Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa. Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!"). Do NOT use Sinhala script characters and do NOT reply in formal English. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
+      const singlishDeliverySample = deliveryEnabled ? ' Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!' : '';
+      turnInstruction = `\n[WHATSAPP MESSAGE: The customer sent this message in Singlish (Sinhala written in Latin letters, e.g. "mewaye price eka kiyada"). Reply strictly in natural, friendly, polite Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa.${singlishDeliverySample}"). Do NOT use Sinhala script characters and do NOT reply in formal English. Use clean WhatsApp formatting (*bold*, • bullets) with exact prices from dataset.]`;
       initialModelAck = `Understood. Mama ${storeName} wenuwen customer ta natural Singlish walin ma clear details and prices ekka reply karannam.`;
     } else if (detectedLang === 'Sinhala') {
       // 🗣️ Quad-Language Smart Detection: Sinhala Script Matching
@@ -3247,7 +3270,9 @@ async function getGeminiReply(userMessage, sess, userLang) {
   console.warn('[Gemini Text] All text models hit quota or failed. Using smart dataset fallback.');
   const store = sess.storeName || 'OmniSix AI';
   let fallbackReply = '';
-  if (detectedLang === 'English') {
+  if (!deliveryEnabled && /(order|buy|purchase|ganna|gannada|cod|cash on delivery|delivery|deliver|courier)/i.test(userMessage || '')) {
+    fallbackReply = buildOwnerOrderReferralReply(activeBiz, settings, detectedLang);
+  } else if (detectedLang === 'English') {
     fallbackReply = `Thank you for reaching out to ${store}! We offer 24/7 autonomous AI assistant, CRM, and omnichannel messaging solutions. How can we help you today? 😊`;
   } else if (detectedLang === 'Tamil') {
     fallbackReply = `நன்றி! ${store} உங்களுக்கு 24/7 AI உதவியாளர் மற்றும் CRM சேவைகளை வழங்குகிறது. உங்களுக்கு எவ்வாறு உதவ முடியும்? 😊`;
@@ -3412,10 +3437,13 @@ function buildSystemPrompt(sess, datasetText, userLang, userMessage, detectedLan
   const settings = (sess && sess.businessId && db.getTenantSettings(sess.businessId)) || db.getSettings();
   const storeName = sess.storeName || activeBiz.name || 'WEDDING ARTS';
   const customerName = sess.customerName || 'Customer';
-  const dataset = (datasetText && datasetText.length > 50) ? datasetText : (activeBiz.dataset || BUILTIN_DATASET);
+  const deliveryEnabled = isDeliveryEnabled(settings);
+  const rawDataset = (datasetText && datasetText.length > 50) ? datasetText : (activeBiz.dataset || BUILTIN_DATASET);
+  const dataset = deliveryEnabled ? rawDataset : stripDeliveryDetailsFromDataset(rawDataset);
+  const deliveryDisabledDirective = deliveryEnabled ? '' : buildDeliveryDisabledPromptBlock(activeBiz, settings);
 
   // 1. Classify Customer Psychological Archetype
-  const archetypeResult = CustomerArchetypeEngine.classify(userMessage || '');
+  const archetypeResult = CustomerArchetypeEngine.classify(userMessage || '', deliveryEnabled);
   if (sess.customerPhone && archetypeResult.archetype !== 'GENERAL') {
     db.setChatArchetype(sess.customerPhone, archetypeResult.archetype);
   }
@@ -3480,7 +3508,7 @@ The business owner has configured this AI to reply STRICTLY IN TAMIL SCRIPT ONLY
     scriptRequirement = 'Strictly Singlish (Latin Letters Colloquial Sinhala)';
     languageDirective = `CRITICAL LANGUAGE MODE: ONLY SINGLISH (Singlish පමණි)
 The business owner has configured this AI to reply STRICTLY IN SINGLISH (Sinhala in Latin letters).
-- Regardless of what language the customer speaks or writes, you MUST ALWAYS reply in natural, polite Sri Lankan Singlish using Latin letters (e.g. "Ow meka Rs. [Price] wenawa. Delivery puluwan...").
+- Regardless of what language the customer speaks or writes, you MUST ALWAYS reply in natural, polite Sri Lankan Singlish using Latin letters (e.g. "Ow meka Rs. [Price] wenawa.${deliveryEnabled ? ' Delivery puluwan...' : ''}").
 - Do NOT output Sinhala Unicode script characters and do NOT reply in formal English.`;
   } else {
     // smart_match
@@ -3498,14 +3526,14 @@ The business owner has configured this AI to reply STRICTLY IN SINGLISH (Sinhala
     languageDirective = `CRITICAL DYNAMIC LANGUAGE MATCHING RULES:
 1. 🔄 DYNAMIC LANGUAGE ADAPTATION:
    - If the customer writes or switches language (English, Sinhala, Singlish, Tamil, Tanglish, Italian, French, German, Spanish, etc.), you MUST IMMEDIATELY ADAPT and reply in that customer's MATCHING language!
-2. 🇱🇰 SINGLISH (when customer writes in Singlish using Latin letters, e.g. "mewaye price eka kiyada?", "deliver karanna puluwanda?", "size thiyenawada?", "bank details ewanna"):
-   * When mode is smart_match, reply in smooth, natural, polite, friendly Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa. Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!").
+2. 🇱🇰 SINGLISH (when customer writes in Singlish using Latin letters, e.g. "mewaye price eka kiyada?", "size thiyenawada?", "bank details ewanna"):
+   * When mode is smart_match, reply in smooth, natural, polite, friendly Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa.${deliveryEnabled ? ' Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!' : ''}").
    * Do NOT use Sinhala script characters and do NOT reply in pure formal English.
 3. 🇱🇰 SINHALA SCRIPT (when customer writes in Sinhala letters, e.g. "මිල කීයද?", "විස්තර එවන්න"):
    * You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි)!
    * Address customer respectfully in warm, natural colloquial Sri Lankan Sinhala (අපේ, ඔබට/ඔයාට, ලබාගන්න පුළුවන්, ස්තූතියි).
 4. 🇬🇧 ENGLISH (when customer writes in English, e.g. "What are the available sizes?"):
-   * Reply strictly in clear, professional, warm English (e.g. "Hello! The price is Rs. 4,800 with free delivery...").
+   * Reply strictly in clear, professional, warm English (e.g. "Hello! The price is Rs. 4,800${deliveryEnabled ? ' with free delivery' : ''}...").
    * NEVER reply in Sinhala or Singlish when customer asks in English!
 5. 🇮🇳 TAMIL SCRIPT (when customer writes in Tamil letters, தமிழ் எழுத்துகளில், e.g. "இதன் விலை என்ன?"):
    * Reply strictly in warm, polite Tamil script (தமிழ்). Never output English or Tanglish!
@@ -3514,7 +3542,7 @@ The business owner has configured this AI to reply STRICTLY IN SINGLISH (Sinhala
 7. 🌍 OTHER FOREIGN LANGUAGES (Italian, French, German, Spanish, Arabic, Hindi, etc.):
    * Reply strictly, fluently, and politely in that customer's EXACT MATCHING FOREIGN LANGUAGE!
 8. 🔄 CONVERSATIONAL CONTINUITY FOR SHORT / AMBIGUOUS INPUTS:
-   * If customer sends short answers ("ok", "yes", "1", "size M", "red", phone number, or delivery address), seamlessly preserve the ongoing conversation's language.`;
+   * If customer sends short answers ("ok", "yes", "1", "size M", "red",${deliveryEnabled ? ' phone number, or delivery address' : ' or package option'}), seamlessly preserve the ongoing conversation's language.`;
   }
 
   const imageUnderstandingDirective = sess.isCustomerImage
@@ -3539,42 +3567,23 @@ ${ongoingDirective}${imageUnderstandingDirective}
 Customer Input Contextual Language: "${detectedLang}"
 Required Output Script: "${scriptRequirement}"
 
-CRITICAL DYNAMIC LANGUAGE MATCHING RULES:
-1. 🔄 DYNAMIC LANGUAGE ADAPTATION:
-   - If the customer writes or switches language (English, Sinhala, Singlish, Tamil, Tanglish, Italian, French, German, Spanish, etc.), you MUST IMMEDIATELY ADAPT and reply in that customer's MATCHING language!
-2. 🇱🇰 SINGLISH (when customer writes in Singlish using Latin letters, e.g. "mewaye price eka kiyada?", "deliver karanna puluwanda?", "size thiyenawada?", "bank details ewanna"):
-   * When mode is smart_match, reply in smooth, natural, polite, friendly Sri Lankan Singlish using Latin letters (e.g. "Mewaye mila Rs. 4,800 wenawa. Islandwide delivery thiyenawa. Oya kamathi size eka kiyanna!").
-   * Do NOT use Sinhala script characters and do NOT reply in pure formal English.
-3. 🇱🇰 SINHALA SCRIPT (when customer writes in Sinhala letters, e.g. "මිල කීයද?", "විස්තර එවන්න"):
-   * You MUST reply strictly in natural, polite Sinhala script (සිංහල අකුරින් පමණි)!
-   * Address customer respectfully in warm, natural colloquial Sri Lankan Sinhala (අපේ, ඔබට/ඔයාට, ලබාගන්න පුළුවන්, ස්තූතියි).
-4. 🇬🇧 ENGLISH (when customer writes in English, e.g. "What are the available sizes?"):
-   * Reply strictly in clear, professional, warm English (e.g. "Hello! The price is Rs. 4,800 with free delivery...").
-   * NEVER reply in Sinhala or Singlish when customer asks in English!
-5. 🇮🇳 TAMIL SCRIPT (when customer writes in Tamil letters, தமிழ் எழுத்துகளில், e.g. "இதன் விலை என்ன?"):
-   * Reply strictly in warm, polite Tamil script (தமிழ்). Never output English or Tanglish!
-6. 🔤 TANGLISH (when customer writes in Tanglish, Tamil in Latin letters):
-   * Reply strictly in conversational Tanglish using Latin letters.
-7. 🌍 OTHER FOREIGN LANGUAGES (Italian, French, German, Spanish, Arabic, Hindi, etc.):
-   * Reply strictly, fluently, and politely in that customer's EXACT MATCHING FOREIGN LANGUAGE!
-8. 🔄 CONVERSATIONAL CONTINUITY FOR SHORT / AMBIGUOUS INPUTS:
-   * If customer sends short answers ("ok", "yes", "1", "size M", "red", phone number, or delivery address), seamlessly preserve the ongoing conversation's language.
+${languageDirective}
 
 --- OFFICIAL MASTER DATASET (PRODUCTS, SERVICES & EXACT PRICES) ---
 ${dataset}
 --- END OFFICIAL MASTER DATASET ---
-${catalogPhotoContext}
+${deliveryDisabledDirective}${catalogPhotoContext}
 ${archetypeResult.promptDirective}
 ${upsellDirective}
 ${negotiationDirective}
 
 CORE PRINCIPLES FOR CONSULTATIVE & INTELLIGENT SALES:
-1. 🎯 100% FACTUAL & DATASET ACCURACY: Always quote ONLY the exact products, services, delivery policies, bank accounts, and prices stated in the OFFICIAL MASTER DATASET above. Never invent, approximate, or fabricate prices or discounts.
+1. 🎯 100% FACTUAL & DATASET ACCURACY: Always quote ONLY the exact products, services, ${deliveryEnabled ? 'delivery policies, ' : ''}bank accounts, and prices stated in the OFFICIAL MASTER DATASET above. Never invent, approximate, or fabricate prices or discounts.
 2. 🧠 THOUGHTFUL CONVERSATION (හිතලා බලලා කතා කිරීම): Carefully analyze the customer's intent, tone, and specific inquiry. Do NOT give robotic or generic replies. Specifically address what they asked, acknowledge their needs, and explain clearly and patiently.
 3. 🤝 WARMTH, RESPECT & EMOTIONAL INTELLIGENCE (සුහදශීලී සහ ගෞරවනීය සේවාව): Treat every customer like a valued guest. Use polite, warm Sri Lankan hospitality phrases (e.g. "ස්තූතියි", "ඔබට මම පැහැදිලි කරන්නම්", "සාදරයෙන් පිළිගන්නවා", "ඔබට වඩාත් ගැළපෙන්නේ..."). Use gentle friendly emojis (😊, 🙏, ✨, 💼).
 4. ${sess.isVoiceCall ? '🎙️ VOICE CONVERSATION: Keep answers to 1 to 2 natural spoken sentences (around 20-35 words) so customer hears crystal-clear information.' : '📱 ELEGANT WHATSAPP FORMATTING: Use clean WhatsApp formatting with *bold* headers, • bullet points, and neat paragraph breaks. Do NOT use markdown # or **double asterisks**.'}
-5. 🚀 VALUE-DRIVEN SALES GUIDANCE: At the end of your answer, kindly ask a polite guiding question (e.g. ask if they would like to activate the 3-day free trial, view a demo, or have any questions) to help them move forward with confidence.
-6. 🏷️ If order is confirmed, append: [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]
+5. 🚀 VALUE-DRIVEN SALES GUIDANCE: At the end of your answer, ${deliveryEnabled ? 'kindly ask a polite guiding question (e.g. ask if they would like to activate the 3-day free trial, view a demo, or have any questions) to help them move forward with confidence.' : 'if the customer is interested in ordering/buying, direct them straight to the Store Owner contact number listed above (never ask for their checkout details).'}
+${deliveryEnabled ? `6. 🏷️ If order is confirmed, append: [[ORDER: name=${customerName}|item=ITEM_NAME|amount=TOTAL_RS]]` : `6. 🚫 ORDER CHECKOUT DISABLED: NEVER ask for customer details or output order tags — always refer ready buyers to the Store Owner number above!`}
 7. 📸 If customer asks for photos of products with [PHOTO AVAILABLE], append: [[SEND_PHOTO: ProductName]]`;
 }
 
@@ -3582,6 +3591,12 @@ function checkForOrderTag(text, sess, sessionId) {
   let cleanText = text || '';
   const match = cleanText.match(/\[\[(?:ORDER|CONFIRM_ORDER):\s*([^\]]+)\]\]/i);
   if (!match) return cleanText;
+
+  const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
+  const settings = (activeBiz && db.getTenantSettings(activeBiz.id)) || db.getSettings();
+  if (!isDeliveryEnabled(settings)) {
+    return cleanText.replace(match[0], '').replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE|SEND_IMAGE):?\s*[^\]]*\]\]/gi, '').trim();
+  }
 
   const rawPairs = match[1];
   const fields = {};
@@ -3595,7 +3610,6 @@ function checkForOrderTag(text, sess, sessionId) {
   console.log(`[order] Confirmed — session: ${sessionId}`, fields);
 
   // Automatically record order in Multi-Business Database
-  const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
   const customerPhone = sess.customerPhone || (sessionId && !sessionId.startsWith('call_') ? sessionId : '');
   const newOrder = db.addOrder({
     businessId: activeBiz.id,
@@ -3741,7 +3755,7 @@ async function notifyOwnerOfNewOrder(order, biz) {
 }
 
 // ─── ⏰ Automated Follow-Up Background Engine (Runs every 5 minutes) ────────────
-setInterval(async () => {
+const followUpEngineTimer = setInterval(async () => {
   try {
     const businesses = db.getAllBusinesses();
     for (const biz of businesses) {
@@ -3779,6 +3793,7 @@ setInterval(async () => {
     console.error('[followup-engine] Loop error:', e.message);
   }
 }, 5 * 60 * 1000);
+if (followUpEngineTimer.unref) followUpEngineTimer.unref();
 
 waEngine.setHandlers({
   aiReplyHandler: async (text, sess) => {
@@ -3798,69 +3813,73 @@ waEngine.setHandlers({
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`\n🎙️  OmniSix Live Call Server running on port ${PORT}`);
-  console.log(`📡  Call URL: ${CALL_SERVER_URL}/call?s=SESSION_ID`);
-  console.log(`💚  Health:  ${CALL_SERVER_URL}/health\n`);
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`\n🎙️  OmniSix Live Call Server running on port ${PORT}`);
+    console.log(`📡  Call URL: ${CALL_SERVER_URL}/call?s=SESSION_ID`);
+    console.log(`💚  Health:  ${CALL_SERVER_URL}/health\n`);
 
-  // Start WhatsApp Multi-Device Web Engine
-  waEngine.start();
+    // Start WhatsApp Multi-Device Web Engine
+    waEngine.start();
 
-  // ─── 24/7 Cloud Container Keep-Alive & Anti-Idle Heartbeat Daemon ─────────────
-  // Render Free Tier services sleep after 15 minutes of inactivity.
-  // This daemon fires external HTTP pings every 4 minutes (with jitter) to continuously keep the container awake.
-  const defaultKeepAlive = 'https://omnisix-ai.onrender.com';
-  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || (CALL_SERVER_URL.startsWith('http') && !CALL_SERVER_URL.includes('localhost') ? CALL_SERVER_URL : defaultKeepAlive);
-  
-  if (keepAliveUrl.startsWith('https://')) {
-    const httpsModule = require('https');
+    // ─── 24/7 Cloud Container Keep-Alive & Anti-Idle Heartbeat Daemon ─────────────
+    // Render Free Tier services sleep after 15 minutes of inactivity.
+    // This daemon fires external HTTP pings every 4 minutes (with jitter) to continuously keep the container awake.
+    const defaultKeepAlive = 'https://omnisix-ai.onrender.com';
+    const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || (CALL_SERVER_URL.startsWith('http') && !CALL_SERVER_URL.includes('localhost') ? CALL_SERVER_URL : defaultKeepAlive);
 
-    const sendKeepAlivePing = (label = 'Periodic') => {
-      try {
-        const pingReq = httpsModule.get(`${keepAliveUrl}/health`, {
-          headers: {
-            'User-Agent': 'OmniSix-24x7-KeepAlive-Daemon/2.0',
-            'Cache-Control': 'no-cache, no-store',
-            'Connection': 'close'
-          },
-          timeout: 15000
-        }, (res) => {
-          res.resume(); // Discard data to release socket
-          const mem = process.memoryUsage();
-          const rssMb = Math.round(mem.rss / (1024 * 1024));
-          const uptimeHrs = (process.uptime() / 3600).toFixed(1);
-          if (res.statusCode === 200) {
-            console.log(`⏱️ [24/7 Keep-Alive] ${label} heartbeat OK (HTTP 200) | Uptime: ${uptimeHrs}h | RAM: ${rssMb}MB`);
-          } else {
-            console.warn(`⚠️ [24/7 Keep-Alive] Received status HTTP ${res.statusCode}`);
-          }
-        });
+    if (keepAliveUrl.startsWith('https://')) {
+      const httpsModule = require('https');
 
-        pingReq.on('timeout', () => {
-          pingReq.destroy();
-        });
+      const sendKeepAlivePing = (label = 'Periodic') => {
+        try {
+          const pingReq = httpsModule.get(`${keepAliveUrl}/health`, {
+            headers: {
+              'User-Agent': 'OmniSix-24x7-KeepAlive-Daemon/2.0',
+              'Cache-Control': 'no-cache, no-store',
+              'Connection': 'close'
+            },
+            timeout: 15000
+          }, (res) => {
+            res.resume(); // Discard data to release socket
+            const mem = process.memoryUsage();
+            const rssMb = Math.round(mem.rss / (1024 * 1024));
+            const uptimeHrs = (process.uptime() / 3600).toFixed(1);
+            if (res.statusCode === 200) {
+              console.log(`⏱️ [24/7 Keep-Alive] ${label} heartbeat OK (HTTP 200) | Uptime: ${uptimeHrs}h | RAM: ${rssMb}MB`);
+            } else {
+              console.warn(`⚠️ [24/7 Keep-Alive] Received status HTTP ${res.statusCode}`);
+            }
+          });
 
-        pingReq.on('error', (err) => {
-          // Suppress transient DNS / network hiccups
-        });
-      } catch (err) {
-        // Guard against synchronous invocation errors
-      }
-    };
+          pingReq.on('timeout', () => {
+            pingReq.destroy();
+          });
 
-    // Initial warm-up ping after 15 seconds
-    setTimeout(() => sendKeepAlivePing('Warm-Up'), 15000);
+          pingReq.on('error', (err) => {
+            // Suppress transient DNS / network hiccups
+          });
+        } catch (err) {
+          // Guard against synchronous invocation errors
+        }
+      };
 
-    // Schedule recursive heartbeat with randomized jitter (3.5 to 4.5 minutes)
-    const scheduleNextPing = () => {
-      const delayMs = (3.5 * 60 * 1000) + Math.floor(Math.random() * (60 * 1000)); // 210s - 270s
-      setTimeout(() => {
-        sendKeepAlivePing('Heartbeat');
-        scheduleNextPing();
-      }, delayMs);
-    };
-    scheduleNextPing();
+      // Initial warm-up ping after 15 seconds
+      setTimeout(() => sendKeepAlivePing('Warm-Up'), 15000);
 
-    console.log(`⏱️ [24/7 Keep-Alive] Autonomous Heartbeat Daemon active for: ${keepAliveUrl}/health (~4 min cycle)`);
-  }
-});
+      // Schedule recursive heartbeat with randomized jitter (3.5 to 4.5 minutes)
+      const scheduleNextPing = () => {
+        const delayMs = (3.5 * 60 * 1000) + Math.floor(Math.random() * (60 * 1000)); // 210s - 270s
+        setTimeout(() => {
+          sendKeepAlivePing('Heartbeat');
+          scheduleNextPing();
+        }, delayMs);
+      };
+      scheduleNextPing();
+
+      console.log(`⏱️ [24/7 Keep-Alive] Autonomous Heartbeat Daemon active for: ${keepAliveUrl}/health (~4 min cycle)`);
+    }
+  });
+}
+
+module.exports = { app, server, buildSystemPrompt, checkForOrderTag, getGeminiReply };

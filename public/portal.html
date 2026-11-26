@@ -3007,6 +3007,25 @@ table tr:hover td {
             </div>
           </div>
 
+          <!-- 1B. Delivery Details & Owner Referral Quick Switch (Synced with APK) -->
+          <div id="overview-delivery-card" style="background: #10121b;border: 1px solid rgba(16, 185, 129, 0.35);border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;font-size:1.15rem;">🚚</div>
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <h4 style="margin:0;font-size:0.96rem;font-weight:800;color:#f8fafc;">Send Delivery Details</h4>
+                    <span id="overview-delivery-details-badge" style="font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:999px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;">🟢 ON</span>
+                  </div>
+                  <div id="overview-delivery-details-desc" style="font-size:0.75rem;color:#94a3b8;margin-top:3px;">ON: Delivery, COD & order form active • OFF: Refers orders to Owner number</div>
+                </div>
+              </div>
+              <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0;" title="Toggle Delivery & Order Checkout Details">
+                <input type="checkbox" id="overview-delivery-details-toggle" checked onchange="toggleDeliveryDetails(this.checked)" style="accent-color:#10b981;width:22px;height:22px;cursor:pointer;">
+              </label>
+            </div>
+          </div>
+
           <!-- 2. Smart Quick Actions Grid -->
           <div style="background: #10121b;border: 1px solid rgba(255, 255, 255, 0.08);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -3501,7 +3520,15 @@ table tr:hover td {
             <input type="text" id="form-biz-phone" class="form-input" placeholder="076 210 7801">
           </div>
           <div class="form-group">
-            <label class="form-label">Delivery Policy</label>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">
+                Delivery Policy <span id="biz-delivery-disabled-badge" class="hidden" style="font-size:0.7rem;padding:2px 7px;border-radius:6px;background:rgba(245,158,11,0.18);color:#fbbf24;margin-left:4px;">OFF</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.75rem;font-weight:700;color:#cbd5e1;">
+                <input type="checkbox" id="biz-delivery-details-toggle" checked onchange="toggleDeliveryDetails(this.checked)" style="accent-color:var(--accent-emerald);width:15px;height:15px;">
+                <span>Send Delivery Details</span>
+              </label>
+            </div>
             <input type="text" id="form-biz-delivery" class="form-input" placeholder="Islandwide Courier 2-3 days">
           </div>
         </div>
@@ -3685,6 +3712,10 @@ table tr:hover td {
               <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
                 <input type="checkbox" id="setting-interactive-buttons" checked style="accent-color:var(--accent-emerald);width:17px;height:17px;">
                 <span style="font-size:0.82rem;font-weight:700;color:#047857;">[View Catalog], [Order Now], [Talk to Agent] Buttons Active</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px;">
+                <input type="checkbox" id="setting-delivery-details" checked onchange="syncDeliveryDetailsUi(this.checked)" style="accent-color:var(--accent-emerald);width:17px;height:17px;">
+                <span style="font-size:0.82rem;font-weight:700;color:#34d399;">🚚 Send Delivery Details (OFF = Hide delivery/COD & send Owner number for orders)</span>
               </label>
             </div>
           </div>
@@ -5000,6 +5031,7 @@ function showTab(tabName) {
 // ─── Initialization ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   fetchBusinesses();
+  loadSettingsForm();
   fetchProducts();
   fetchOverview();
   setInterval(fetchOverview, 10000);
@@ -6477,6 +6509,55 @@ async function saveBusinessProfile(e) {
   } catch(e) { alert('Error: ' + e.message); }
 }
 
+function syncDeliveryDetailsUi(enabled) {
+  const isEnabled = enabled !== false;
+  ['overview-delivery-details-toggle', 'setting-delivery-details', 'biz-delivery-details-toggle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = isEnabled;
+  });
+  const badge = document.getElementById('overview-delivery-details-badge');
+  if (badge) {
+    badge.textContent = isEnabled ? '🟢 ON' : '⏸️ OFF';
+    badge.style.background = isEnabled ? '#ecfdf5' : 'rgba(100,116,139,0.22)';
+    badge.style.color = isEnabled ? '#047857' : '#cbd5e1';
+    badge.style.borderColor = isEnabled ? '#a7f3d0' : 'rgba(148,163,184,0.35)';
+  }
+  const card = document.getElementById('overview-delivery-card');
+  if (card) {
+    card.style.borderColor = isEnabled ? 'rgba(16, 185, 129, 0.35)' : 'rgba(148, 163, 184, 0.25)';
+  }
+  const desc = document.getElementById('overview-delivery-details-desc');
+  if (desc) {
+    desc.textContent = isEnabled
+      ? 'ON: Delivery, COD & order details enabled'
+      : 'OFF: Orders direct to Owner WhatsApp number (No details requested)';
+  }
+  const bizBadge = document.getElementById('biz-delivery-disabled-badge');
+  if (bizBadge) bizBadge.classList.toggle('hidden', isEnabled);
+  const bizInput = document.getElementById('form-biz-delivery');
+  if (bizInput) {
+    bizInput.disabled = !isEnabled;
+    bizInput.style.opacity = isEnabled ? '1' : '0.5';
+  }
+}
+
+async function toggleDeliveryDetails(isEnabled) {
+  syncDeliveryDetailsUi(isEnabled);
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isDeliveryDetailsEnabled: !!isEnabled })
+    });
+    const data = await res.json();
+    if (data.ok && data.settings) {
+      syncDeliveryDetailsUi(data.settings.isDeliveryDetailsEnabled !== false);
+    }
+  } catch (e) {
+    alert('Error updating Delivery Details toggle: ' + e.message);
+  }
+}
+
 // ─── Settings Form ────────────────────────────────────────────────────────────
 async function loadSettingsForm() {
   try {
@@ -6484,6 +6565,7 @@ async function loadSettingsForm() {
     const data = await res.json();
     if (data.ok && data.settings) {
       const s = data.settings;
+      syncDeliveryDetailsUi(s.isDeliveryDetailsEnabled !== false);
       document.getElementById('setting-ai-name').value = s.aiName || 'Nethmi';
       document.getElementById('setting-ai-persona').value = s.aiPersona || 'FRIENDLY_CUSTOMER_CARE';
       document.getElementById('setting-voice-profile').value = s.voiceProfile || 'Leda';
@@ -6543,6 +6625,7 @@ async function saveSettings(e) {
     closedMessage: document.getElementById('setting-closed-msg').value,
     languageReplyMode: document.getElementById('setting-lang-mode')?.value || 'smart_match',
     isInteractiveButtonsEnabled: document.getElementById('setting-interactive-buttons')?.checked !== false,
+    isDeliveryDetailsEnabled: document.getElementById('setting-delivery-details')?.checked !== false,
     ownerAlertPhone: document.getElementById('setting-owner-alert-phone')?.value || '',
     isOwnerAlertEnabled: document.getElementById('setting-owner-alert-enabled')?.checked || false,
     isFollowUpEnabled: document.getElementById('setting-followup-enabled')?.checked || false,

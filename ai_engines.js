@@ -1,6 +1,11 @@
 // ─── OmniSix Production AI Intelligence Engines ──────────────────────────────
 // Ported from OmniSix Android Pro Kotlin Architecture
 // Modules: Customer Archetype, Angry Escalation, Smart Upsell, Smart Negotiation, Slip Detection
+const {
+  isDeliveryEnabled,
+  buildOwnerOrderReferralReply,
+  buildOwnerOrderShortCta
+} = require('./deliveryPolicyHelper.js');
 
 // ─── 1. Customer Psychological Archetype Engine ───────────────────────────────
 const CustomerArchetypeEngine = {
@@ -25,7 +30,7 @@ const CustomerArchetypeEngine = {
     'reseller', 'shop ekata', 'dealer', '10k gaththoth', '20k', '50k', '100k', 'thoga mila'
   ],
 
-  classify(text) {
+  classify(text, isDeliveryDetailsEnabled = true) {
     const lower = (text || '').toLowerCase().trim();
     let scores = {
       BARGAIN_HUNTER: 0,
@@ -54,10 +59,14 @@ const CustomerArchetypeEngine = {
         promptDirective = '[PSYCHOLOGY: Customer is a Bargain Hunter. Emphasize incredible value, package savings, and exclusive limited-time bonus.]';
         break;
       case 'IMPULSE_BUYER':
-        promptDirective = '[PSYCHOLOGY: Customer is an Impulse Buyer ready to checkout. Keep response ultra-short, confirm order instantly, and mention fastest courier dispatch.]';
+        promptDirective = isDeliveryDetailsEnabled
+          ? '[PSYCHOLOGY: Customer is an Impulse Buyer ready to checkout. Keep response ultra-short, confirm order instantly, and mention fastest courier dispatch.]'
+          : '[PSYCHOLOGY: Customer is an Impulse Buyer ready to purchase. Keep response snappy, highlight availability, and NEVER ask for Name, Delivery Address, or Phone — direct ready buyers straight to the Store Owner contact number.]';
         break;
       case 'SKEPTICAL_BUYER':
-        promptDirective = '[PSYCHOLOGY: Customer is cautious/skeptical. Reassure 100% premium quality, safe packaging guarantee, and verified customer trust.]';
+        promptDirective = isDeliveryDetailsEnabled
+          ? '[PSYCHOLOGY: Customer is cautious/skeptical. Reassure 100% premium quality, safe packaging guarantee, and verified customer trust.]'
+          : '[PSYCHOLOGY: Customer is cautious/skeptical. Reassure 100% genuine quality, official support, and direct communication with the Store Owner. NEVER promise Cash on Delivery (COD) or courier delivery.]';
         break;
       case 'BULK_WHOLESALE':
         promptDirective = '[PSYCHOLOGY: Customer is inquiring about bulk/resale quantities. Offer tier pricing advantages and direct business support.]';
@@ -455,20 +464,22 @@ const PromptInjectionShield = {
 
 // ─── 8. Ultra-Fast Zero-Latency Hybrid Fast-Cache Intent Engine ───────────────
 const HybridFastCacheEngine = {
-  resolve(text, business = {}, products = [], detectedLang = 'Sinhala') {
+  resolve(text, business = {}, products = [], detectedLang = 'Sinhala', settings = null) {
     if (!text || typeof text !== 'string') return null;
     if (text.includes('[📷 Image Content:') || text.includes('[Image Sent:') || text.includes('[Customer Sent an Image]') || text.trim().startsWith('📷')) {
       return null;
     }
     const clean = text.trim().toLowerCase();
     const isEnglish = detectedLang === 'English';
+    const deliveryEnabled = isDeliveryEnabled(settings);
     const bizName = business.name || 'OmniSix AI Software';
     const isSoftware = (business.category === 'software' || business.id === 'software' || business.id === 'omnisix' || business.id === 'weddingarts' || (bizName || '').toLowerCase().includes('software') || (bizName || '').toLowerCase().includes('omnisix'));
 
     // 1. Pricing / Packages / Plans Inquiry (Flexible match anywhere in message)
-    const isPricingQuery = /(price|pricing|mila|gana|ganan|package|packages|plans|plan|cost|charges|fees|rental|monthly|starter|enterprise|how much|kotcharada)/i.test(clean);
+    const isPricingQuery = /(price|pricing|mila|gana|ganan|package|packages|plans|plan|cost|charges|fees|rental|monthly|starter|enterprise|how much|kotcharada|kiyada|keeyada)/i.test(clean);
+    const isExplicitDeliveryOrCod = /(cash on delivery|cod thiyenawada|cod puluwanda|\bcod\b|delivery|deliver|courier|ewanne kohomada|dawas kiyak|delivery charges|delivery fee)/i.test(clean);
 
-    if (isPricingQuery) {
+    if (isPricingQuery && !isExplicitDeliveryOrCod) {
       if (isSoftware) {
         if (isEnglish) {
           return `💼 *${bizName} — Cloud AI SaaS Pricing Plans:*\n\n` +
@@ -495,6 +506,9 @@ const HybridFastCacheEngine = {
 
       if (Array.isArray(products) && products.length > 0) {
         const topProds = products.slice(0, 5).map(p => `• *${p.name}:* රු. ${(p.price || 0).toLocaleString()} ${p.description ? `(${p.description.slice(0, 45)})` : ''}`).join('\n');
+        if (!deliveryEnabled) {
+          return `🏷️ *${bizName} — භාණ්ඩ හා මිල ගණන් ලැයිස්තුව:*\n\n${topProds}\n\n${buildOwnerOrderShortCta(business, settings, detectedLang)}`;
+        }
         return `🏷️ *${bizName} — භාණ්ඩ හා මිල ගණන් ලැයිස්තුව:*\n\n${topProds}\n\n📦 Islandwide Cash on Delivery (COD) පහසුකම ඇත.\nඇණවුම් කිරීමට හෝ විස්තර දැනගැනීමට කැමති භාණ්ඩයේ නම එවන්න. 😊`;
       }
     }
@@ -564,8 +578,12 @@ No credit card required. Instant activation! 😊`;
       return `💳 *මුදල් ගෙවීම් සඳහා නිල බැංකු විස්තර:*\n\n${bDetails}\n\n📌 මුදල් තැන්පත් කළ පසු රිසිට්පතේ (Slip/Screenshot) පැහැදිලි ඡායාරූපයක් මෙහි එවන්න. එවිට ඔබගේ ඇණවුම/ගිණුම සක්‍රීය කරනු ලැබේ. ස්තූතියි!`;
     }
 
-    // 5. Delivery / COD Inquiry
-    if (/(cash on delivery|cod thiyenawada|cod puluwanda|delivery|deliver|courier|ewanne kohomada|dawas kiyak|delivery charges|delivery fee)/i.test(clean)) {
+    // 5. Delivery / COD / Order Placement Inquiry
+    const isOrderIntent = /(\border\b|order ekak|order karanna|order danna|how to order|place order|\bganna\b|ganna one|gannada|\bbuy\b|\bpurchase\b|ඇණවුම්)/i.test(clean);
+    if (isExplicitDeliveryOrCod || (!deliveryEnabled && isOrderIntent)) {
+      if (!deliveryEnabled) {
+        return buildOwnerOrderReferralReply(business, settings, detectedLang);
+      }
       if (isEnglish) {
         return `🚚 *Delivery & Payment Options:*\n\n` +
           `• *Islandwide Cash on Delivery (COD):* Available for all main regions.\n` +

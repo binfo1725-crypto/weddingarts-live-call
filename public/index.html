@@ -864,7 +864,7 @@
     <nav class="quick-chips">
       <button class="chip-btn" onclick="sendQuickPrompt('UV Frame මිල ගණන් සහ ප්‍රමාණ මොනවද?')">🖼️ UV Frame මිල</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Photo Editing පැකේජ විස්තර කියන්න')">🎨 Photo Editing</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('Delivery කරන්නේ කොහොමද? Free delivery තියෙනවද?')">🚚 Delivery විස්තර</button>
+      <button class="chip-btn" id="chip-delivery-info" onclick="sendQuickPrompt('Delivery කරන්නේ කොහොමද? Free delivery තියෙනවද?')">🚚 Delivery විස්තර</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Bank details සහ ගෙවීම් විස්තර ලබා දෙන්න')">💳 Bank Details</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Order එකක් දාන්න අවශ්‍ය විස්තර මොනවද?')">📦 Order දැමීම</button>
     </nav>
@@ -929,6 +929,14 @@ const VOICE_NAME = decodeURIComponent(params.get('v') || 'Leda');
 // Set Brand & Labels
 document.getElementById('store-name-label').innerHTML = `${STORE_NAME.toUpperCase().split(' ')[0]} <span>${STORE_NAME.toUpperCase().split(' ').slice(1).join(' ') || 'AI'}</span>`;
 document.getElementById('customer-label').textContent = `👤 ${CUSTOMER_NAME}`;
+
+// Sync public delivery-details setting so disabled stores hide delivery prompt chip
+fetch('/api/business').then(r => r.json()).then(d => {
+  if (d && d.active && d.active.isDeliveryDetailsEnabled === false) {
+    const delChip = document.getElementById('chip-delivery-info');
+    if (delChip) delChip.style.display = 'none';
+  }
+}).catch(() => {});
 
 // Populate 24 Equalizer Bars
 const eqWrap = document.getElementById('eq-spectrum');

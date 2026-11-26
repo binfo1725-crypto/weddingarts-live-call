@@ -111,6 +111,8 @@ const DEFAULT_SETTINGS = {
   languageReplyMode: 'smart_match', // 'smart_match', 'sinhala_script_only', 'english_only', 'tamil_only'
   // Interactive WhatsApp Buttons & Quick Action Menus
   isInteractiveButtonsEnabled: true,
+  // Delivery Details & Order Checkout Toggle (true = collect delivery/checkout; false = refer orders to owner number)
+  isDeliveryDetailsEnabled: true,
   // Customer Self-Service Gemini API Key
   geminiApiKey: ''
 };
@@ -232,6 +234,7 @@ class Database {
         this.initMongo().catch(() => {});
       }
     }, delayMs);
+    if (this._mongoRetryTimer.unref) this._mongoRetryTimer.unref();
   }
 
   // ─── Native MongoDB Atlas Integration ─────────────────────────────────────────
@@ -837,11 +840,17 @@ class Database {
 
   // ─── Store & AI Persona Settings (From APK) ──────────────────────────────────
   getSettings() {
-    return this.data.settings || DEFAULT_SETTINGS;
+    if (!this.data.settings) {
+      this.data.settings = { ...DEFAULT_SETTINGS };
+    } else if (this.data.settings.isDeliveryDetailsEnabled === undefined) {
+      this.data.settings.isDeliveryDetailsEnabled = true;
+    }
+    return this.data.settings;
   }
 
   updateSettings(updates) {
-    this.data.settings = { ...this.data.settings, ...updates };
+    const current = this.getSettings();
+    this.data.settings = { ...current, ...updates };
     this.save();
     return this.data.settings;
   }
@@ -852,12 +861,16 @@ class Database {
     const biz = this.getBusiness(businessId);
     if (!biz) return this.getSettings();
     if (!biz.settings) {
+      const globalSettings = this.getSettings();
       biz.settings = {
         ...DEFAULT_SETTINGS,
+        isDeliveryDetailsEnabled: globalSettings.isDeliveryDetailsEnabled !== false,
         aiName: `${biz.name} AI`,
         voiceReplyMode: 'auto'
       };
       this.save();
+    } else if (biz.settings.isDeliveryDetailsEnabled === undefined) {
+      biz.settings.isDeliveryDetailsEnabled = true;
     }
     return biz.settings;
   }
@@ -2436,4 +2449,5 @@ const SUBSCRIPTION_PLANS = {
 
 const db = new Database();
 db.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
+db.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
 module.exports = db;

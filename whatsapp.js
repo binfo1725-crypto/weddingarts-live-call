@@ -18,6 +18,13 @@ const fs = require('fs');
 const db = require('./db.js');
 const { LanguageDetectionEngine } = require('./ai_engines.js');
 const { verifyBankSlipWithGeminiVision } = require('./slipVerifier.js');
+const {
+  isDeliveryEnabled,
+  buildQuickOrderReply,
+  buildQuickCatalogReply,
+  buildProductPhotoCaption,
+  buildQuickActionsMenu
+} = require('./deliveryPolicyHelper.js');
 
 const AUTH_BASE = path.join(__dirname, 'data');
 const DEFAULT_AUTH_DIR = path.join(AUTH_BASE, 'baileys_auth');
@@ -415,21 +422,16 @@ class WhatsAppAccountSession {
             }
 
             // 🔘 Fast-Track Interactive Quick Actions (Buttons & Number Replies)
+            const bizSettings = (db.getTenantSettings && db.getTenantSettings(activeBiz.id)) || db.getSettings();
+            const quickLang = LanguageDetectionEngine.detectLanguage(cleanText, chat?.messages || []);
             if (cleanText === '1' || lowerText === 'action_catalog' || lowerText === 'catalog' || lowerText === 'menu' || lowerText === 'භාණ්ඩ' || lowerText === 'මිල ගණන්') {
               const storeProds = db.getProducts(activeBiz.id) || [];
               if (storeProds.length > 0) {
-                let catMsg = `📦 *${activeBiz.name} — Products & Pricing Catalog:*\n\n`;
-                storeProds.slice(0, 8).forEach((p, idx) => {
-                  catMsg += `${idx + 1}. *${p.name}* — Rs. ${(p.price || 0).toLocaleString()}\n`;
-                  if (p.description) catMsg += `   _${p.description}_\n`;
-                });
-                catMsg += `\n🚚 *Delivery:* ${activeBiz.deliveryPolicy || 'දිවයින පුරා බෙදාහැරීම දින 2-3ක් ඇතුළත'}\n`;
-                catMsg += `\n💬 *ඕනෑම භාණ්ඩයක Photo එකක් බැලීමට* භාණ්ඩයේ නම එවන්න (උදා: "Photo")\n🛒 *ඇණවුම් කිරීමට* "2" හෝ "Order" ලෙස එවන්න!`;
-                aiReply = catMsg;
+                aiReply = buildQuickCatalogReply(activeBiz, storeProds, bizSettings, quickLang);
                 isQuickActionHandled = true;
               }
             } else if (cleanText === '2' || lowerText === 'action_order' || lowerText === 'order' || lowerText === 'order now' || lowerText === 'ඇණවුම්' || lowerText === 'buy') {
-              aiReply = `🛒 *${activeBiz.name} — Fast Order Placement:*\n\nඔබගේ ඇණවුම අදම තහවුරු කිරීමට කරුණාකර පහත විස්තර 4 එවන්න:\n\n1️⃣ *ඔබගේ නම (Full Name):*\n2️⃣ *අවශ්‍ය භාණ්ඩය සහ ප්‍රමාණය (Item & Qty):*\n3️⃣ *ලැබිය යුතු ලිපිනය (Delivery Address):*\n4️⃣ *දුරකථන අංක 1 හෝ 2ක් (Phone Numbers):*\n\n🏦 *බැංකු ගිණුම් විස්තර:*\n${activeBiz.bankDetails || 'ගිණුම් විස්තර සඳහා විමසන්න'}\n\n_ස්ලිප් පතක් හෝ Cash on Delivery (COD) මගින් ලබාගත හැක. විස්තර ලැබුණු සැණින් අපගේ Dispatch කණ්ඩායම පැකේජය සූදානම් කරනු ඇත!_ 🚚✨`;
+              aiReply = buildQuickOrderReply(activeBiz, bizSettings, quickLang);
               isQuickActionHandled = true;
             } else if (cleanText === '3' || lowerText === 'action_agent' || lowerText === 'agent' || lowerText === 'human' || lowerText === 'talk to agent' || lowerText === 'මිනිසෙකු') {
               aiReply = `👤 *Human Agent Connection:*\n\nඅපගේ පාරිභෝගික සේවා නිලධාරියෙකු (Human Support Agent) සුළු මොහොතකින් ඔබ හා සෘජුව සම්බන්ධ වනු ඇත. කරුණාකර රැඳී සිටින්න. 🙏`;
@@ -538,9 +540,7 @@ class WhatsAppAccountSession {
               let sentImgCount = 0;
               for (let i = 0; i < allImages.length; i++) {
                 const imgUrl = allImages[i];
-                const photoCaption = (i === 0)
-                  ? `📸 *${matchedProductToSend.name}*${allImages.length > 1 ? ` (Photo 1/${allImages.length})` : ''}\n💰 මිල: Rs. ${(matchedProductToSend.price || 0).toLocaleString()}\n${matchedProductToSend.description ? matchedProductToSend.description + '\n' : ''}📦 ඇණවුම් කිරීමට ඔබගේ නම සහ ලිපිනය එවන්න.`
-                  : `📸 *${matchedProductToSend.name}* (${i + 1}/${allImages.length})`;
+                const photoCaption = buildProductPhotoCaption(matchedProductToSend, i, allImages.length, activeBiz, bizSettings, quickLang);
                 const sendRes = await this.sendImageMessage(remoteJid, imgUrl, photoCaption);
                 if (sendRes && sendRes.ok) sentImgCount++;
                 if (i < allImages.length - 1) await delay(700);
@@ -572,16 +572,7 @@ class WhatsAppAccountSession {
               const isFirstConversationTurn = priorAiMsgs.length === 0;
               const isMenuReq = /^(menu|help|options|actions|list|1|2|3)$/i.test(text.trim());
               if ((isFirstConversationTurn || isMenuReq) && settings.isInteractiveButtonsEnabled !== false && !isQuickActionHandled) {
-                let quickMenu = '';
-                if (effectiveLang === 'English') {
-                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Reply Number):*\n1️⃣ *View Full Catalog & Prices*\n2️⃣ *Confirm Order & Delivery*\n3️⃣ *Connect with Human Agent*';
-                } else if (effectiveLang === 'Tamil' || effectiveLang === 'Tanglish') {
-                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *விரைவு தேர்வுகள் (எண்ணை அனுப்பவும்):*\n1️⃣ *தயாரிப்பு பட்டியல் & விலை*\n2️⃣ *ஆர்டரை உறுதிப்படுத்தவும்*\n3️⃣ *மனித சேவையாளருடன் பேசவும்*';
-                } else if (effectiveLang === 'Singlish') {
-                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *Quick Actions (Number eka reply karanna):*\n1️⃣ *Catalog & Price List balanna*\n2️⃣ *Order eka Confirm karanna*\n3️⃣ *Agent kenek ekka katha karanna*';
-                } else {
-                  quickMenu = '\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ *ක්ෂණික ක්‍රියාකාරකම් (අංකය එවන්න):*\n1️⃣ *භාණ්ඩ නාමාවලිය සහ මිල ගණන්*\n2️⃣ *ඇණවුම තහවුරු කිරීම (Order Now)*\n3️⃣ *පාරිභෝගික සේවා නිලධාරියෙකු ඇමතීම*';
-                }
+                const quickMenu = buildQuickActionsMenu(effectiveLang, isDeliveryEnabled(settings));
                 if (!aiReply.includes('1️⃣') && !aiReply.includes('Quick Actions') && !aiReply.includes('ක්‍රියාකාරකම්')) {
                   aiReply += quickMenu;
                 }
@@ -971,12 +962,13 @@ class MultiAccountWhatsAppManager {
     this.voiceSynthesizeHandler = null;
 
     // Auto-clean deduplication cache every 5 minutes
-    setInterval(() => {
+    const dedupCleanupTimer = setInterval(() => {
       const now = Date.now();
       for (const [id, ts] of this.processedMessageIds.entries()) {
         if (now - ts > 10 * 60 * 1000) this.processedMessageIds.delete(id);
       }
     }, 5 * 60 * 1000);
+    if (dedupCleanupTimer.unref) dedupCleanupTimer.unref();
   }
 
   isMessageProcessed(msgId) {
