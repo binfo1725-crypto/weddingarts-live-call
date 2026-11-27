@@ -19,6 +19,7 @@ const db = require('./db.js');
 const { LanguageDetectionEngine } = require('./ai_engines.js');
 const { verifyBankSlipWithGeminiVision } = require('./slipVerifier.js');
 const mediaStore = require('./mediaStore.js');
+const { extractStructuredOrderFromText } = require('./aiAdvancedFeatures.js');
 const {
   isDeliveryEnabled,
   buildQuickOrderReply,
@@ -399,6 +400,10 @@ class WhatsAppAccountSession {
             const storedText = isVoiceNote
               ? `🎤 ${text.trim()}`
               : (isImage ? (customerOriginalCaption ? `📷 ${customerOriginalCaption}` : '📷 [Customer Sent an Image]') : text.trim());
+            const preSettings = (db.getTenantSettings && db.getTenantSettings(activeBiz.id)) || db.getSettings();
+            const voiceExtractedOrder = isVoiceNote
+              ? await extractStructuredOrderFromText(text.trim(), db.getProducts(activeBiz.id), preSettings?.geminiApiKey).catch(() => null)
+              : null;
             db.addChatMessage(
               senderPhone,
               'customer',
@@ -413,6 +418,7 @@ class WhatsAppAccountSession {
                 remoteJid: remoteJid,
                 channel: 'whatsapp',
                 ...(savedInboundMedia ? { mediaUrl: savedInboundMedia.url } : {}),
+                ...(voiceExtractedOrder ? { extractedOrder: voiceExtractedOrder } : {}),
                 ...(isVoiceNote ? { mimeType: cleanAudioMime, ...(inlineAudioB64 ? { audioBase64: inlineAudioB64 } : {}) } : {}),
                 ...(isImage && rawImgBase64 ? { imageMimeType: rawImgMime, ...(inlineImgB64 ? { imageBase64: inlineImgB64 } : {}), visionSummary: imageVisionDescription || null } : {})
               }

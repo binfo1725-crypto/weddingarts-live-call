@@ -1212,6 +1212,7 @@ class Database {
       mediaUrl: extra.mediaUrl || null,
       channel: extra.channel || null,
       visionSummary: extra.visionSummary || null,
+      ...(extra.extractedOrder ? { extractedOrder: extra.extractedOrder } : {}),
       productId: extra.productId || null
     };
 

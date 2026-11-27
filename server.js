@@ -20,6 +20,7 @@ function renderFollowUpTemplate(template, lead, biz) {
 // Full Dataset Integration + Instant Full-Duplex Barge-in + Gemini 3.5 Flash & Aoede Voice
 
 require('dotenv').config();
+const aiAdv = require('./aiAdvancedFeatures.js');
 
 // ─── Top-Level Crash Resilience & Process Guards ─────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -1312,6 +1313,120 @@ app.post('/api/orders/delete', requireSessionAuth, (req, res) => {
   const { id } = req.body;
   db.deleteOrder(id);
   res.json({ ok: true });
+});
+
+// ─── 🧠 Next-Gen Advance AI Suite Endpoints ──────────────────────────────────
+app.post('/api/ai/copilot', requireSessionAuth, async (req, res) => {
+  try {
+    const { chatId, draftText, mode } = req.body || {};
+    const bId = resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const chat = chatId ? db.getChat(chatId) : null;
+    if (chat && !isOwnedByCaller(req, chat)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant chat access denied.' });
+    }
+    const result = await aiAdv.generateCopilotSuggestions({
+      chat,
+      business: biz,
+      settings,
+      draftText: draftText || '',
+      mode: mode || 'suggest'
+    });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/ai/photo-to-product', requireSessionAuth, async (req, res) => {
+  try {
+    const { dataUrl, base64Data, mimeType } = req.body || {};
+    const imgData = dataUrl || base64Data;
+    if (!imgData) return res.status(400).json({ ok: false, error: 'dataUrl or base64Data required' });
+    const bId = resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const product = await aiAdv.generateProductFromImage(
+      imgData,
+      mimeType || 'image/jpeg',
+      biz.name,
+      settings.geminiApiKey || biz.geminiApiKey
+    );
+    res.json({ ok: true, product });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/ai/ask-data', requireSessionAuth, async (req, res) => {
+  try {
+    const { question } = req.body || {};
+    if (!question || !String(question).trim()) {
+      return res.status(400).json({ ok: false, error: 'question required' });
+    }
+    const bId = resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    const result = await aiAdv.answerBusinessDataQuery(
+      question,
+      {
+        orders: db.getOrders(bId),
+        products: db.getProducts(bId),
+        chats: db.getChats(bId),
+        leads: db.getLeads ? db.getLeads(bId) : []
+      },
+      settings.geminiApiKey || biz.geminiApiKey
+    );
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/ai/insights', requireSessionAuth, (req, res) => {
+  try {
+    const bId = resolveReqBusinessId(req);
+    const orders = db.getOrders(bId);
+    const products = db.getProducts(bId);
+    const chats = db.getChats(bId);
+    res.json({
+      ok: true,
+      forecast: aiAdv.computeDemandForecast(orders, products, chats),
+      clv: aiAdv.computeCustomerClvScores(orders, chats),
+      pricing: aiAdv.computePriceElasticityAdvice(orders, products, chats)
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/ai/extract-order', requireSessionAuth, async (req, res) => {
+  try {
+    const { text, chatId } = req.body || {};
+    const bId = resolveReqBusinessId(req);
+    const biz = db.getBusiness(bId) || db.getActiveBusiness();
+    const settings = db.getTenantSettings(biz.id) || db.getSettings();
+    let targetText = String(text || '').trim();
+    if (!targetText && chatId) {
+      const chat = db.getChat(chatId);
+      if (chat && !isOwnedByCaller(req, chat)) {
+        return res.status(403).json({ ok: false, error: 'Forbidden' });
+      }
+      if (chat) {
+        const lastCust = [...(chat.messages || [])].reverse().find(m => m.sender === 'customer');
+        targetText = lastCust ? lastCust.text : '';
+      }
+    }
+    const extracted = await aiAdv.extractStructuredOrderFromText(
+      targetText,
+      db.getProducts(bId),
+      settings.geminiApiKey || biz.geminiApiKey
+    );
+    res.json({ ok: true, extracted });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ─── 🛒 Multi-Item Cart Order Endpoint ───────────────────────────────────────

@@ -3541,6 +3541,36 @@ table tr:hover td {
 
       </div>
 
+      <!-- 🧠 Next-Gen AI Business Analyst & Predictive Intelligence -->
+      <div style="background:linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.06));border:1px solid rgba(139,92,246,0.28);border-radius:16px;padding:20px;margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div>
+            <h3 style="margin:0;font-size:1.05rem;font-weight:800;color:#f8fafc;">🧠 Ask Your Data & Predictive AI Intelligence</h3>
+            <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">Stock Forecast • VIP & Churn CLV • Price Elasticity • Natural-Language Analytics</div>
+          </div>
+          <button type="button" class="btn-secondary" onclick="loadAiInsights()" style="padding:6px 12px;font-size:0.78rem;">🔄 Refresh AI Insights</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input type="text" id="ai-ask-input" class="form-input" placeholder="AI වෙතින් අසන්න: උදා. 'මේ මාසේ වැඩියෙන්ම sell වුනේ මොනවද?' හෝ 'Low stock items monawada?'" onkeydown="if(event.key==='Enter'){event.preventDefault();askAiBusinessAnalyst();}">
+          <button type="button" class="btn-primary" onclick="askAiBusinessAnalyst()" style="white-space:nowrap;padding:0 16px;">✨ Ask AI</button>
+        </div>
+        <div id="ai-ask-answer" class="hidden" style="background:#07080c;border:1px solid rgba(139,92,246,0.35);border-radius:10px;padding:12px 14px;font-size:0.84rem;color:#e2e8f0;line-height:1.5;margin-bottom:14px;white-space:pre-wrap;"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;">
+          <div style="background:#07080c;border:1px solid var(--card-border);border-radius:12px;padding:12px;">
+            <div style="font-size:0.8rem;font-weight:800;color:#fbbf24;margin-bottom:8px;">📦 Stock Demand Forecast</div>
+            <div id="ai-forecast-list" style="font-size:0.76rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:6px;">Loading...</div>
+          </div>
+          <div style="background:#07080c;border:1px solid var(--card-border);border-radius:12px;padding:12px;">
+            <div style="font-size:0.8rem;font-weight:800;color:#c084fc;margin-bottom:8px;">👑 Customer CLV & Churn Risk</div>
+            <div id="ai-clv-list" style="font-size:0.76rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:6px;">Loading...</div>
+          </div>
+          <div style="background:#07080c;border:1px solid var(--card-border);border-radius:12px;padding:12px;">
+            <div style="font-size:0.8rem;font-weight:800;color:#34d399;margin-bottom:8px;">💰 Price & Margin Advisor</div>
+            <div id="ai-pricing-list" style="font-size:0.76rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:6px;">Loading...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Recent Orders Stream -->
       <div>
         <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:12px;">Recent Orders Pipeline</h3>
@@ -3679,13 +3709,17 @@ table tr:hover td {
             </div>
           </div>
 
-          <!-- Quick Canned Snippets -->
+          <!-- Quick Canned Snippets & AI Copilot -->
           <div class="canned-snippets-bar" id="canned-snippets-bar">
             <button type="button" onclick="insertCannedSnippet('/bank')">🏦 Bank Details</button>
             <button type="button" onclick="insertCannedSnippet('/cod')">📦 COD Policy</button>
             <button type="button" onclick="insertCannedSnippet('/dispatch')">🚚 Courier Time</button>
             <button type="button" onclick="insertCannedSnippet('/thanks')">🙏 Sthuthiyi</button>
+            <button type="button" onclick="runInboxAiCopilot('suggest')" style="background:rgba(139,92,246,0.18);border-color:rgba(139,92,246,0.4);color:#ddd6fe;">✨ AI Suggest</button>
+            <button type="button" onclick="runInboxAiCopilot('polish')" style="background:rgba(16,185,129,0.16);border-color:rgba(16,185,129,0.4);color:#6ee7b7;">🪄 Polish Draft</button>
+            <button type="button" onclick="extractOrderFromActiveChat()" style="background:rgba(56,189,248,0.16);border-color:rgba(56,189,248,0.4);color:#7dd3fc;">⚡ Extract Order</button>
           </div>
+          <div id="copilot-suggestions-bar" class="hidden" style="padding:6px 14px;background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.22);display:flex;flex-wrap:wrap;gap:6px;align-items:center;"></div>
           <div class="chat-footer" style="gap:8px;flex-wrap:wrap;">
             <input type="text" class="chat-input" id="chat-reply-input" placeholder="Type reply directly to WhatsApp..." onkeydown="if(event.key==='Enter') sendAgentReply()">
             <button class="chat-send-btn" onclick="sendAgentReply()" style="display:inline-flex;align-items:center;gap:6px;">
@@ -5651,6 +5685,7 @@ table tr:hover td {
         <label class="form-label">Product Photos & Gallery (Multiple Images Supported — Auto-sends to WhatsApp)</label>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">📸 එක් භාණ්ඩයක් සඳහා ඡායාරූප කිහිපයක් (Front, Back, Real-life view) එකවර තෝරා හෝ එකින් එක Upload කරන්න.</div>
         <input type="file" id="mp-image-file" class="form-input" accept="image/*" multiple onchange="handleProductImageUpload(event)">
+        <button type="button" class="btn-secondary" onclick="autoFillProductFromPhoto()" style="margin-top:8px;padding:6px 12px;font-size:0.78rem;background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.4);color:#ddd6fe;">✨ AI Auto-Fill Name & Description from Photo</button>
         <input type="hidden" id="mp-image-data" value="">
         <div id="mp-images-gallery" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
       </div>
@@ -7351,6 +7386,7 @@ async function fetchOverview() {
           const pPct = Math.min(100, Math.round((prodCount / prodLimit) * 100));
           qProdBar.style.width = `${pPct}%`;
         }
+        if (typeof loadAiInsights === 'function') loadAiInsights();
       }
     }
 
@@ -8451,6 +8487,13 @@ function selectChat(chatId, fromPoll = false) {
         <span style="font-weight:750;color:#c4b5fd;">👁️ AI Vision Understanding:</span> ${escapeHtml(m.visionSummary)}
       </div>`;
     }
+    if (m.extractedOrder && (m.extractedOrder.item || m.extractedOrder.customerPhone)) {
+      const eo = m.extractedOrder;
+      visionHtml += `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);font-size:0.76rem;color:#d1fae5;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div><strong>⚡ Voice Order Detected:</strong> ${escapeHtml(eo.qty || 1)}x ${escapeHtml(eo.item || 'Item')} ${eo.customerPhone ? '• ' + escapeHtml(eo.customerPhone) : ''}</div>
+        <button type="button" class="btn-primary" style="padding:3px 9px;font-size:0.72rem;" onclick="createOrderFromExtracted('${escapeHtml(chat.id)}','${escapeHtml(m.id)}')">📦 Create Order</button>
+      </div>`;
+    }
 
     bubble.innerHTML = `
       <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;">
@@ -8853,6 +8896,150 @@ async function fetchBroadcasts() {
       </tr>`;
     }).join('');
   } catch (e) {}
+}
+
+// ─── 🧠 Next-Gen Advance AI UI Helpers ────────────────────────────────────────
+async function loadAiInsights() {
+  try {
+    const res = await fetch('/api/ai/insights');
+    const data = await res.json();
+    if (!data.ok) return;
+
+    const fBox = document.getElementById('ai-forecast-list');
+    if (fBox) {
+      const items = (data.forecast || []).slice(0, 4);
+      fBox.innerHTML = items.length ? items.map(f => {
+        const badge = f.riskLevel === 'CRITICAL' ? '🔴 CRITICAL' : (f.riskLevel === 'WARNING' ? '🟡 LOW' : (f.riskLevel === 'HEALTHY' ? '🟢 OK' : '⚪ Untracked'));
+        return `<div><strong>${escapeHtml(f.name)}</strong> • ${badge}${f.daysUntilStockout !== null ? ` (~${f.daysUntilStockout}d left)` : ''}${f.recommendedRestockQty > 0 ? ` • Restock +${f.recommendedRestockQty}` : ''}</div>`;
+      }).join('') : '<div>No catalog items yet.</div>';
+    }
+
+    const cBox = document.getElementById('ai-clv-list');
+    if (cBox) {
+      const items = (data.clv || []).slice(0, 4);
+      cBox.innerHTML = items.length ? items.map(c =>
+        `<div><strong>${escapeHtml(c.customerName)}</strong> (${escapeHtml(c.segment)}) • Rs. ${Number(c.totalSpent || 0).toLocaleString()} • Score ${c.clvScore}</div>`
+      ).join('') : '<div>No customer orders yet.</div>';
+    }
+
+    const pBox = document.getElementById('ai-pricing-list');
+    if (pBox) {
+      const items = (data.pricing || []).slice(0, 4);
+      pBox.innerHTML = items.length ? items.map(p =>
+        `<div><strong>${escapeHtml(p.name)}</strong> • Rs. ${Number(p.currentPrice || 0).toLocaleString()} → Opt: <strong>Rs. ${Number(p.optimalPrice || 0).toLocaleString()}</strong></div>`
+      ).join('') : '<div>No pricing data yet.</div>';
+    }
+  } catch (_) {}
+}
+
+async function askAiBusinessAnalyst() {
+  const inp = document.getElementById('ai-ask-input');
+  const box = document.getElementById('ai-ask-answer');
+  const q = (inp?.value || '').trim();
+  if (!q || !box) return;
+  box.classList.remove('hidden');
+  box.textContent = '🧠 Analyzing live store data...';
+  try {
+    const res = await fetch('/api/ai/ask-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    box.textContent = data.ok ? data.answer : ('⚠️ ' + (data.error || 'Failed'));
+  } catch (e) { box.textContent = '⚠️ ' + e.message; }
+}
+
+async function runInboxAiCopilot(mode) {
+  const input = document.getElementById('chat-reply-input');
+  const bar = document.getElementById('copilot-suggestions-bar');
+  const draft = (input?.value || '').trim();
+  if (mode === 'polish' && !draft) {
+    alert('කරුණාකර මුලින් කෙටි reply එකක් type කරන්න!');
+    return;
+  }
+  try {
+    const res = await fetch('/api/ai/copilot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: activeChatId, draftText: draft, mode })
+    });
+    const data = await res.json();
+    if (!data.ok) return;
+    if (mode === 'polish' && data.polished && input) {
+      input.value = data.polished;
+      input.focus();
+    } else if (bar && Array.isArray(data.suggestions)) {
+      bar.classList.remove('hidden');
+      bar.innerHTML = '<span style="font-size:0.72rem;font-weight:700;color:#c4b5fd;">✨ AI Copilot:</span>' +
+        data.suggestions.map(s => `<button type="button" class="btn-secondary" style="padding:4px 9px;font-size:0.74rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(s.text)}" onclick="document.getElementById('chat-reply-input').value=this.title;document.getElementById('chat-reply-input').focus();"><strong>${escapeHtml(s.label)}:</strong> ${escapeHtml(s.text)}</button>`).join('');
+    }
+  } catch (_) {}
+}
+
+async function extractOrderFromActiveChat() {
+  if (!activeChatId) return alert('Select a chat first!');
+  try {
+    const res = await fetch('/api/ai/extract-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: activeChatId })
+    });
+    const data = await res.json();
+    if (!data.ok || !data.extracted) return alert('Could not detect order details in the latest message.');
+    await createOrderFromData(data.extracted);
+  } catch (e) { alert('Extract error: ' + e.message); }
+}
+
+async function createOrderFromExtracted(chatId, msgId) {
+  const chat = (allChats || []).find(c => c.id === chatId);
+  const msg = chat && (chat.messages || []).find(m => m.id === msgId);
+  if (!msg || !msg.extractedOrder) return;
+  await createOrderFromData(msg.extractedOrder, chat);
+}
+
+async function createOrderFromData(eo, chatObj = null) {
+  const chat = chatObj || (allChats || []).find(c => c.id === activeChatId);
+  const item = (eo.qty && eo.qty > 1 ? `${eo.qty}x ` : '') + (eo.item || 'Custom Order');
+  if (!confirm(`Create Order?\nItem: ${item}\nCustomer: ${eo.customerName || chat?.customerName || 'Customer'}\nPhone: ${eo.customerPhone || chat?.customerPhone || ''}\nTotal: Rs. ${eo.amount || 0}`)) return;
+  const res = await fetch('/api/orders/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customerName: eo.customerName || chat?.customerName || 'Customer',
+      customerPhone: eo.customerPhone || chat?.customerPhone || '',
+      address: eo.address || 'To be confirmed',
+      item,
+      amount: eo.amount || 0,
+      source: 'AI Voice-to-Order'
+    })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    alert(`✅ Order #${data.order.id} created cleanly!`);
+    fetchOverview();
+  }
+}
+
+async function autoFillProductFromPhoto() {
+  const firstImg = (typeof currentProductImages !== 'undefined' && currentProductImages[0]) || '';
+  if (!firstImg) return alert('මුලින් Product Photo එකක් upload කරන්න!');
+  try {
+    const res = await fetch('/api/ai/photo-to-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl: firstImg })
+    });
+    const data = await res.json();
+    if (data.ok && data.product) {
+      const p = data.product;
+      if (p.name && !document.getElementById('mp-name').value) document.getElementById('mp-name').value = p.name;
+      if (p.category && !document.getElementById('mp-category').value) document.getElementById('mp-category').value = p.category;
+      if (p.description) document.getElementById('mp-desc').value = p.description;
+      if (p.suggestedPrice && !document.getElementById('mp-price').value) document.getElementById('mp-price').value = p.suggestedPrice;
+      alert('✨ AI Auto-Filled Product details from photo!');
+    }
+  } catch (e) { alert('Auto-fill error: ' + e.message); }
 }
 
 // ─── Digital Invoice Modal (Feature 1) ───────────────────────────────────────
