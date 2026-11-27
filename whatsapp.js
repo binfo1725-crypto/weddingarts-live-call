@@ -612,7 +612,7 @@ class WhatsAppAccountSession {
 
                 if (voiceMode === 'both' || !isVoiceNote) {
                   await delay(600);
-                  await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
+                  await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang, settings);
                 }
 
                 const savedAiVoice = await mediaStore.saveMedia(voiceBuf, voiceMimeType, {
@@ -633,7 +633,7 @@ class WhatsAppAccountSession {
                 await delay(600);
                 await this.sock.sendPresenceUpdate('paused', remoteJid);
 
-                await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang);
+                await this.sendInteractiveMessage(remoteJid, aiReply, effectiveLang, settings);
                 console.log(`[whatsapp-acc:${this.id}] 🤖 Replied [${detectedL}] to ${senderPhone}: "${aiReply.slice(0, 50)}..."`);
 
                 db.addChatMessage(senderPhone, 'ai', aiReply, senderName, senderPhone, activeBiz.id, { accountId: this.id, accountPhone: this.phoneNumber || '', accountLabel: this.label || '', channel: 'whatsapp' });
@@ -675,20 +675,24 @@ class WhatsAppAccountSession {
     }
   }
 
-  async sendInteractiveMessage(remoteJid, text, detectedLang = 'Sinhala') {
+  async sendInteractiveMessage(remoteJid, text, detectedLang = 'Sinhala', settings = null) {
     if (!this.sock || !this.connected) return { ok: false, error: 'Not connected' };
     const jid = remoteJid.includes('@') ? remoteJid : `${remoteJid.replace(/\D/g, '')}@s.whatsapp.net`;
 
     try {
-      const btn1 = detectedLang === 'English' ? '📦 View Catalog' : (detectedLang === 'Singlish' ? '📦 Catalog' : (detectedLang === 'Tamil' ? '📦 பட்டியல்' : '📦 භාණ්ඩ ලැයිස්තුව'));
-      const btn2 = detectedLang === 'English' ? '🛒 Order Now' : (detectedLang === 'Singlish' ? '🛒 Order Now' : (detectedLang === 'Tamil' ? '🛒 ஆர்டர்' : '🛒 ඇණවුම් කරන්න'));
-      const btn3 = detectedLang === 'English' ? '👤 Human Agent' : (detectedLang === 'Singlish' ? '👤 Agent' : (detectedLang === 'Tamil' ? '👤 வாடிக்கையாளர் சேவை' : '👤 සේවා නිලධාරී'));
+      const resolved = this.manager && typeof this.manager.resolveAgentQuickButtons === 'function'
+        ? this.manager.resolveAgentQuickButtons(settings, detectedLang)
+        : [];
+      if (!resolved.length) {
+        await this.sock.sendMessage(jid, { text });
+        return { ok: true };
+      }
 
-      const buttons = [
-        { buttonId: 'ACTION_CATALOG', buttonText: { displayText: btn1 }, type: 1 },
-        { buttonId: 'ACTION_ORDER', buttonText: { displayText: btn2 }, type: 1 },
-        { buttonId: 'ACTION_AGENT', buttonText: { displayText: btn3 }, type: 1 }
-      ];
+      const buttons = resolved.map((b, idx) => ({
+        buttonId: String(b.id || `QUICK_BTN_${idx + 1}`),
+        buttonText: { displayText: String(b.label).slice(0, 20) },
+        type: 1
+      }));
 
       await this.sock.sendMessage(jid, {
         text,
@@ -1245,6 +1249,43 @@ class MultiAccountWhatsAppManager {
     }
   }
 
+  async sendMetaCloudInteractiveMessage(toPhone, text, buttons = [], metaCfg) {
+    try {
+      const cfg = metaCfg || db.getSettings()?.metaCloudApi;
+      if (!cfg || !cfg.phoneNumberId || !cfg.token) {
+        return { ok: false, error: 'Meta Cloud API credentials missing' };
+      }
+      const bodyText = String(text || '');
+      const validButtons = Array.isArray(buttons) ? buttons.filter(b => b && String(b.label || '').trim()).slice(0, 3) : [];
+      if (!validButtons.length || bodyText.length > 1024) {
+        return await this.sendMetaCloudMessage(toPhone, bodyText, cfg);
+      }
+      const payload = this.manager && typeof this.manager.buildMetaInteractivePayload === 'function'
+        ? this.manager.buildMetaInteractivePayload(toPhone, bodyText, validButtons)
+        : null;
+      if (!payload) {
+        return await this.sendMetaCloudMessage(toPhone, bodyText, cfg);
+      }
+      const url = `https://graph.facebook.com/v20.0/${cfg.phoneNumberId}/messages`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${cfg.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(12000)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return await this.sendMetaCloudMessage(toPhone, bodyText, cfg);
+      }
+      return { ok: true, id: data?.messages?.[0]?.id, provider: 'meta_cloud_api', interactive: true };
+    } catch (e) {
+      return await this.sendMetaCloudMessage(toPhone, text, metaCfg);
+    }
+  }
+
   async sendMetaCloudImage(toPhone, imageInput, caption = '', metaCfg) {
     try {
       const cfg = metaCfg || db.getSettings()?.metaCloudApi;
@@ -1673,6 +1714,62 @@ class MultiAccountWhatsAppManager {
     }
   }
 
+
+  resolveAgentQuickButtons(settings = null, detectedLang = 'Sinhala') {
+    const s = settings || db.getSettings() || {};
+    if (s.isInteractiveButtonsEnabled === false) return [];
+    const custom = Array.isArray(s.agentQuickButtons)
+      ? s.agentQuickButtons.filter(b => b && String(b.label || '').trim()).slice(0, 3)
+      : [];
+    if (custom.length > 0) {
+      return custom.map((b, idx) => ({
+        id: String(b.id || `QUICK_BTN_${idx + 1}`).slice(0, 64),
+        label: String(b.label).trim().slice(0, 20),
+        action: String(b.action || b.label).trim().slice(0, 120)
+      }));
+    }
+    const btn1 = detectedLang === 'English' ? '📦 View Catalog' : (detectedLang === 'Singlish' ? '📦 Catalog' : (detectedLang === 'Tamil' ? '📦 பட்டியல்' : '📦 භාණ්ඩ ලැයිස්තුව'));
+    const btn2 = detectedLang === 'English' ? '🛒 Order Now' : (detectedLang === 'Singlish' ? '🛒 Order Now' : (detectedLang === 'Tamil' ? '🛒 ஆர்டர்' : '🛒 ඇණවුම් කරන්න'));
+    const btn3 = detectedLang === 'English' ? '👤 Human Agent' : (detectedLang === 'Singlish' ? '👤 Agent' : (detectedLang === 'Tamil' ? '👤 வாடிக்கையாளர் சேவை' : '👤 සේවා නිලධාරී'));
+    return [
+      { id: 'ACTION_CATALOG', label: btn1.slice(0, 20), action: 'Show product catalog & prices' },
+      { id: 'ACTION_ORDER', label: btn2.slice(0, 20), action: 'I want to place an order' },
+      { id: 'ACTION_AGENT', label: btn3.slice(0, 20), action: 'Connect me with a human agent' }
+    ];
+  }
+
+  buildMetaInteractivePayload(toPhone, text, buttons = []) {
+    const cleanTo = String(toPhone || '').split('@')[0].replace(/\D/g, '');
+    const valid = (Array.isArray(buttons) ? buttons : []).filter(b => b && String(b.label || '').trim()).slice(0, 3);
+    return {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanTo,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: String(text || '').slice(0, 1024) },
+        footer: { text: 'OmniSix AI Cloud 24/7' },
+        action: {
+          buttons: valid.map((b, idx) => ({
+            type: 'reply',
+            reply: {
+              id: String(b.id || `QUICK_BTN_${idx + 1}`).slice(0, 256),
+              title: String(b.label).trim().slice(0, 20)
+            }
+          }))
+        }
+      }
+    };
+  }
+
+  async sendMetaCloudInteractiveMessage(toPhone, text, buttons = [], metaCfg) {
+    const primary = this.getSession('default') || [...this.sessions.values()][0];
+    if (primary) {
+      return await primary.sendMetaCloudInteractiveMessage(toPhone, text, buttons, metaCfg);
+    }
+    return { ok: false, error: 'No WhatsApp session initialized' };
+  }
 
   // Backwards compatibility properties
   get connected() {

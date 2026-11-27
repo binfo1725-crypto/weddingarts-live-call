@@ -172,44 +172,79 @@
     };
   }
 
+  function appendQuickButtons(buttons) {
+    if (!chatStream || !Array.isArray(buttons) || !buttons.length) return;
+    var oldBars = chatStream.querySelectorAll('.omnisix-quick-btns');
+    for (var i = 0; i < oldBars.length; i++) {
+      if (oldBars[i].parentNode) oldBars[i].parentNode.removeChild(oldBars[i]);
+    }
+    var bar = document.createElement('div');
+    bar.className = 'omnisix-quick-btns';
+    bar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;align-self:flex-start;max-width:95%;';
+    buttons.slice(0, 3).forEach(function(btn) {
+      if (!btn || !btn.label) return;
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.textContent = String(btn.label);
+      el.style.cssText = 'background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.45);color:#34d399;border-radius:999px;padding:6px 11px;font-size:0.76rem;font-weight:700;cursor:pointer;transition:all 0.15s;';
+      el.onclick = function() {
+        sendWidgetMessage(btn.action || btn.label, btn.label);
+      };
+      bar.appendChild(el);
+    });
+    if (bar.children.length > 0) {
+      chatStream.appendChild(bar);
+      chatStream.scrollTop = chatStream.scrollHeight;
+    }
+  }
+
+  function sendWidgetMessage(msg, displayLabel) {
+    var cleanMsg = String(msg || '').trim();
+    if (!cleanMsg) return;
+    appendChatBubble('user', displayLabel || cleanMsg);
+    var typingEl = appendChatBubble('ai', 'Typing...');
+    if (chatSendBtn) chatSendBtn.disabled = true;
+
+    fetch(serverHost.replace(/\/$/, '') + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: sessionId,
+        message: cleanMsg,
+        businessId: businessId || undefined,
+        storeName: storeName,
+        skipAudio: true
+      })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+      if (data && data.reply) {
+        appendChatBubble('ai', data.reply);
+        if (Array.isArray(data.quickButtons) && data.quickButtons.length > 0) {
+          appendQuickButtons(data.quickButtons);
+        }
+      } else {
+        appendChatBubble('ai', (data && data.error) ? data.error : 'සමාවන්න, කෙටි දෝෂයක් ඇති වුණා. නැවත උත්සාහ කරන්න.');
+      }
+    })
+    .catch(function() {
+      if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+      appendChatBubble('ai', 'සම්බන්ධතාවයේ දෝෂයක් ඇත. කරුණාකර WhatsApp හරහා සම්බන්ධ වන්න.');
+    })
+    .finally(function() {
+      if (chatSendBtn) chatSendBtn.disabled = false;
+      if (chatInput) chatInput.focus();
+    });
+  }
+
   if (chatForm) {
     chatForm.onsubmit = function(e) {
       e.preventDefault();
       var msg = (chatInput && chatInput.value || '').trim();
       if (!msg) return;
       chatInput.value = '';
-      appendChatBubble('user', msg);
-      var typingEl = appendChatBubble('ai', 'Typing...');
-      if (chatSendBtn) chatSendBtn.disabled = true;
-
-      fetch(serverHost.replace(/\/$/, '') + '/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: sessionId,
-          message: msg,
-          businessId: businessId || undefined,
-          storeName: storeName,
-          skipAudio: true
-        })
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
-        if (data && data.reply) {
-          appendChatBubble('ai', data.reply);
-        } else {
-          appendChatBubble('ai', (data && data.error) ? data.error : 'සමාවන්න, කෙටි දෝෂයක් ඇති වුණා. නැවත උත්සාහ කරන්න.');
-        }
-      })
-      .catch(function() {
-        if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
-        appendChatBubble('ai', 'සම්බන්ධතාවයේ දෝෂයක් ඇත. කරුණාකර WhatsApp හරහා සම්බන්ධ වන්න.');
-      })
-      .finally(function() {
-        if (chatSendBtn) chatSendBtn.disabled = false;
-        if (chatInput) chatInput.focus();
-      });
+      sendWidgetMessage(msg);
     };
   }
 })();

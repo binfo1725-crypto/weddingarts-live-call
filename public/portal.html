@@ -3991,8 +3991,16 @@ table tr:hover td {
               <label class="form-label">🔘 WhatsApp Quick Action Buttons & Menus</label>
               <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
                 <input type="checkbox" id="setting-interactive-buttons" checked style="accent-color:var(--accent-emerald);width:17px;height:17px;">
-                <span style="font-size:0.82rem;font-weight:700;color:#047857;">[View Catalog], [Order Now], [Talk to Agent] Buttons Active</span>
+                <span style="font-size:0.82rem;font-weight:700;color:#34d399;">Agent Reply Quick Buttons Active (WhatsApp + Web Chat)</span>
               </label>
+              <div id="quick-buttons-config" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;background:#0a0d12;border:1px solid rgba(16,185,129,0.22);border-radius:10px;padding:10px;">
+                <input type="text" id="setting-quick-btn-1-label" class="form-input" maxlength="20" placeholder="Btn 1: 📦 View Catalog" style="padding:6px 10px;font-size:0.78rem;">
+                <input type="text" id="setting-quick-btn-1-action" class="form-input" maxlength="120" placeholder="Action prompt 1" style="padding:6px 10px;font-size:0.78rem;">
+                <input type="text" id="setting-quick-btn-2-label" class="form-input" maxlength="20" placeholder="Btn 2: 🛒 Order Now" style="padding:6px 10px;font-size:0.78rem;">
+                <input type="text" id="setting-quick-btn-2-action" class="form-input" maxlength="120" placeholder="Action prompt 2" style="padding:6px 10px;font-size:0.78rem;">
+                <input type="text" id="setting-quick-btn-3-label" class="form-input" maxlength="20" placeholder="Btn 3: 👤 Talk to Agent" style="padding:6px 10px;font-size:0.78rem;">
+                <input type="text" id="setting-quick-btn-3-action" class="form-input" maxlength="120" placeholder="Action prompt 3" style="padding:6px 10px;font-size:0.78rem;">
+              </div>
               <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px;">
                 <input type="checkbox" id="setting-delivery-details" checked onchange="syncDeliveryDetailsUi(this.checked)" style="accent-color:var(--accent-emerald);width:17px;height:17px;">
                 <span style="font-size:0.82rem;font-weight:700;color:#34d399;">🚚 Send Delivery Details (OFF = Hide delivery/COD & send Owner number for orders)</span>
@@ -7691,6 +7699,19 @@ async function loadSettingsForm() {
       if (langModeEl) langModeEl.value = s.languageReplyMode || 'smart_match';
       const intBtnEl = document.getElementById('setting-interactive-buttons');
       if (intBtnEl) intBtnEl.checked = s.isInteractiveButtonsEnabled !== false;
+      const defaultBtns = [
+        { label: '📦 View Catalog', action: 'Show product catalog & prices' },
+        { label: '🛒 Order Now', action: 'I want to place an order' },
+        { label: '👤 Talk to Agent', action: 'Connect me with a human agent' }
+      ];
+      const savedBtns = Array.isArray(s.agentQuickButtons) && s.agentQuickButtons.length ? s.agentQuickButtons : defaultBtns;
+      [1, 2, 3].forEach((n, idx) => {
+        const b = savedBtns[idx] || {};
+        const lbl = document.getElementById(`setting-quick-btn-${n}-label`);
+        const act = document.getElementById(`setting-quick-btn-${n}-action`);
+        if (lbl) lbl.value = b.label || '';
+        if (act) act.value = b.action || '';
+      });
 
       // Feature 4: Owner Alert
       const alertPhoneEl = document.getElementById('setting-owner-alert-phone');
@@ -7751,6 +7772,12 @@ async function saveSettings(e) {
     closedMessage: document.getElementById('setting-closed-msg').value,
     languageReplyMode: document.getElementById('setting-lang-mode')?.value || 'smart_match',
     isInteractiveButtonsEnabled: document.getElementById('setting-interactive-buttons')?.checked !== false,
+    agentQuickButtons: [1, 2, 3].map((n, idx) => {
+      const defIds = ['ACTION_CATALOG', 'ACTION_ORDER', 'ACTION_AGENT'];
+      const label = document.getElementById(`setting-quick-btn-${n}-label`)?.value?.trim() || '';
+      const action = document.getElementById(`setting-quick-btn-${n}-action`)?.value?.trim() || '';
+      return label ? { id: defIds[idx] || `QUICK_BTN_${n}`, label: label.slice(0, 20), action: (action || label).slice(0, 120) } : null;
+    }).filter(Boolean),
     isDeliveryDetailsEnabled: document.getElementById('setting-delivery-details')?.checked !== false,
     ownerAlertPhone: document.getElementById('setting-owner-alert-phone')?.value || '',
     isOwnerAlertEnabled: document.getElementById('setting-owner-alert-enabled')?.checked || false,

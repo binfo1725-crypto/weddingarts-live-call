@@ -113,6 +113,11 @@ const DEFAULT_SETTINGS = {
   languageReplyMode: 'smart_match', // 'smart_match', 'sinhala_script_only', 'english_only', 'tamil_only'
   // Interactive WhatsApp Buttons & Quick Action Menus
   isInteractiveButtonsEnabled: true,
+  agentQuickButtons: [
+    { id: 'ACTION_CATALOG', label: '📦 View Catalog', action: 'Show product catalog & prices' },
+    { id: 'ACTION_ORDER', label: '🛒 Order Now', action: 'I want to place an order' },
+    { id: 'ACTION_AGENT', label: '👤 Talk to Agent', action: 'Connect me with a human agent' }
+  ],
   // Delivery Details & Order Checkout Toggle (true = collect delivery/checkout; false = refer orders to owner number)
   isDeliveryDetailsEnabled: true,
   // Payment Gateway Integration (PayHere / Koko / Custom Payment Link)

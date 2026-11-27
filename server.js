@@ -3026,8 +3026,13 @@ app.post('/api/webhook/meta', async (req, res) => {
         }
 
         const accId = 'wa_' + targetBiz.id;
+        const btnReplyId = message?.interactive?.button_reply?.id || '';
+        const matchedQuickBtn = btnReplyId && Array.isArray(settings.agentQuickButtons)
+          ? settings.agentQuickButtons.find(b => b && b.id === btnReplyId)
+          : null;
         let extractedText =
           message?.text?.body ||
+          (matchedQuickBtn && matchedQuickBtn.action ? matchedQuickBtn.action : '') ||
           message?.interactive?.button_reply?.title ||
           message?.interactive?.list_reply?.title ||
           message?.button?.text ||
@@ -3120,7 +3125,12 @@ app.post('/api/webhook/meta', async (req, res) => {
 
               if (aiReply) {
                 if (metaCfg && metaCfg.enabled && metaCfg.phoneNumberId && metaCfg.token) {
-                  await waEngine.sendMetaCloudMessage(from, aiReply, metaCfg);
+                  const quickBtns = waEngine.resolveAgentQuickButtons(settings);
+                  if (quickBtns.length > 0) {
+                    await waEngine.sendMetaCloudInteractiveMessage(from, aiReply, quickBtns, metaCfg);
+                  } else {
+                    await waEngine.sendMetaCloudMessage(from, aiReply, metaCfg);
+                  }
                 } else {
                   await waEngine.sendTextMessage(from, aiReply, accId);
                 }
@@ -3941,13 +3951,16 @@ app.post('/api/chat', async (req, res) => {
     const aiReply = await getGeminiReply(message, sess);
     checkForOrderTag(aiReply, sess, sid);
     const audioResult = skipAudio ? { audioBase64: null, mimeType: null, isGemini: false } : await synthesizeVoiceAudio(aiReply, sess.voice, sess.apiKey);
+    const bizSettings = db.getTenantSettings(targetBiz.id) || db.getSettings();
+    const quickButtons = waEngine.resolveAgentQuickButtons(bizSettings);
 
     res.json({
       ok: true,
       sessionId: sid,
       storeName: targetBiz.name,
-      brandColor: targetBiz.brandColor || '#2563EB',
+      brandColor: targetBiz.brandColor || '#10b981',
       reply: aiReply,
+      quickButtons,
       audioBase64: audioResult.audioBase64,
       mimeType: audioResult.mimeType,
       isGeminiVoice: audioResult.isGemini
