@@ -465,16 +465,26 @@ class WhatsAppAccountSession {
             // 🔘 Fast-Track Interactive Quick Actions (Buttons & Number Replies)
             const bizSettings = (db.getTenantSettings && db.getTenantSettings(activeBiz.id)) || db.getSettings();
             const quickLang = LanguageDetectionEngine.detectLanguage(cleanText, chat?.messages || []);
-            if (cleanText === '1' || lowerText === 'action_catalog' || lowerText === 'catalog' || lowerText === 'menu' || lowerText === 'භාණ්ඩ' || lowerText === 'මිල ගණන්') {
+            const resolvedQuickBtns = this.manager && typeof this.manager.resolveAgentQuickButtons === 'function'
+              ? this.manager.resolveAgentQuickButtons(bizSettings, quickLang)
+              : [];
+            const numChoiceIdx = ['1', '2', '3'].indexOf(cleanText.trim());
+            const matchedCustomBtn = (numChoiceIdx >= 0 && resolvedQuickBtns[numChoiceIdx])
+              ? resolvedQuickBtns[numChoiceIdx]
+              : resolvedQuickBtns.find(b => b && b.label && b.label.toLowerCase() === lowerText);
+
+            const isDefaultAction = (btn, defAct) => !btn || !btn.action || btn.action === defAct;
+
+            if ((matchedCustomBtn && matchedCustomBtn.id === 'ACTION_CATALOG' && isDefaultAction(matchedCustomBtn, 'Show product catalog & prices')) || lowerText === 'action_catalog' || lowerText === 'catalog' || lowerText === 'menu' || lowerText === 'භාණ්ඩ' || lowerText === 'මිල ගණන්') {
               const storeProds = db.getProducts(activeBiz.id) || [];
               if (storeProds.length > 0) {
                 aiReply = buildQuickCatalogReply(activeBiz, storeProds, bizSettings, quickLang);
                 isQuickActionHandled = true;
               }
-            } else if (cleanText === '2' || lowerText === 'action_order' || lowerText === 'order' || lowerText === 'order now' || lowerText === 'ඇණවුම්' || lowerText === 'buy') {
+            } else if ((matchedCustomBtn && matchedCustomBtn.id === 'ACTION_ORDER' && isDefaultAction(matchedCustomBtn, 'I want to place an order')) || lowerText === 'action_order' || lowerText === 'order' || lowerText === 'order now' || lowerText === 'ඇණවුම්' || lowerText === 'buy') {
               aiReply = buildQuickOrderReply(activeBiz, bizSettings, quickLang);
               isQuickActionHandled = true;
-            } else if (cleanText === '3' || lowerText === 'action_agent' || lowerText === 'agent' || lowerText === 'human' || lowerText === 'talk to agent' || lowerText === 'මිනිසෙකු') {
+            } else if ((matchedCustomBtn && matchedCustomBtn.id === 'ACTION_AGENT' && isDefaultAction(matchedCustomBtn, 'Connect me with a human agent')) || lowerText === 'action_agent' || lowerText === 'agent' || lowerText === 'human' || lowerText === 'talk to agent' || lowerText === 'මිනිසෙකු') {
               aiReply = `👤 *Human Agent Connection:*\n\nඅපගේ පාරිභෝගික සේවා නිලධාරියෙකු (Human Support Agent) සුළු මොහොතකින් ඔබ හා සෘජුව සම්බන්ධ වනු ඇත. කරුණාකර රැඳී සිටින්න. 🙏`;
               db.setChatAiMute(senderPhone, true, 30);
               if (settings.isOwnerAlertEnabled && settings.ownerAlertPhone) {
@@ -482,6 +492,8 @@ class WhatsAppAccountSession {
                 this.manager.sendTextMessage(settings.ownerAlertPhone, alertText, this.id).catch(() => {});
               }
               isQuickActionHandled = true;
+            } else if (matchedCustomBtn && matchedCustomBtn.action) {
+              text = matchedCustomBtn.action;
             }
 
             if (!isQuickActionHandled) {
@@ -679,33 +691,18 @@ class WhatsAppAccountSession {
     if (!this.sock || !this.connected) return { ok: false, error: 'Not connected' };
     const jid = remoteJid.includes('@') ? remoteJid : `${remoteJid.replace(/\D/g, '')}@s.whatsapp.net`;
 
-    try {
-      const resolved = this.manager && typeof this.manager.resolveAgentQuickButtons === 'function'
-        ? this.manager.resolveAgentQuickButtons(settings, detectedLang)
-        : [];
-      if (!resolved.length) {
-        await this.sock.sendMessage(jid, { text });
-        return { ok: true };
-      }
-
-      const buttons = resolved.map((b, idx) => ({
-        buttonId: String(b.id || `QUICK_BTN_${idx + 1}`),
-        buttonText: { displayText: String(b.label).slice(0, 20) },
-        type: 1
-      }));
-
-      await this.sock.sendMessage(jid, {
-        text,
-        footer: 'OmniSix AI Cloud 24/7',
-        buttons,
-        headerType: 1
-      });
-      return { ok: true };
-    } catch (e) {
-      // Clean fallback directly to text message
-      await this.sock.sendMessage(jid, { text });
-      return { ok: true };
+    const resolved = this.manager && typeof this.manager.resolveAgentQuickButtons === 'function'
+      ? this.manager.resolveAgentQuickButtons(settings, detectedLang)
+      : [];
+    let finalMsg = String(text || '');
+    if (resolved.length > 0 && !finalMsg.includes('1️⃣') && !finalMsg.includes('Quick Actions') && !finalMsg.includes('ක්‍රියාකාරකම්')) {
+      const nums = ['1️⃣', '2️⃣', '3️⃣'];
+      const lines = resolved.map((b, idx) => `${nums[idx] || (idx + 1) + '.'} *${b.label}*`);
+      finalMsg += `\n\n━━━━━━━━━━━━━━━\n⚡ *Quick Options (Reply 1-3):*\n${lines.join('\n')}`;
     }
+
+    await this.sock.sendMessage(jid, { text: finalMsg });
+    return { ok: true };
   }
 
     async sendMessage(toPhone, text) {
@@ -1278,10 +1275,14 @@ class MultiAccountWhatsAppManager {
       });
       const data = await res.json();
       if (!res.ok) {
-        return await this.sendMetaCloudMessage(toPhone, bodyText, cfg);
+        console.warn(`[meta-cloud-interactive] Rejected (${res.status}): ${data?.error?.message || 'unknown error'} — falling back to text menu`);
+        const nums = ['1️⃣', '2️⃣', '3️⃣'];
+        const fallbackMenu = `\n\n⚡ *Quick Options:*\n${validButtons.map((b, i) => `${nums[i] || (i + 1) + '.'} *${b.label}*`).join('\n')}`;
+        return await this.sendMetaCloudMessage(toPhone, bodyText + fallbackMenu, cfg);
       }
       return { ok: true, id: data?.messages?.[0]?.id, provider: 'meta_cloud_api', interactive: true };
     } catch (e) {
+      console.warn(`[meta-cloud-interactive] Error: ${e.message} — falling back to text`);
       return await this.sendMetaCloudMessage(toPhone, text, metaCfg);
     }
   }
