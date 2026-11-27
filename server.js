@@ -1635,7 +1635,7 @@ app.get('/api/payments/checkout/:orderId', (req, res) => {
     ? Object.entries(koko.fields).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('\n')
     : '';
 
-  return res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:500px;margin:40px auto;padding:28px;background:#0f172a;color:#f8fafc;border-radius:16px;border:1px solid #334155;">
+  return res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:sans-serif;max-width:500px;margin:20px auto;padding:20px;background:#0f172a;color:#f8fafc;border-radius:16px;border:1px solid #334155;box-sizing:border-box;">
     <h2 style="margin-top:0;color:#38bdf8;">${esc(biz.name)} — Checkout</h2>
     <p><strong>Order:</strong> #${esc(order.id)}</p>
     <p><strong>Item:</strong> ${esc(order.item)}</p>

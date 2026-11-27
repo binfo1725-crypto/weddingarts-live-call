@@ -2338,7 +2338,37 @@ table tr:hover td {
     min-width: 580px !important;
   }
 
-  /* Modals on Phone */
+  /* All Multi-Column Inline Grids & Settings Forms on Phone: 1 Column */
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr 1fr"],
+  div[style*="grid-template-columns: 1fr 1fr 1fr"],
+  div[style*="grid-template-columns:160px 1fr 1fr"],
+  div[style*="grid-template-columns: 160px 1fr 1fr"],
+  div[style*="grid-template-columns:180px 1fr"],
+  div[style*="grid-template-columns: 180px 1fr"],
+  div[style*="grid-template-columns:1fr 2fr"],
+  div[style*="grid-template-columns: 1fr 2fr"],
+  div[style*="grid-template-columns:1fr auto"],
+  div[style*="grid-template-columns: 1fr auto"],
+  div[style*="grid-template-columns:repeat(auto-fit, minmax(240px"],
+  div[style*="grid-template-columns: repeat(auto-fit, minmax(240px"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Safe-area bottom clearance so fixed bottom nav never hides Save buttons */
+  .main-stage {
+    padding: 12px 10px calc(86px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    height: auto !important;
+    min-height: 60px !important;
+  }
+
+  /* Modals on Phone (.modal-card + .modal-content) */
+  .modal-card,
   .modal-content,
   .whatzi-modal-content {
     width: 95vw !important;
@@ -2346,9 +2376,16 @@ table tr:hover td {
     margin: 8px auto !important;
     padding: 16px 14px !important;
     border-radius: 16px !important;
-    max-height: 88vh !important;
+    max-height: 90dvh !important;
     overflow-y: auto !important;
     box-sizing: border-box !important;
+  }
+
+  /* Tables & Touch Scrolling */
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
   }
 
   /* Glass Card padding */
@@ -2360,13 +2397,15 @@ table tr:hover td {
     margin-bottom: 12px !important;
   }
 
-  /* Multi-column Flex forms on phone become 1 column */
+  /* Multi-column Flex forms & Ask-AI input on phone */
   .form-row,
   div[style*="display:flex;gap:12px"],
   div[style*="display: flex; gap: 12px"],
   div[style*="display:flex;gap:16px"],
-  div[style*="display: flex; gap: 16px"] {
+  div[style*="display: flex; gap: 16px"],
+  div[style*="display:flex;gap:8px;margin-bottom:12px"] {
     flex-direction: column !important;
+    align-items: stretch !important;
   }
 
   /* Responsive Canvas Charts */
@@ -2375,10 +2414,51 @@ table tr:hover td {
     height: auto !important;
   }
 
-  /* Chat Layout on Phone */
+  /* Chat Inbox & Copilot Mobile Polish */
   .chat-layout {
     grid-template-columns: 1fr !important;
-    height: calc(100vh - 145px) !important;
+    height: calc(100dvh - 135px) !important;
+    min-height: 460px !important;
+  }
+  .chat-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+  .canned-snippets-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 6px !important;
+    padding: 6px 10px !important;
+    scrollbar-width: none !important;
+  }
+  .canned-snippets-bar button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    font-size: 0.75rem !important;
+    padding: 5px 10px !important;
+  }
+  .chat-footer {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+  #chat-reply-input {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .chat-footer button {
+    height: 38px !important;
+    font-size: 0.78rem !important;
+    padding: 0 10px !important;
+  }
+  .msg-bubble {
+    max-width: 88% !important;
+  }
+  .msg-bubble img,
+  .msg-bubble audio {
+    max-width: 100% !important;
   }
 }
 

@@ -388,6 +388,19 @@
       color: var(--text-muted);
       background: #fff;
     }
+
+    @media (max-width: 768px) {
+      .container { padding: 0 14px; }
+      .navbar { height: auto; min-height: 62px; padding: 10px 0; flex-wrap: wrap; gap: 10px; }
+      .nav-brand { font-size: 1.05rem; }
+      .nav-actions { gap: 8px; }
+      .btn-nav-login { padding: 7px 12px; font-size: 0.8rem; }
+      h1 { font-size: 1.75rem !important; line-height: 1.25 !important; }
+      div[style*="grid-template-columns"], .plans-grid, .features-grid {
+        grid-template-columns: 1fr !important;
+      }
+      input, select, textarea { font-size: 16px !important; }
+    }
   </style>
 </head>
 <body>
