@@ -2236,7 +2236,7 @@ table tr:hover td {
 /* ─── Ultra-Modern Multi-Line WhatsApp Omnichannel Inbox Styling ─── */
 .chat-layout {
   display: grid !important;
-  grid-template-columns: 320px 1fr !important;
+  grid-template-columns: 300px minmax(0, 1fr) !important;
   height: calc(100vh - 190px) !important;
   min-height: 480px !important;
   max-height: 840px !important;
@@ -2251,6 +2251,7 @@ table tr:hover td {
   flex-direction: column !important;
   background: #080c14 !important;
   height: 100% !important;
+  min-width: 0 !important;
   min-height: 0 !important;
   max-height: 100% !important;
   overflow: hidden !important;
@@ -2592,9 +2593,9 @@ table tr:hover td {
   gap: 6px !important;
   flex: 0 1 auto !important;
 }
-@media (min-width: 992px) and (max-width: 1380px) {
+@media (min-width: 769px) and (max-width: 1380px) {
   .chat-layout {
-    grid-template-columns: 185px 235px 1fr !important;
+    grid-template-columns: 235px minmax(0, 1fr) !important;
   }
 }
 .btn-chat-tool {
@@ -5463,6 +5464,7 @@ async function fetchBusinesses() {
       if (guardOverlay) guardOverlay.style.display = 'none';
       activeBiz = data.business;
       allBusinesses = [activeBiz];
+      populateBusinessSelect();
       const storeNameEl = document.getElementById('portal-store-name');
       if (storeNameEl) storeNameEl.textContent = activeBiz.name;
       const headerStoreBadge = document.getElementById('portal-header-store-badge');

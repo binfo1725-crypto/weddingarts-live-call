@@ -2750,9 +2750,9 @@ table tr:hover td {
   gap: 6px !important;
   flex: 0 1 auto !important;
 }
-@media (min-width: 992px) and (max-width: 1380px) {
+@media (min-width: 769px) and (max-width: 1380px) {
   .chat-layout {
-    grid-template-columns: 185px 235px 1fr !important;
+    grid-template-columns: 235px minmax(0, 1fr) !important;
   }
 }
 .btn-chat-tool {
