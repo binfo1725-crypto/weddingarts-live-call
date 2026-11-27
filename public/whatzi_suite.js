@@ -106,7 +106,7 @@ async function fetchKanbanDeals() {
               <span>👤</span> ${escapeHtml(d.contactName)} (${escapeHtml(d.contactPhone || '-')})
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">
-              <span style="font-size:0.85rem;font-weight:800;color:#ff0055;">Rs. ${(Number(d.dealValue) || 0).toLocaleString()}</span>
+              <span style="font-size:0.85rem;font-weight:800;color:#10b981;">Rs. ${(Number(d.dealValue) || 0).toLocaleString()}</span>
               <a href="https://wa.me/${String(d.contactPhone).replace(/\\D/g, '')}" target="_blank" style="padding:4px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#34d399;text-decoration:none;font-size:0.72rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
                 💬 WhatsApp
               </a>
@@ -312,7 +312,7 @@ async function fetchContacts() {
           <tr>
             <td style="font-weight:700;color:var(--text-primary);">${escapeHtml(c.name)}</td>
             <td style="font-family:'JetBrains Mono';color:#38bdf8;">+${escapeHtml(c.phone)}</td>
-            <td><span class="deal-badge" style="background:rgba(255,0,85,0.12);color:#ff4d6d;">${escapeHtml(c.group || 'All Customers')}</span></td>
+            <td><span class="deal-badge" style="background:rgba(16, 185, 129,0.12);color:#34d399;">${escapeHtml(c.group || 'All Customers')}</span></td>
             <td style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono';">${escapeHtml(c.var1 || '-')}, ${escapeHtml(c.var2 || '-')}</td>
             <td>
               <a href="https://wa.me/${c.phone}" target="_blank" style="padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.15);color:#34d399;font-weight:700;font-size:0.75rem;text-decoration:none;">
@@ -438,7 +438,7 @@ async function fetchForms() {
               <h4 style="font-size:0.96rem;font-weight:700;color:var(--text-primary);margin:0;">📝 ${escapeHtml(f.name)}</h4>
               <button onclick="deleteForm('${f.id}')" style="background:none;border:none;color:#f43f5e;cursor:pointer;">✕</button>
             </div>
-            <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">Trigger keyword: <span style="color:#ff0055;font-weight:700;">"${escapeHtml(f.triggerKeyword)}"</span></p>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">Trigger keyword: <span style="color:#10b981;font-weight:700;">"${escapeHtml(f.triggerKeyword)}"</span></p>
             <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:14px;">Fields: ${(f.fields || []).map(fl => fl.label).join(', ')}</div>
             <button class="btn-secondary" onclick="renderFormPreview('${f.id}')" style="width:100%;padding:6px;font-size:0.78rem;">
               📱 Preview in WhatsApp Simulator
@@ -474,7 +474,7 @@ function renderFormFieldsEditor() {
   container.innerHTML = activeFormFields.map((f, idx) => `
     <div style="background:#07080c;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-weight:700;font-size:0.84rem;color:#fff;">${escapeHtml(f.label)} <span style="font-size:0.72rem;color:#ff0055;">(${f.type})</span></div>
+        <div style="font-weight:700;font-size:0.84rem;color:#fff;">${escapeHtml(f.label)} <span style="font-size:0.72rem;color:#10b981;">(${f.type})</span></div>
       </div>
       <button type="button" onclick="removeFormField(${idx})" style="background:none;border:none;color:#f43f5e;cursor:pointer;">✕</button>
     </div>
@@ -532,7 +532,7 @@ async function renderFormPreview(formId) {
 
     phoneBody.innerHTML = `
       <div style="background:#10121b;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;margin-bottom:12px;">
-        <h5 style="color:#ff0055;margin:0 0 6px 0;font-size:0.9rem;">📋 ${escapeHtml(form.name)}</h5>
+        <h5 style="color:#10b981;margin:0 0 6px 0;font-size:0.9rem;">📋 ${escapeHtml(form.name)}</h5>
         <p style="font-size:0.75rem;color:#94a3b8;margin:0 0 12px 0;">කරුණාකර පහත තොරතුරු සම්පූර්ණ කර ඉදිරිපත් කරන්න.</p>
         <div style="display:flex;flex-direction:column;gap:10px;">
           ${(form.fields || []).map(f => `
@@ -571,7 +571,7 @@ async function fetchDeveloperKeys() {
         keysList.innerHTML = data.keys.map(k => `
           <tr>
             <td style="font-weight:700;color:var(--text-primary);">${escapeHtml(k.label)}</td>
-            <td style="font-family:'JetBrains Mono';color:#ff0055;">${escapeHtml(k.key.slice(0, 10))}••••••••••••${escapeHtml(k.key.slice(-4))}</td>
+            <td style="font-family:'JetBrains Mono';color:#10b981;">${escapeHtml(k.key.slice(0, 10))}••••••••••••${escapeHtml(k.key.slice(-4))}</td>
             <td style="font-size:0.75rem;color:var(--text-muted);">${new Date(k.createdAt).toLocaleDateString()}</td>
             <td><button onclick="revokeApiKey('${k.id}')" style="background:none;border:none;color:#f43f5e;cursor:pointer;">Revoke</button></td>
           </tr>
@@ -664,13 +664,13 @@ async function fetchTeamAgents() {
     if (grid) {
       grid.innerHTML = (data.agents || []).map(a => `
         <div style="background:#10121b;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px;">
-          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff0055,#dc2626);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1.1rem;">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, #10b981, #059669);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1.1rem;">
             ${(a.name || 'A')[0].toUpperCase()}
           </div>
           <div style="flex:1;">
             <div style="font-weight:700;color:var(--text-primary);font-size:0.92rem;">${escapeHtml(a.name)}</div>
             <div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(a.email || '-')}</div>
-            <span class="deal-badge" style="margin-top:4px;background:rgba(255,0,85,0.12);color:#ff4d6d;text-transform:uppercase;">${escapeHtml(a.role)}</span>
+            <span class="deal-badge" style="margin-top:4px;background:rgba(16, 185, 129,0.12);color:#34d399;text-transform:uppercase;">${escapeHtml(a.role)}</span>
           </div>
         </div>
       `).join('');
@@ -701,7 +701,7 @@ async function fetchCallLogs() {
           <tr>
             <td style="font-family:'JetBrains Mono';color:#38bdf8;">+${escapeHtml(c.number)}</td>
             <td><span class="deal-badge" style="background:${c.direction === 'incoming' ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.15)'};color:${c.direction === 'incoming' ? '#34d399' : '#60a5fa'};">${escapeHtml(c.direction)}</span></td>
-            <td><span class="deal-badge" style="background:rgba(255,0,85,0.12);color:#ff4d6d;">${escapeHtml(c.status)}</span></td>
+            <td><span class="deal-badge" style="background:rgba(16, 185, 129,0.12);color:#34d399;">${escapeHtml(c.status)}</span></td>
             <td style="font-family:'JetBrains Mono';color:var(--text-muted);">${escapeHtml(c.duration)}</td>
             <td style="font-size:0.75rem;color:var(--text-muted);">${new Date(c.timestamp).toLocaleString()}</td>
             <td style="font-size:0.8rem;color:var(--text-secondary);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(c.transcription)}">

@@ -19,7 +19,7 @@
 
   var businessId = (currentScript && currentScript.getAttribute('data-business-id')) || '';
   var storeName = (currentScript && currentScript.getAttribute('data-store')) || 'OmniSix AI Store';
-  var brandColor = (currentScript && currentScript.getAttribute('data-color')) || '#ff0055';
+  var brandColor = (currentScript && currentScript.getAttribute('data-color')) || '#10b981';
   var logoUrl = (currentScript && currentScript.getAttribute('data-logo')) || '';
   var position = (currentScript && currentScript.getAttribute('data-position')) || 'right';
   var whatsappNumber = (currentScript && currentScript.getAttribute('data-whatsapp')) || '94762107801';
@@ -46,9 +46,9 @@
   var style = document.createElement('style');
   style.innerHTML = [
     '@keyframes omnisix-pulse {',
-    '  0% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.45); }',
-    '  70% { box-shadow: 0 0 0 16px rgba(255, 0, 85, 0); }',
-    '  100% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0); }',
+    '  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }',
+    '  70% { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }',
+    '  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }',
     '}',
     '.omnisix-pulse-anim { animation: omnisix-pulse 2s infinite; }',
     '#omnisix-chat-stream::-webkit-scrollbar { width: 5px; }',
