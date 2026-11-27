@@ -2366,13 +2366,23 @@ table tr:hover td {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 8px 12px !important;
+  gap: 8px !important;
+  padding: 8px 10px !important;
   border-radius: 10px !important;
   font-size: 0.78rem !important;
   font-weight: 600 !important;
   background: rgba(255, 255, 255, 0.03) !important;
   color: #cbd5e1 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.account-tab-btn > span:first-child,
+.account-tab-btn > div:first-child {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
   white-space: normal !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -2554,23 +2564,38 @@ table tr:hover td {
 }
 .chat-header-main-row {
   display: flex !important;
+  flex-wrap: wrap !important;
   justify-content: space-between !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 10px 12px !important;
   width: 100% !important;
 }
 .chat-header-left {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
-  min-width: 0 !important;
-  flex: 1 !important;
+  gap: 10px !important;
+  min-width: 210px !important;
+  flex: 1 1 240px !important;
+  overflow: hidden !important;
+}
+#chat-active-account-badge {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 .chat-header-actions {
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
-  gap: 8px !important;
-  flex-shrink: 0 !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  flex: 0 1 auto !important;
+}
+@media (min-width: 992px) and (max-width: 1380px) {
+  .chat-layout {
+    grid-template-columns: 185px 235px 1fr !important;
+  }
 }
 .btn-chat-tool {
   padding: 6px 11px !important;
@@ -2731,7 +2756,7 @@ table tr:hover td {
     </button>
 
     <!-- User Avatar -->
-    <div class="whatzi-user-avatar" onclick="showTab('overview')" title="Administrator">AK</div>
+    <div id="nav-store-avatar" class="whatzi-user-avatar" onclick="showTab('overview')" title="Store Profile">--</div>
 
     <!-- Cloud Status Pill -->
     <div class="status-pill">
@@ -5467,6 +5492,12 @@ async function fetchBusinesses() {
   }
 }
 
+function computeStoreInitials(name) {
+  const words = String(name || 'OS').trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return (words[0] || 'OS').slice(0, 2).toUpperCase();
+}
+
 function populateBusinessSelect() {
   if (activeBiz) {
     const el = document.getElementById('portal-store-name');
@@ -5475,6 +5506,11 @@ function populateBusinessSelect() {
     if (hb) hb.textContent = activeBiz.name;
     const m = document.getElementById('metric-store-name');
     if (m) m.textContent = activeBiz.name;
+    const av = document.getElementById('nav-store-avatar') || document.querySelector('.whatzi-user-avatar');
+    if (av) {
+      av.textContent = computeStoreInitials(activeBiz.name);
+      av.title = activeBiz.name || 'Store';
+    }
   }
 }
 

@@ -2722,23 +2722,38 @@ table tr:hover td {
 }
 .chat-header-main-row {
   display: flex !important;
+  flex-wrap: wrap !important;
   justify-content: space-between !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 10px 12px !important;
   width: 100% !important;
 }
 .chat-header-left {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
-  min-width: 0 !important;
-  flex: 1 !important;
+  gap: 10px !important;
+  min-width: 210px !important;
+  flex: 1 1 240px !important;
+  overflow: hidden !important;
+}
+#chat-active-account-badge {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 .chat-header-actions {
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
-  gap: 8px !important;
-  flex-shrink: 0 !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  flex: 0 1 auto !important;
+}
+@media (min-width: 992px) and (max-width: 1380px) {
+  .chat-layout {
+    grid-template-columns: 185px 235px 1fr !important;
+  }
 }
 .btn-chat-tool {
   padding: 6px 11px !important;
@@ -2929,7 +2944,7 @@ table tr:hover td {
       <code id="admin-header-pin-badge" style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#fff;font-size:0.82rem;letter-spacing:0.08em;">••••••</code>
       <button type="button" onclick="const p=document.getElementById('admin-header-pin-badge')?.textContent||'';if(p&&!p.includes('•')){navigator.clipboard.writeText(p);alert('Master PIN Copy කරගන්නා ලදී!');}" style="background:none;border:none;color:#f472b6;cursor:pointer;font-size:0.75rem;padding:0;" title="Copy PIN">📋</button>
     </div>
-    <div class="whatzi-user-avatar" onclick="showTab('overview')" title="Administrator">AK</div>
+    <div id="nav-store-avatar" class="whatzi-user-avatar" onclick="showTab('overview')" title="Store Profile">--</div>
 
     <!-- Cloud Status Pill -->
     <div class="status-pill">
@@ -6977,6 +6992,12 @@ async function fetchBusinesses() {
   } catch (e) { console.error('fetchBusinesses error:', e); }
 }
 
+function computeStoreInitials(name) {
+  const words = String(name || 'OS').trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return (words[0] || 'OS').slice(0, 2).toUpperCase();
+}
+
 function populateBusinessSelect() {
   const sel = document.getElementById('business-select');
   if (!sel) return;
@@ -6993,6 +7014,11 @@ function populateBusinessSelect() {
   if (activeBiz) {
     const storeLabel = document.getElementById('metric-store-name');
     if (storeLabel) storeLabel.textContent = activeBiz.name;
+    const av = document.getElementById('nav-store-avatar') || document.querySelector('.whatzi-user-avatar');
+    if (av) {
+      av.textContent = computeStoreInitials(activeBiz.name);
+      av.title = activeBiz.name || 'Store';
+    }
   }
 }
 
