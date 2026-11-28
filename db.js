@@ -40,7 +40,10 @@ try {
   MongoClient = require('mongodb').MongoClient;
 } catch (e) {}
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://binfo1725_db_user:XaALNX0uLpyVlCGx@cluster0.lx6kica.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.warn('[db] WARNING: MONGODB_URI environment variable not set. Falling back to local JSON storage.');
+}
 
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'));
 const DB_FILE = path.join(DATA_DIR, 'database.json');
@@ -848,13 +851,10 @@ class Database {
 
   addProduct(prod) {
     if (!this.data.products) this.data.products = [];
-    const nextNum = (this.data.products || []).reduce((max, p) => {
-      const num = parseInt(String(p.id).replace(/\D/g, ''), 10) || 0;
-      return Math.max(max, num);
-    }, 0) + 1;
+    const crypto = require('crypto');
     const rawImgs = Array.isArray(prod.images) ? prod.images.filter(Boolean) : (prod.imageUrl ? [prod.imageUrl] : []);
     const newProd = {
-      id: prod.id || `PROD-${nextNum}`,
+      id: prod.id || `PROD-${crypto.randomBytes(4).toString('hex')}`,
       businessId: prod.businessId || this.getActiveBusiness().id,
       name: prod.name || 'Untitled Product',
       category: prod.category || 'General',
@@ -1100,9 +1100,8 @@ class Database {
 
   // ─── Real Orders Pipeline Methods ────────────────────────────────────────────
   getOrders(businessId) {
-    const list = businessId
-      ? (this.data.orders || []).filter(o => o.businessId === businessId)
-      : (this.data.orders || []);
+    if (!businessId) throw new Error('businessId is required to prevent global data dump');
+    const list = (this.data.orders || []).filter(o => o.businessId === businessId);
     return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }
 
@@ -1156,10 +1155,9 @@ class Database {
 
   // ─── Chats & Omnichannel Inbox (Real Production) ──────────────────────────────
   getChats(businessId = null) {
+    if (!businessId) throw new Error('businessId is required to prevent global data dump');
     let list = this.data.chats || [];
-    if (businessId) {
-      list = list.filter(c => c.businessId === businessId);
-    }
+    list = list.filter(c => c.businessId === businessId);
     return list.slice().sort((a, b) => new Date(b.lastTime || 0) - new Date(a.lastTime || 0));
   }
 
@@ -2088,7 +2086,8 @@ class Database {
   // ─── 2. Contact Management & Advanced Phonebook ──────────────────────────────
   getContacts(businessId = null) {
     this.initDefaults();
-    if (!businessId || businessId === 'all') return this.data.contacts;
+    if (!businessId) throw new Error('businessId is required to prevent global data dump');
+    if (businessId === 'all') return this.data.contacts; // 'all' still allowed for super-admin
     return this.data.contacts.filter(c => !c.businessId || c.businessId === businessId);
   }
 

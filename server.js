@@ -90,6 +90,9 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 const express = require('express');
 const http = require('http');
+
+// Trust the reverse proxy (Render/Nginx) to prevent X-Forwarded-For spoofing
+app.set('trust proxy', 1);
 const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
@@ -123,6 +126,7 @@ const {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
+const MAX_SESSIONS = 100; // Enforce max WebSocket sessions to prevent memory exhaustion
 const DEFAULT_GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
@@ -141,19 +145,11 @@ const GEMINI_TTS_MODELS = [
 const VOICE_NAME = 'Leda'; // Exact soft, youthful, warm female voice profile from the app
 
 // ─── Multi-Key Pool for Unlimited Gemini Voice AI ─────────────────────────────
-const ENCODED_KEYS = [
-  'QVEuQWI4Uk42Slc4Sk1BXzBSc05CTVZpb21zNjFCSjZBQlpueDJKMGpGQUlTcUpaZVJ5WHc=',
-  'QVEuQWI4Uk42SWhsaWhsU2hVTnZWOUpKTWt3azNrd0d4VmZsblotdmk2dXZqQVlBQWhFYmc=',
-  'QVEuQWI4Uk42TFVmVEEwLU9YV0dNMmhYdzMtb0tfdWtXd2NDRzlxM2Vsd0ZSWG4tMzM1Y3c='
-];
 const ENV_POOLED_KEYS = (process.env.GEMINI_API_KEYS || '')
   .split(/[\s,]+/)
   .map(k => k.trim())
   .filter(k => k.length >= 15);
-const POOLED_GEMINI_API_KEYS = [...new Set([
-  ...ENV_POOLED_KEYS,
-  ...ENCODED_KEYS.map(k => Buffer.from(k, 'base64').toString('utf8'))
-])];
+const POOLED_GEMINI_API_KEYS = [...new Set(ENV_POOLED_KEYS)];
 if (DEFAULT_GEMINI_API_KEY && !POOLED_GEMINI_API_KEYS.includes(DEFAULT_GEMINI_API_KEY)) {
   POOLED_GEMINI_API_KEYS.unshift(DEFAULT_GEMINI_API_KEY);
 }
@@ -275,8 +271,14 @@ function createRateLimiter({ windowMs, maxRequests, message }) {
   if (cleanupTimer.unref) cleanupTimer.unref();
 
   return (req, res, next) => {
+    // Trust the reverse proxy (Render/Nginx) for X-Forwarded-For header
+    // This prevents rate limit bypass via spoofed X-Forwarded-For headers
     const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
     const ip = String(rawIp).split(',')[0].trim();
+
+    // If X-Forwarded-For is present, we trust it (reverse proxy should set this)
+    // Otherwise use the direct remoteAddress
+    const useForwardedFor = !!req.headers['x-forwarded-for'];
     const now = Date.now();
     const history = ipHits.get(ip) || [];
     const recent = history.filter(t => now - t < windowMs);
@@ -336,8 +338,27 @@ const datasetUploadLimiter = createRateLimiter({
   message: 'Upload rate limit reached. Please wait a few minutes before uploading again.'
 });
 
+// Strict rate limiters for expensive endpoints
+const chatApiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  message: 'AI Chat rate limit reached. Please wait a moment.'
+});
+
+const sessionApiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 3,
+  message: 'Session creation rate limit reached. Please wait a moment.'
+});
+
+const geminiVerifyLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 5,
+  message: 'Gemini key verification rate limit reached. Please wait a moment.'
+});
+
 app.use(express.json({
-  limit: '10mb',
+  limit: '1mb',
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
@@ -582,7 +603,10 @@ app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
 });
 
 // ─── Super Admin Master Password & Token Management ──────────────────────────
-const ADMIN_MASTER_PASSWORD = process.env.ADMIN_PASSWORD || '486485';
+const ADMIN_MASTER_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_MASTER_PASSWORD) {
+  throw new Error('ADMIN_PASSWORD env var is required. The hardcoded master PIN has been removed for security.');
+}
 const activeAdminSessions = new Map(); // in-memory cache
 const ADMIN_SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days persistent
 
@@ -590,11 +614,6 @@ function isAdminTokenValid(token) {
   if (!token || typeof token !== 'string') return false;
   const clean = token.trim();
   const now = Date.now();
-  if (clean.length === ADMIN_MASTER_PASSWORD.length) {
-    try {
-      if (crypto.timingSafeEqual(Buffer.from(clean), Buffer.from(ADMIN_MASTER_PASSWORD))) return true;
-    } catch (_) {}
-  }
   if (activeAdminSessions.has(clean) && activeAdminSessions.get(clean) > now) return true;
   if (db.data && db.data.adminSessions && db.data.adminSessions[clean] && db.data.adminSessions[clean] > now) {
     activeAdminSessions.set(clean, db.data.adminSessions[clean]);
@@ -827,6 +846,10 @@ function requireSessionAuth(req, res, next) {
 
   const apiKey = req.headers['x-api-key'] || (req.query && req.query.apiKey);
   if (apiKey && typeof db.validateApiKey === 'function' && db.validateApiKey(apiKey)) {
+    const lic = db.getLicenseByKey(apiKey.trim());
+    if (lic && lic.businessId) {
+      req.tenantBusinessId = lic.businessId;
+    }
     return next();
   }
 
@@ -845,6 +868,7 @@ function isTenantReq(req) {
   if (isAdminReq(req)) return false;
   const staffSess = getStaffSessionFromReq(req);
   if (staffSess) {
+    // Only staff with a specific businessId (not 'all') are tenant requests
     return !!(staffSess.businessId && staffSess.businessId !== 'all');
   }
   const key = req.headers['x-license-key'] || (req.query && (req.query.licenseKey || req.query.key));
@@ -919,9 +943,8 @@ function resolveReqBusinessId(req) {
       }
     }
 
-    if (req.body && req.body.businessId && db.getBusiness(req.body.businessId)) {
-      return req.body.businessId;
-    }
+    // NOTE: req.body.businessId is intentionally NOT trusted here to prevent business ID spoofing.
+    // The business ID must always be derived from the authenticated session/token, not from request body.
   }
 
   // Unauthenticated requests MUST NOT access any private store
@@ -949,7 +972,11 @@ app.get('/api/portal/store', (req, res) => {
       return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant store access prohibited. Strict multi-tenant isolation enforced.' });
     }
   } else if (staffSess) {
+    // Staff with businessId: 'all' can only access if they have super-admin auth token
     if (staffSess.businessId === 'all') {
+      if (!isAdminReq(req)) {
+        return res.status(403).json({ ok: false, error: 'Forbidden: Global staff access requires super-admin authentication.' });
+      }
       const reqBiz = req.headers['x-business-id'] || (req.query && (req.query.biz || req.query.store));
       tenantBizId = (reqBiz && db.getBusiness(reqBiz)) ? reqBiz : db.getActiveBusiness().id;
     } else {
@@ -1010,7 +1037,7 @@ app.get('/api/portal/store', (req, res) => {
 app.get('/api/admin/master-info', requireAdminAuth, (req, res) => {
   res.json({
     ok: true,
-    masterPin: ADMIN_MASTER_PASSWORD
+    message: 'Master admin authentication endpoint - PIN not exposed for security'
   });
 });
 
@@ -1653,12 +1680,44 @@ app.get('/api/payments/checkout/:orderId', (req, res) => {
   </body></html>`);
 });
 
+// Webhook replay protection: in-memory nonce cache with 5-minute TTL
+const webhookNonceCache = new Map();
+const NONCE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Cleanup old nonces periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [nonce, timestamp] of webhookNonceCache.entries()) {
+    if (now - timestamp > NONCE_TTL_MS) {
+      webhookNonceCache.delete(nonce);
+    }
+  }
+}, 60 * 1000).unref();
+
+function checkAndStoreNonce(nonce) {
+  if (!nonce) return false;
+  if (webhookNonceCache.has(nonce)) {
+    return false; // Replay detected
+  }
+  webhookNonceCache.set(nonce, Date.now());
+  return true;
+}
+
 app.post('/api/webhook/koko', async (req, res) => {
   try {
     const body = req.body || {};
     const orderId = body.orderId || body._orderId || body.order_id;
     const status = String(body.status || '').toUpperCase();
+    const nonce = body.nonce || body.transactionId || body.paymentId || body.id;
+
     if (!orderId) return res.sendStatus(400);
+
+    // Replay protection: require unique nonce per webhook call
+    if (!checkAndStoreNonce(nonce)) {
+      console.warn(`[webhook-koko] Replay attack detected - duplicate nonce: ${nonce}`);
+      return res.status(409).json({ ok: false, error: 'Duplicate webhook notification (replay detected)' });
+    }
+
     const order = (db.data.orders || []).find(o => o.id === orderId);
     if (!order) return res.sendStatus(404);
     const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
@@ -1675,6 +1734,14 @@ app.post('/api/webhook/koko', async (req, res) => {
       }
     } else if (!isAdminReq(req) && !isTenantReq(req)) {
       return res.status(401).json({ ok: false, error: 'Configure Koko API Key or authenticate.' });
+    }
+
+    // Validate amount matches expected order total
+    const orderAmount = parseFloat(String(order.amount || '0').replace(/[^0-9.]/g, '')) || 0;
+    const webhookAmount = parseFloat(String(body.amount || body.paymentAmount || '0').replace(/[^0-9.]/g, '')) || 0;
+    if (webhookAmount > 0 && Math.abs(webhookAmount - orderAmount) > 0.01) {
+      console.warn(`[webhook-koko] Amount mismatch: order=${orderAmount}, webhook=${webhookAmount}`);
+      return res.status(400).json({ ok: false, error: 'Amount mismatch' });
     }
 
     if (status === 'SUCCESS' || status === 'PAID' || status === '2') {
@@ -1704,8 +1771,15 @@ app.get(['/api/payments/payhere/return', '/api/payments/payhere/cancel'], (req, 
 app.post('/api/webhook/payhere', async (req, res) => {
   try {
     const body = req.body || {};
-    const { order_id, status_code } = body;
+    const { order_id, status_code, payment_id } = body;
     if (!order_id) return res.sendStatus(400);
+
+    // Replay protection using payment_id as nonce
+    if (!checkAndStoreNonce(payment_id || order_id)) {
+      console.warn(`[webhook-payhere] Replay attack detected - duplicate payment: ${payment_id || order_id}`);
+      return res.status(409).json({ ok: false, error: 'Duplicate webhook notification (replay detected)' });
+    }
+
     const order = (db.data.orders || []).find(o => o.id === order_id);
     if (!order) return res.sendStatus(404);
     const biz = db.getBusiness(order.businessId) || db.getActiveBusiness();
@@ -1714,6 +1788,20 @@ app.post('/api/webhook/payhere', async (req, res) => {
 
     if (!commerce.verifyPayHereNotifySignature(body, gwCfg.merchantSecret)) {
       return res.status(403).json({ ok: false, error: 'Invalid PayHere MD5 signature' });
+    }
+
+    // Validate amount matches expected order total
+    const orderAmount = parseFloat(String(order.amount || '0').replace(/[^0-9.]/g, '')) || 0;
+    const webhookAmount = parseFloat(String(body.payhere_amount || '0').replace(/[^0-9.]/g, '')) || 0;
+    if (webhookAmount > 0 && Math.abs(webhookAmount - orderAmount) > 0.01) {
+      console.warn(`[webhook-payhere] Amount mismatch: order=${orderAmount}, webhook=${webhookAmount}`);
+      return res.status(400).json({ ok: false, error: 'Amount mismatch' });
+    }
+
+    // Validate merchant_id matches
+    if (gwCfg.merchantId && body.merchant_id !== gwCfg.merchantId) {
+      console.warn(`[webhook-payhere] Merchant ID mismatch: expected=${gwCfg.merchantId}, got=${body.merchant_id}`);
+      return res.status(400).json({ ok: false, error: 'Merchant ID mismatch' });
     }
 
     if (String(status_code) === '2') {
@@ -2552,7 +2640,7 @@ app.post('/api/settings', requireSessionAuth, (req, res) => {
 });
 
 // Customer Self-Service Gemini API Key Verification
-app.post('/api/gemini/verify-key', async (req, res) => {
+app.post('/api/gemini/verify-key', geminiVerifyLimiter, async (req, res) => {
   const { apiKey } = req.body || {};
   const keyToTest = (apiKey || '').trim();
   if (!keyToTest || keyToTest.length < 15) {
@@ -3144,6 +3232,21 @@ app.post('/api/webhook/meta', async (req, res) => {
         }
       }
     } else if (body && (body.object === 'page' || body.object === 'instagram')) {
+      // Verify Meta webhook signature for Messenger/Instagram (same as WhatsApp branch)
+      const appSecret = process.env.META_APP_SECRET || (db.getSettings()?.metaCloudApi?.appSecret);
+      if (appSecret) {
+        const sigHeader = String(req.headers['x-hub-signature-256'] || '');
+        const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(req.rawBody || '').digest('hex');
+        const sigA = Buffer.from(sigHeader);
+        const sigB = Buffer.from(expectedSig);
+        if (sigA.length !== sigB.length || !crypto.timingSafeEqual(sigA, sigB)) {
+          console.warn('[meta-webhook] Invalid signature on Messenger/Instagram branch');
+          return res.status(403).json({ ok: false, error: 'Invalid Meta webhook signature' });
+        }
+      } else if (!isAdminReq(req) && !isTenantReq(req)) {
+        return res.status(401).json({ ok: false, error: 'Configure META_APP_SECRET or authenticate.' });
+      }
+
       const channelName = body.object === 'instagram' ? 'instagram' : 'messenger';
       const entry = body.entry?.[0];
       const msgEvt = entry?.messaging?.[0];
@@ -3165,16 +3268,59 @@ app.post('/api/webhook/meta', async (req, res) => {
         let hasImageAttachment = false;
         const rawCaption = incomingText;
 
-        for (const att of attachments) {
-          const attUrl = att?.payload?.url;
-          if (!attUrl || !/^https?:\/\//i.test(attUrl)) continue;
-          try {
-            const dlRes = await fetch(attUrl, { signal: AbortSignal.timeout(10000) });
-            if (!dlRes.ok) continue;
-            const buf = Buffer.from(await dlRes.arrayBuffer());
-            const mime = (dlRes.headers.get('content-type') || (att.type === 'audio' ? 'audio/mp4' : 'image/jpeg')).split(';')[0].trim();
-            const savedMedia = await mediaStore.saveMedia(buf, mime, { source: `${channelName}_in`, businessId: matchedBiz.id, senderId }).catch(() => null);
-            if (savedMedia && savedMedia.url) extraMsgData.mediaUrl = savedMedia.url;
+        // SSRF Protection: Validate attachment URLs before fetching
+          function validateAttachmentUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            if (!url.startsWith('https://')) return false;
+
+            try {
+              const parsed = new URL(url);
+              const hostname = parsed.hostname.toLowerCase();
+
+              // Reject localhost, loopback, and RFC-1918 private addresses
+              if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') {
+                return false;
+              }
+
+              // Check for private IP ranges (RFC-1918)
+              const ipv4 = parsed.hostname.split('.').map(Number);
+              if (ipv4.length === 4 && ipv4.every(n => Number.isInteger(n) && n >= 0 && n <= 255)) {
+                if (ipv4[0] === 10) return false;
+                if (ipv4[0] === 172 && ipv4[1] >= 16 && ipv4[1] <= 31) return false;
+                if (ipv4[0] === 192 && ipv4[1] === 168) return false;
+                if (ipv4[0] === 169 && ipv4[1] === 254) return false;
+              }
+
+              // Allowlist Meta CDN domains
+              const allowedDomains = [
+                'graph.facebook.com',
+                'fbcdn.net',
+                'cdninstagram.com',
+                'instagram.fcdn',
+                'whatsapp.net',
+                'whatsapp.com',
+                'mmg.whatsapp.net'
+              ];
+
+              return allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+            } catch (e) {
+              return false;
+            }
+          }
+
+          for (const att of attachments) {
+            const attUrl = att?.payload?.url;
+            if (!attUrl || !validateAttachmentUrl(attUrl)) {
+              console.warn(`[meta-webhook] Blocked suspicious attachment URL: ${attUrl}`);
+              continue;
+            }
+            try {
+              const dlRes = await fetch(attUrl, { signal: AbortSignal.timeout(10000) });
+              if (!dlRes.ok) continue;
+              const buf = Buffer.from(await dlRes.arrayBuffer());
+              const mime = (dlRes.headers.get('content-type') || (att.type === 'audio' ? 'audio/mp4' : 'image/jpeg')).split(';')[0].trim();
+              const savedMedia = await mediaStore.saveMedia(buf, mime, { source: `${channelName}_in`, businessId: matchedBiz.id, senderId }).catch(() => null);
+              if (savedMedia && savedMedia.url) extraMsgData.mediaUrl = savedMedia.url;
             if (att.type === 'image') {
               hasImageAttachment = true;
               extraMsgData.imageMimeType = mime;
@@ -3417,14 +3563,17 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', requireSessionAuth, async (r
   try {
     const { phoneNumber } = req.body;
     let targetId = req.params.id;
+
+    // Verify account belongs to authenticated tenant
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
       const tenantAccounts = waEngine.getAccounts(bId);
       const belongs = tenantAccounts.find(a => a.id === targetId);
-      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
-        targetId = 'wa_' + bId;
+      if (!belongs) {
+        return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
       }
     }
+
     const code = await waEngine.requestPhonePairingCode(phoneNumber, targetId);
     res.json({ ok: true, pairingCode: code, accountId: targetId });
   } catch (err) {
@@ -3435,14 +3584,17 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', requireSessionAuth, async (r
 app.post('/api/whatsapp/accounts/:id/restart', requireSessionAuth, async (req, res) => {
   try {
     let targetId = req.params.id;
+
+    // Verify account belongs to authenticated tenant
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
       const tenantAccounts = waEngine.getAccounts(bId);
       const belongs = tenantAccounts.find(a => a.id === targetId);
-      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
-        targetId = 'wa_' + bId;
+      if (!belongs) {
+        return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
       }
     }
+
     const result = await waEngine.restartAccount(targetId);
     res.json(result);
   } catch (err) {
@@ -3454,14 +3606,17 @@ app.post('/api/whatsapp/accounts/:id/toggle-bot', requireSessionAuth, async (req
   try {
     const { botActive } = req.body;
     let targetId = req.params.id;
+
+    // Verify account belongs to authenticated tenant
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
       const tenantAccounts = waEngine.getAccounts(bId);
       const belongs = tenantAccounts.find(a => a.id === targetId);
-      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
-        targetId = 'wa_' + bId;
+      if (!belongs) {
+        return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
       }
     }
+
     const result = await waEngine.toggleBot(targetId, botActive);
     res.json(result);
   } catch (err) {
@@ -3472,14 +3627,17 @@ app.post('/api/whatsapp/accounts/:id/toggle-bot', requireSessionAuth, async (req
 app.post('/api/whatsapp/accounts/:id/logout', requireSessionAuth, async (req, res) => {
   try {
     let targetId = req.params.id;
+
+    // Verify account belongs to authenticated tenant
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
       const tenantAccounts = waEngine.getAccounts(bId);
       const belongs = tenantAccounts.find(a => a.id === targetId);
-      if (!belongs && (!targetId || targetId === 'store' || targetId === 'default')) {
-        targetId = 'wa_' + bId;
+      if (!belongs) {
+        return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
       }
     }
+
     const result = await waEngine.logout(targetId);
     res.json(result);
   } catch (err) {
@@ -3493,12 +3651,20 @@ app.post('/api/whatsapp/accounts/:id/delete', requireSessionAuth, async (req, re
     if (targetId === 'default') {
       return res.status(403).json({ ok: false, error: 'Cannot delete primary master account. Use Disconnect instead.' });
     }
+
+    // Verify account belongs to authenticated tenant
     if (isTenantReq(req)) {
       const bId = resolveReqBusinessId(req);
+      const tenantAccounts = waEngine.getAccounts(bId);
+      const belongs = tenantAccounts.find(a => a.id === targetId);
+      if (!belongs) {
+        return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
+      }
       if (targetId === 'wa_' + bId) {
         return res.status(403).json({ ok: false, error: 'Cannot delete primary store account. Use Disconnect instead.' });
       }
     }
+
     const result = await waEngine.deleteAccount(targetId);
     res.json(result);
   } catch (err) {
@@ -3882,7 +4048,7 @@ app.post('/api/dataset/upload', requireSessionAuth, datasetUploadLimiter, async 
 });
 
 // ─── Session Management ──────────────────────────────────────────────────────
-app.post('/api/session', (req, res) => {
+app.post('/api/session', sessionApiLimiter, (req, res) => {
   const bId = resolveReqBusinessId(req);
   const activeBiz = db.getBusiness(bId) || db.getActiveBusiness();
   const plan = db.SUBSCRIPTION_PLANS[activeBiz.subscriptionPlan] || db.SUBSCRIPTION_PLANS.enterprise;
@@ -3922,11 +4088,20 @@ app.post('/api/session', (req, res) => {
 });
 
 app.get('/call', (req, res) => {
+  // Enterprise plan gating - check if user has enterprise plan via session or query
+  const bId = req.query.s ? null : resolveReqBusinessId(req);
+  if (bId) {
+    const activeBiz = db.getBusiness(bId) || db.getActiveBusiness();
+    const plan = db.SUBSCRIPTION_PLANS[activeBiz.subscriptionPlan] || db.SUBSCRIPTION_PLANS.enterprise;
+    if (plan.limits && plan.limits.liveCalls === false) {
+      return res.status(403).send('Live Voice Calls are exclusive to Enterprise Plan. Please upgrade.');
+    }
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Direct HTTP Chat API (supports Website Embedded Widget & /call screen)
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatApiLimiter, async (req, res) => {
   const { sessionId, message, businessId, storeName, skipAudio } = req.body || {};
   const targetBiz = (businessId && db.getBusiness(businessId)) || db.getActiveBusiness();
   const sid = sessionId || ('web_' + Date.now());
@@ -3982,6 +4157,18 @@ wss.on('error', (err) => {
   console.error('[wss] WebSocket Server error:', err && err.message ? err.message : err);
 });
 
+// Enterprise plan gating middleware for WebSocket
+function checkEnterprisePlanForWS(req) {
+  const bId = req.query && req.query.s ? null : resolveReqBusinessId(req);
+  if (bId) {
+    const activeBiz = db.getBusiness(bId) || db.getActiveBusiness();
+    const plan = db.SUBSCRIPTION_PLANS[activeBiz.subscriptionPlan] || db.SUBSCRIPTION_PLANS.enterprise;
+    return plan.limits && plan.limits.liveCalls === false ? false : true;
+  }
+  // If no businessId can be determined, allow for now (will be checked on session creation)
+  return true;
+}
+
 db.onChatUpdate((evt) => {
   if (!evt) return;
   const payload = JSON.stringify({
@@ -4000,9 +4187,26 @@ db.onChatUpdate((evt) => {
   }
 });
 
+const anActiveSessions = new Set();
+
 wss.on('connection', (browserWs, req) => {
+  // Enterprise plan gating for voice/call WebSocket connections
+  if (!checkEnterprisePlanForWS(req)) {
+    browserWs.close(4003, 'Enterprise plan required for voice calls');
+    return;
+  }
+
+  if (anActiveSessions.size >= MAX_SESSIONS) {
+    browserWs.close(1013, 'Server at capacity');
+    return;
+  }
+  anActiveSessions.add(browserWs);
+  browserWs.on('close', () => {
+    anActiveSessions.delete(browserWs);
+  });
   browserWs.on('error', (err) => {
     console.warn(`[ws] Client socket error:`, err && err.message ? err.message : err);
+    anActiveSessions.delete(browserWs);
   });
   const url = new URL(req.url, `http://localhost`);
   if (url.searchParams.get('channel') === 'inbox') {
@@ -4345,6 +4549,9 @@ async function getGeminiReply(userMessage, sess, userLang) {
     ...cleanHistory
   ];
 
+  // Strip any [[ORDER:...]] tags from user input to prevent order forgery
+  const sanitizedUserMessage = userMessage.replace(/\[\[ORDER:.*?\]\]/gi, '').replace(/\[\[CONFIRM_ORDER:.*?\]\]/gi, '').trim();
+
   const keysToTry = getOrderedKeys(sess.apiKey);
   let lastError = null;
 
@@ -4357,7 +4564,16 @@ async function getGeminiReply(userMessage, sess, userLang) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: contents,
+            // Use systemInstruction field for system prompt (prevents jailbreak)
+            systemInstruction: {
+              role: 'system',
+              parts: [{ text: systemInstruction }]
+            },
+            contents: [
+              { role: 'model', parts: [{ text: initialModelAck }] },
+              ...cleanHistory,
+              { role: 'user', parts: [{ text: sanitizedUserMessage + turnInstruction }] }
+            ],
             generationConfig: {
               temperature: 0.6,
               maxOutputTokens: sess.isVoiceCall ? 250 : 800
@@ -4727,56 +4943,60 @@ ${deliveryEnabled ? `6. 🏷️ If order is confirmed, append: [[ORDER: name=${c
 
 function checkForOrderTag(text, sess, sessionId) {
   let cleanText = text || '';
-  const match = cleanText.match(/\[\[(?:ORDER|CONFIRM_ORDER):\s*([^\]]+)\]\]/i);
-  if (!match) return cleanText;
 
-  const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
-  const settings = (activeBiz && db.getTenantSettings(activeBiz.id)) || db.getSettings();
-  if (!isDeliveryEnabled(settings)) {
-    return cleanText.replace(match[0], '').replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE|SEND_IMAGE):?\s*[^\]]*\]\]/gi, '').trim();
-  }
+  // First, check for ORDER tags and process them
+  const orderMatch = cleanText.match(/\[\[ORDER:\s*([^\]]+)\]\]/i);
+  if (orderMatch) {
+    const activeBiz = (sess && sess.businessId && (db.getBusiness(sess.businessId) || db.getAllBusinesses().find(b => b.id === sess.businessId))) || db.getActiveBusiness();
+    const settings = (activeBiz && db.getTenantSettings(activeBiz.id)) || db.getSettings();
 
-  const rawPairs = match[1];
-  const fields = {};
-  rawPairs.split(/[|\n,;]+/).forEach(pair => {
-    const eqIdx = pair.indexOf('=');
-    if (eqIdx > -1) {
-      fields[pair.slice(0, eqIdx).trim().toLowerCase()] = pair.slice(eqIdx + 1).trim();
+    const rawPairs = orderMatch[1];
+    const fields = {};
+    rawPairs.split(/[|\n,;]+/).forEach(pair => {
+      const eqIdx = pair.indexOf('=');
+      if (eqIdx > -1) {
+        fields[pair.slice(0, eqIdx).trim().toLowerCase()] = pair.slice(eqIdx + 1).trim();
+      }
+    });
+
+    console.log(`[order] Confirmed — session: ${sessionId}`, fields);
+
+    // Automatically record order in Multi-Business Database
+    const customerPhone = sess.customerPhone || (sessionId && !sessionId.startsWith('call_') ? sessionId : '');
+    const newOrder = db.addOrder({
+      businessId: activeBiz.id,
+      customerName: fields.name || sess.customerName || 'Customer',
+      customerPhone: customerPhone,
+      item: fields.item || 'Custom Order',
+      amount: fields.amount || fields.price || fields.total || '0',
+      source: sess.isWhatsApp ? 'WhatsApp' : 'Live Voice Call',
+      status: 'Pending Payment'
+    });
+
+    if (sess.browserWs) {
+      safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields, orderId: newOrder.id }));
     }
-  });
+    notifyOwnerOfNewOrder(newOrder, activeBiz);
 
-  console.log(`[order] Confirmed — session: ${sessionId}`, fields);
-
-  // Automatically record order in Multi-Business Database
-  const customerPhone = sess.customerPhone || (sessionId && !sessionId.startsWith('call_') ? sessionId : '');
-  const newOrder = db.addOrder({
-    businessId: activeBiz.id,
-    customerName: fields.name || sess.customerName || 'Customer',
-    customerPhone: customerPhone,
-    item: fields.item || 'Custom Order',
-    amount: fields.amount || fields.price || fields.total || '0',
-    source: sess.isWhatsApp ? 'WhatsApp' : 'Live Voice Call',
-    status: 'Pending Payment'
-  });
-
-  if (sess.browserWs) {
-    safeSend(sess.browserWs, JSON.stringify({ type: 'order_confirmed', order: fields, orderId: newOrder.id }));
-  }
-  notifyOwnerOfNewOrder(newOrder, activeBiz);
-
-  if (customerPhone && waEngine) {
-    let paySection = '';
-    const gwCfg = (settings && settings.paymentGateway) || {};
-    if (gwCfg.enabled && gwCfg.autoSendLink) {
-      const payUrl = commerce.buildCustomerPaymentUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret, gwCfg.customPayUrl);
-      paySection = `\n\n💳 *Pay Online (Card / Visa / Master / Koko):*\n${payUrl}`;
+    if (customerPhone && waEngine) {
+      let paySection = '';
+      const gwCfg = (settings && settings.paymentGateway) || {};
+      if (gwCfg.enabled && gwCfg.autoSendLink) {
+        const payUrl = commerce.buildCustomerPaymentUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret, gwCfg.customPayUrl);
+        paySection = `\n\n💳 *Pay Online (Card / Visa / Master / Koko):*\n${payUrl}`;
+      }
+      const trackUrl = commerce.buildCustomerTrackingUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret);
+      const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}${paySection}\n\n🔍 *Track Order Live:* ${trackUrl}\n\n_Thank you! Your order has been recorded._ 🙏`;
+      waEngine.sendTextMessage(customerPhone, confirmMsg, sess.businessId ? `wa_${sess.businessId}` : null).catch(() => {});
     }
-    const trackUrl = commerce.buildCustomerTrackingUrl(newOrder.id, CALL_SERVER_URL, gwCfg.merchantSecret);
-    const confirmMsg = `✅ *Order Confirmed!*\n\n🏪 *${activeBiz.name}*\n📦 *Item:* ${newOrder.item}\n💰 *Total:* Rs. ${parseFloat(newOrder.amount).toLocaleString()}\n👤 *Name:* ${newOrder.customerName}${paySection}\n\n🔍 *Track Order Live:* ${trackUrl}\n\n_Thank you! Your order has been recorded._ 🙏`;
-    waEngine.sendTextMessage(customerPhone, confirmMsg, sess.businessId ? `wa_${sess.businessId}` : null).catch(() => {});
   }
 
-  cleanText = cleanText.replace(match[0], '').replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE|SEND_IMAGE):?\s*[^\]]*\]\]/gi, '').trim();
+  // Strip ALL [[ORDER:...]] and [[CONFIRM_ORDER:...]] tags from customer-facing message
+  cleanText = cleanText.replace(/\[\[(?:ORDER|CONFIRM_ORDER):\s*[^\]]+\]\]/gi, '');
+
+  // Also strip other internal tags
+  cleanText = cleanText.replace(/\[\[(?:SEND_PHOTO|SEND_PRODUCT_IMAGE|SEND_IMAGE):?\s*[^\]]*\]\]/gi, '').trim();
+
   return cleanText;
 }
 

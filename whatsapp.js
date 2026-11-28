@@ -320,13 +320,15 @@ class WhatsAppAccountSession {
               }
             }
 
-            if (!text || text.trim().length === 0) continue;
+            // Strip ORDER tags from customer input to prevent order forgery via prompt injection
+            const sanitizedText = text.replace(/\[\[ORDER:.*?\]\]/gi, '').replace(/\[\[CONFIRM_ORDER:.*?\]\]/gi, '').trim();
+            if (!sanitizedText) continue;
 
             const senderPhone = remoteJid.split('@')[0];
             const senderName = msg.pushName || 'Customer';
             const accountTag = this.phoneNumber ? `Line: +${this.phoneNumber}` : this.label;
 
-            console.log(`[whatsapp-acc:${this.id}] 📩 Incoming from ${senderPhone} (${senderName}) [${isVoiceNote ? 'Voice Note' : 'Text'}]: "${text}"`);
+            console.log(`[whatsapp-acc:${this.id}] 📩 Incoming from ${senderPhone} (${senderName}) [${isVoiceNote ? 'Voice Note' : 'Text'}]: "${sanitizedText}"`);
 
             // Resolve store / business scoped to this specific WhatsApp account
             const activeBiz = (this.businessId && (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId))) || db.getActiveBusiness();
@@ -1677,6 +1679,76 @@ class MultiAccountWhatsAppManager {
     const cleanTo = String(to || '').replace(/\D/g, '');
     if (!cleanTo || cleanTo.length < 9) {
       return { ok: false, error: 'Valid recipient phone number with country code is required.' };
+    }
+
+    // SSRF/LFI Protection: Validate all URLs to prevent arbitrary file reads and internal network access
+    function validateMediaUrl(url, fieldName) {
+      if (!url || typeof url !== 'string') {
+        return { valid: false, error: `${fieldName} is required` };
+      }
+
+      // Must be HTTPS
+      if (!url.startsWith('https://')) {
+        return { valid: false, error: `${fieldName} must use HTTPS protocol` };
+      }
+
+      try {
+        const parsed = new URL(url);
+
+        // Reject localhost, loopback, and RFC-1918 private addresses
+        const hostname = parsed.hostname.toLowerCase();
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') {
+          return { valid: false, error: `${fieldName} cannot point to localhost` };
+        }
+
+        // Check for private IP ranges (RFC-1918)
+        const ipv4 = parsed.hostname.split('.').map(Number);
+        if (ipv4.length === 4 && ipv4.every(n => Number.isInteger(n) && n >= 0 && n <= 255)) {
+          // 10.0.0.0/8
+          if (ipv4[0] === 10) return { valid: false, error: `${fieldName} cannot point to private network` };
+          // 172.16.0.0/12
+          if (ipv4[0] === 172 && ipv4[1] >= 16 && ipv4[1] <= 31) return { valid: false, error: `${fieldName} cannot point to private network` };
+          // 192.168.0.0/16
+          if (ipv4[0] === 192 && ipv4[1] === 168) return { valid: false, error: `${fieldName} cannot point to private network` };
+          // 169.254.0.0/16 (link-local)
+          if (ipv4[0] === 169 && ipv4[1] === 254) return { valid: false, error: `${fieldName} cannot point to link-local address` };
+        }
+
+        // Allowlist common media/CDN domains for WhatsApp
+        const allowedDomains = [
+          'graph.facebook.com',
+          'fbcdn.net',
+          'cdninstagram.com',
+          'instagram.fcdn',
+          'whatsapp.net',
+          'whatsapp.com',
+          'mmg.whatsapp.net'
+        ];
+
+        const isAllowed = allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+
+        return { valid: true, url: parsed.href, isAllowed };
+      } catch (e) {
+        return { valid: false, error: `${fieldName} is not a valid URL` };
+      }
+    }
+
+    // Validate imageUrl if provided
+    if (imageUrl) {
+      const validation = validateMediaUrl(imageUrl, 'imageUrl');
+      if (!validation.valid) return { ok: false, error: validation.error };
+    }
+
+    // Validate videoUrl if provided
+    if (videoUrl) {
+      const validation = validateMediaUrl(videoUrl, 'videoUrl');
+      if (!validation.valid) return { ok: false, error: validation.error };
+    }
+
+    // Validate docUrl if provided
+    if (docUrl) {
+      const validation = validateMediaUrl(docUrl, 'docUrl');
+      if (!validation.valid) return { ok: false, error: validation.error };
     }
 
     try {
