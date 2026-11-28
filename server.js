@@ -545,22 +545,31 @@ app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
     return res.status(400).json({ ok: false, error: 'Please enter a valid WhatsApp phone number (වලංගු WhatsApp අංකයක් ඇතුළත් කරන්න).' });
   }
 
-  // Prevent multiple active trial keys for the same phone number
-  const existingTrials = (db.data.licenses || []).filter(l => 
+  // Prevent multiple trial keys for the same phone number (even expired ones)
+  const existingTrials = (db.data.licenses || []).filter(l =>
     (l.clientPhone || '').replace(/\D/g, '') === cleanPhone && l.plan === 'TRIAL'
   );
 
   if (existingTrials.length > 0) {
     const latestTrial = existingTrials[existingTrials.length - 1];
-    return res.json({
-      ok: true,
-      license: latestTrial,
-      message: 'ඔබගේ පවතින 3-Day Free Trial License Key එක සාර්ථකව ලබා ගන්නා ලදී!'
+    // Check if trial is still active
+    const subStatus = db.isBusinessSubscriptionActive(latestTrial.businessId);
+    if (subStatus && subStatus.active && !subStatus.isExpired) {
+      return res.json({
+        ok: true,
+        license: latestTrial,
+        message: 'ඔබගේ පවතින 3-Day Free Trial License Key එක සාර්ථකව ලබා ගන්නා ලදී!'
+      });
+    }
+    // Trial expired - block new trial for this number
+    return res.status(403).json({
+      ok: false,
+      error: 'මෙම දුරකථන අංකයට පෙරේ දින 3ක නොමිලේ ප්‍රයෝගය (Free Trial) ලැබී ඇත. නව ප්‍රයෝගයක් ලබා ගැනීමට නොහැක. කරුණාකර Paid Plan එකක් මිලදී ගන්න.'
     });
   }
 
   const cleanSlug = clientName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20) || 'store_' + Date.now();
-  
+
   // Register newly created store with createdAt timestamp so trial countdown starts now
   const newBiz = {
     id: cleanSlug,
@@ -576,7 +585,8 @@ app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
     welcomeMessage: `ආයුබෝවන්! ${clientName} වෙත සාදරයෙන් පිළිගන්නවා. මම ඔබට අද කොහොමද උදව් කරන්න පුළුවන්?`,
     dataset: `Store: ${clientName}\nContact: ${clientPhone}\nServices: Inquiries & Orders\nDelivery: Islandwide Delivery`,
     createdAt: new Date().toISOString(),
-    isActive: false
+    isActive: false,
+    trialPhone: cleanPhone // Lock trial to this phone number
   };
 
   if (!db.data.businesses) db.data.businesses = [];
@@ -3571,6 +3581,19 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', requireSessionAuth, async (r
       if (!belongs) {
         return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
       }
+
+      // Trial restriction: Only allow pairing with the registered trial phone number
+      const biz = db.getBusiness(bId);
+      if (biz && biz.trialPhone) {
+        const cleanTrialPhone = String(biz.trialPhone).replace(/\D/g, '');
+        const cleanInputPhone = String(phoneNumber || '').replace(/\D/g, '');
+        if (cleanInputPhone !== cleanTrialPhone) {
+          return res.status(403).json({
+            ok: false,
+            error: 'Free Trial සඳහා පෙරේ ලියාපදිංචි වූ WhatsApp අංකයට පමණක් connect විය හැක. වෙනත් අංකයක් භාවිත් නොහැක.'
+          });
+        }
+      }
     }
 
     const code = await waEngine.requestPhonePairingCode(phoneNumber, targetId);
@@ -3679,6 +3702,19 @@ app.post('/api/whatsapp/pairing-code', requireSessionAuth, async (req, res) => {
       const bId = resolveReqBusinessId(req);
       accountId = 'wa_' + bId;
       const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
+
+      // Trial restriction: Only allow pairing with the registered trial phone number
+      if (biz && biz.trialPhone) {
+        const cleanTrialPhone = String(biz.trialPhone).replace(/\D/g, '');
+        const cleanInputPhone = String(phoneNumber || '').replace(/\D/g, '');
+        if (cleanInputPhone !== cleanTrialPhone) {
+          return res.status(403).json({
+            ok: false,
+            error: 'Free Trial සඳහා පෙරේ ලියාපදිංචි වූ WhatsApp අංකයට පමණක් connect විය හැක. වෙනත් අංකයක් භාවිත් නොහැක.'
+          });
+        }
+      }
+
       await waEngine.getOrCreateTenantAccount(bId, biz ? biz.name : 'Store');
     }
     const code = await waEngine.requestPhonePairingCode(phoneNumber, accountId);
