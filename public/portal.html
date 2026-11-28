@@ -1377,9 +1377,9 @@ body {
   font-weight: 700 !important;
 }
 
-/* ════════ WHATZI SIDEBAR (IDENTICAL TO SCREENSHOT) ════════ */
+/* ════════ WHATZI SIDEBAR (IDENTICAL TO ADMIN) ════════ */
 .sidebar {
-  width: 260px !important;
+  width: 275px !important;
   background: var(--wz-bg-sidebar) !important;
   border: 1px solid var(--wz-border) !important;
   border-radius: 16px !important;
@@ -1389,7 +1389,7 @@ body {
   max-height: calc(100vh - 90px) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important;
+  gap: 3px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
@@ -1472,12 +1472,12 @@ body {
 
 /* Category Section Headings */
 .whatzi-nav-category {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
-  padding: 12px 10px 4px 10px;
+  color: #94a3b8;
+  padding: 14px 10px 5px 10px;
   margin-top: 4px;
   user-select: none;
 }
@@ -1536,6 +1536,29 @@ body {
 }
 .tab-btn.active .nav-pro-icon {
   color: #22c55e !important;
+}
+
+/* Fixed Tab Buttons Overflow & Badges */
+.sidebar .tab-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  min-height: 40px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+.sidebar .tab-btn > span:not(.whatzi-badge-new) {
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.25 !important;
+  font-size: 0.83rem !important;
+  flex: 1 1 auto !important;
+}
+.sidebar .whatzi-badge-new {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
 }
 
 /* Pink / Purple NEW Badge */
@@ -2888,8 +2911,8 @@ table tr:hover td {
     <input type="text" placeholder="Search menu..." oninput="filterSidebarMenu(this.value)" />
   </div>
 
-  <!-- Category 1: WHATSAPP QR PLUGIN -->
-  <div class="whatzi-nav-category">WhatsApp QR Plugin</div>
+  <!-- Category 1: WHATSAPP & COMMUNICATIONS -->
+  <div class="whatzi-nav-category">WhatsApp Connect</div>
   <button class="tab-btn" onclick="showTab('whatsapp')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
@@ -2908,52 +2931,48 @@ table tr:hover td {
     </div>
     <span>QR Bulk Campaign</span>
   </button>
-  <button class="tab-btn" onclick="showTab('developer')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-    </div>
-    <span>Rest API</span>
-  </button>
-
-  <!-- Category 2: WA META CONNECT -->
-  <div class="whatzi-nav-category">WA Meta Connect</div>
   <button class="tab-btn" onclick="showTab('whatsapp')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
     </div>
-    <span>Link Meta WhatsApp</span>
+    <span>Meta Cloud API</span>
   </button>
 
-  <!-- Category 3: AUTOMATION & BOTS -->
-  <div class="whatzi-nav-category">Automation &amp; Bots</div>
+  <!-- Category 2: AI WORKFORCE & VOICE -->
+  <div class="whatzi-nav-category">AI Workforce &amp; Voice</div>
+  <button class="tab-btn" onclick="showTab('settings')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+    </div>
+    <span>AI Bot Persona</span>
+  </button>
+  <button class="tab-btn" onclick="showTab('calls')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    </div>
+    <span>AI Voice Call Logs</span>
+    <span class="whatzi-badge-new">NEW</span>
+  </button>
   <button class="tab-btn" onclick="showTab('flows')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg>
     </div>
     <span>Automation Flows</span>
   </button>
-  <button class="tab-btn" onclick="showTab('settings')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
-    </div>
-    <span>WA Chatbot</span>
-  </button>
-  <button class="tab-btn" onclick="showTab('calls')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-    </div>
-    <span>WA Call Logs</span>
-    <span class="whatzi-badge-new">NEW</span>
-  </button>
 
-  <!-- Category 4: CRM & DEALS PIPELINE -->
-  <div class="whatzi-nav-category">CRM &amp; Deals Pipeline</div>
+  <!-- Category 3: CRM & PIPELINES -->
+  <div class="whatzi-nav-category">CRM &amp; Pipelines</div>
+  <button class="tab-btn" onclick="showTab('inbox')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+    </div>
+    <span>Omnichannel Inbox</span>
+  </button>
   <button class="tab-btn" onclick="showTab('kanban')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="4" y="5" rx="1"/><rect width="6" height="10" x="14" y="5" rx="1"/></svg>
     </div>
     <span>Kanban Board</span>
-    <span class="whatzi-badge-new">NEW</span>
   </button>
   <button class="tab-btn" onclick="showTab('forms')">
     <div class="nav-pro-icon">
@@ -2968,23 +2987,8 @@ table tr:hover td {
     <span>Contacts Book</span>
   </button>
 
-  <!-- Category 5: LIVE INBOX & TEAM -->
-  <div class="whatzi-nav-category">Live Inbox &amp; Team</div>
-  <button class="tab-btn" onclick="showTab('inbox')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-    </div>
-    <span>Omnichannel Inbox</span>
-  </button>
-  <button class="tab-btn" onclick="showTab('team')">
-    <div class="nav-pro-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    </div>
-    <span>Team &amp; Live Widget</span>
-  </button>
-
-  <!-- Category 6: STORE & COMMERCE -->
-  <div class="whatzi-nav-category">Commerce &amp; Catalog</div>
+  <!-- Category 4: COMMERCE & FULFILLMENT -->
+  <div class="whatzi-nav-category">Commerce &amp; Dispatch</div>
   <button class="tab-btn" onclick="showTab('orders')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -3003,14 +3007,26 @@ table tr:hover td {
     </div>
     <span>Business Dataset</span>
   </button>
+  <button class="tab-btn" onclick="showTab('team')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <span>Team &amp; Live Widget</span>
+  </button>
 
-  <!-- Category 7: STORE DASHBOARD -->
+  <!-- Category 5: STORE DASHBOARD -->
   <div class="whatzi-nav-category">Store Dashboard</div>
   <button class="tab-btn active" onclick="showTab('overview')">
     <div class="nav-pro-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1.5"/><rect width="7" height="5" x="14" y="3" rx="1.5"/><rect width="7" height="9" x="14" y="12" rx="1.5"/><rect width="7" height="5" x="3" y="16" rx="1.5"/></svg>
     </div>
     <span>Overview</span>
+  </button>
+  <button class="tab-btn" onclick="showTab('developer')">
+    <div class="nav-pro-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </div>
+    <span>REST API Docs</span>
   </button>
 
   <!-- Sidebar Footer -->
