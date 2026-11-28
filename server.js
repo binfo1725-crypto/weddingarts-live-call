@@ -534,37 +534,47 @@ app.post('/api/auth/license-login', licenseLoginLimiter, (req, res) => {
   });
 });
 
+function normalizeTrialPhone(raw) {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0') && digits.length === 10) digits = '94' + digits.slice(1);
+  else if (digits.length === 9 && digits.startsWith('7')) digits = '94' + digits;
+  return digits;
+}
+
 app.post('/api/auth/free-trial', freeTrialLimiter, (req, res) => {
   const { clientName, clientPhone } = req.body || {};
   if (!clientName || !clientPhone) {
     return res.status(400).json({ ok: false, error: 'Store Name and Phone number are required (නම සහ දුරකථන අංකය අවශ්‍යයි).' });
   }
 
-  const cleanPhone = String(clientPhone).replace(/\D/g, '');
+  const cleanPhone = normalizeTrialPhone(clientPhone);
   if (cleanPhone.length < 9) {
     return res.status(400).json({ ok: false, error: 'Please enter a valid WhatsApp phone number (වලංගු WhatsApp අංකයක් ඇතුළත් කරන්න).' });
   }
 
-  // Prevent multiple trial keys for the same phone number (even expired ones)
+  // Prevent multiple trial keys for the same phone number (normalized, even if expired or format differs)
   const existingTrials = (db.data.licenses || []).filter(l =>
-    (l.clientPhone || '').replace(/\D/g, '') === cleanPhone && l.plan === 'TRIAL'
+    normalizeTrialPhone(l.clientPhone) === cleanPhone && l.plan === 'TRIAL'
+  );
+  const existingTrialBiz = (db.data.businesses || []).find(b =>
+    b.trialPhone && normalizeTrialPhone(b.trialPhone) === cleanPhone
   );
 
-  if (existingTrials.length > 0) {
-    const latestTrial = existingTrials[existingTrials.length - 1];
-    // Check if trial is still active
-    const subStatus = db.isBusinessSubscriptionActive(latestTrial.businessId);
-    if (subStatus && subStatus.active && !subStatus.isExpired) {
+  if (existingTrials.length > 0 || existingTrialBiz) {
+    const latestTrial = existingTrials.length > 0 ? existingTrials[existingTrials.length - 1] : null;
+    const bizIdToCheck = latestTrial ? latestTrial.businessId : existingTrialBiz.id;
+    const subStatus = db.isBusinessSubscriptionActive(bizIdToCheck);
+    if (latestTrial && subStatus && subStatus.active && !subStatus.isExpired) {
       return res.json({
         ok: true,
         license: latestTrial,
         message: 'ඔබගේ පවතින 3-Day Free Trial License Key එක සාර්ථකව ලබා ගන්නා ලදී!'
       });
     }
-    // Trial expired - block new trial for this number
     return res.status(403).json({
       ok: false,
-      error: 'මෙම දුරකථන අංකයට පෙරේ දින 3ක නොමිලේ ප්‍රයෝගය (Free Trial) ලැබී ඇත. නව ප්‍රයෝගයක් ලබා ගැනීමට නොහැක. කරුණාකර Paid Plan එකක් මිලදී ගන්න.'
+      error: 'මෙම දුරකථන අංකයට දැනටමත් 3-Day Free Trial Key එකක් නිකුත් කර ඇත. එක් අංකයකට Trial Key එකක් ලබා ගත හැක්කේ එක් වරක් පමණි. කරුණාකර Paid Plan එකක් මිලදී ගන්න.'
     });
   }
 
@@ -3582,16 +3592,19 @@ app.post('/api/whatsapp/accounts/:id/pairing-code', requireSessionAuth, async (r
         return res.status(403).json({ ok: false, error: 'Forbidden: Cross-tenant WhatsApp account access denied.' });
       }
 
-      // Trial restriction: Only allow pairing with the registered trial phone number
-      const biz = db.getBusiness(bId);
-      if (biz && biz.trialPhone) {
-        const cleanTrialPhone = String(biz.trialPhone).replace(/\D/g, '');
-        const cleanInputPhone = String(phoneNumber || '').replace(/\D/g, '');
-        if (cleanInputPhone !== cleanTrialPhone) {
-          return res.status(403).json({
-            ok: false,
-            error: 'Free Trial සඳහා පෙරේ ලියාපදිංචි වූ WhatsApp අංකයට පමණක් connect විය හැක. වෙනත් අංකයක් භාවිත් නොහැක.'
-          });
+      // Trial restriction: Only allow pairing with the registered trial phone number (unless upgraded to paid)
+      if (!isAdminReq(req)) {
+        const biz = db.getBusiness(bId);
+        const hasPaidLic = (db.data.licenses || []).some(l => l.businessId === bId && l.status === 'Active' && l.plan !== 'TRIAL');
+        if (!hasPaidLic && biz && biz.trialPhone) {
+          const cleanTrialPhone = normalizeTrialPhone(biz.trialPhone);
+          const cleanInputPhone = normalizeTrialPhone(phoneNumber);
+          if (cleanInputPhone !== cleanTrialPhone) {
+            return res.status(403).json({
+              ok: false,
+              error: 'Free Trial සඳහා ලියාපදිංචි වූ WhatsApp අංකයට පමණක් connect විය හැක. වෙනත් අංකයක් සම්බන්ධ කළ නොහැක.'
+            });
+          }
         }
       }
     }
@@ -3703,15 +3716,18 @@ app.post('/api/whatsapp/pairing-code', requireSessionAuth, async (req, res) => {
       accountId = 'wa_' + bId;
       const biz = db.getBusiness(bId) || db.getAllBusinesses().find(b => b.id === bId);
 
-      // Trial restriction: Only allow pairing with the registered trial phone number
-      if (biz && biz.trialPhone) {
-        const cleanTrialPhone = String(biz.trialPhone).replace(/\D/g, '');
-        const cleanInputPhone = String(phoneNumber || '').replace(/\D/g, '');
-        if (cleanInputPhone !== cleanTrialPhone) {
-          return res.status(403).json({
-            ok: false,
-            error: 'Free Trial සඳහා පෙරේ ලියාපදිංචි වූ WhatsApp අංකයට පමණක් connect විය හැක. වෙනත් අංකයක් භාවිත් නොහැක.'
-          });
+      // Trial restriction: Only allow pairing with the registered trial phone number (unless upgraded to paid)
+      if (!isAdminReq(req)) {
+        const hasPaidLic = (db.data.licenses || []).some(l => l.businessId === bId && l.status === 'Active' && l.plan !== 'TRIAL');
+        if (!hasPaidLic && biz && biz.trialPhone) {
+          const cleanTrialPhone = normalizeTrialPhone(biz.trialPhone);
+          const cleanInputPhone = normalizeTrialPhone(phoneNumber);
+          if (cleanInputPhone !== cleanTrialPhone) {
+            return res.status(403).json({
+              ok: false,
+              error: 'Free Trial සඳහා ලියාපදිංචි වූ WhatsApp අංකයට පමණක් connect විය හැක. වෙනත් අංකයක් සම්බන්ධ කළ නොහැක.'
+            });
+          }
         }
       }
 

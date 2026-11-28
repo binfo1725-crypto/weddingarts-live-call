@@ -180,13 +180,43 @@ class WhatsAppAccountSession {
             }, 3000);
           }
         } else if (connection === 'open') {
+          const userJid = this.sock.user?.id || '';
+          const connectedPhone = userJid.split(':')[0] || userJid.split('@')[0];
+
+          const normalizePhone = (raw) => {
+            let d = String(raw || '').replace(/\D/g, '');
+            if (d.startsWith('00')) d = d.slice(2);
+            if (d.startsWith('0') && d.length === 10) d = '94' + d.slice(1);
+            else if (d.length === 9 && d.startsWith('7')) d = '94' + d;
+            return d;
+          };
+
+          // Enforce Trial Phone Lock on QR Code connections too
+          const storeBiz = this.businessId ? (db.getBusiness(this.businessId) || db.getAllBusinesses().find(b => b.id === this.businessId)) : null;
+          const hasPaidLic = storeBiz ? (db.data.licenses || []).some(l => l.businessId === storeBiz.id && l.status === 'Active' && l.plan !== 'TRIAL') : false;
+          if (!hasPaidLic && storeBiz && storeBiz.trialPhone) {
+            const expectedTrialPhone = normalizePhone(storeBiz.trialPhone);
+            const actualConnectedPhone = normalizePhone(connectedPhone);
+            if (actualConnectedPhone && expectedTrialPhone && actualConnectedPhone !== expectedTrialPhone) {
+              console.warn(`[WA-TRIAL-LOCK] Blocked QR/session connect: +${connectedPhone} does not match trialPhone +${storeBiz.trialPhone} for store ${storeBiz.id}`);
+              this.connected = false;
+              this.phoneNumber = null;
+              this.qrDataUrl = null;
+              this.rawQr = null;
+              this.statusText = `Blocked: Trial සඳහා ලියාපදිංචි වූ (+${expectedTrialPhone}) අංකය පමණක් link කළ හැක.`;
+              try { await this.sock.logout(); } catch (_) {}
+              this.clearAuth();
+              this.syncDb();
+              return;
+            }
+          }
+
           this.connected = true;
           this.reconnectAttempts = 0;
           this.qrDataUrl = null;
           this.rawQr = null;
 
-          const userJid = this.sock.user?.id || '';
-          this.phoneNumber = userJid.split(':')[0] || userJid.split('@')[0];
+          this.phoneNumber = connectedPhone;
           this.statusText = `Connected as +${this.phoneNumber}`;
 
           console.log(`[whatsapp-acc:${this.id}] 🚀 Connected successfully as +${this.phoneNumber}!`);
