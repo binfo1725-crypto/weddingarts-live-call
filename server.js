@@ -90,9 +90,6 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 const express = require('express');
 const http = require('http');
-
-// Trust the reverse proxy (Render/Nginx) to prevent X-Forwarded-For spoofing
-app.set('trust proxy', 1);
 const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
@@ -210,6 +207,8 @@ const app = express();
 
 // ─── 🛡️ Enterprise Production Security Headers & Protection Suite ─────────────
 app.disable('x-powered-by');
+// Trust the reverse proxy (Render/Nginx) to prevent X-Forwarded-For spoofing
+app.set('trust proxy', 1);
 
 // 1. HTTP Security Headers (OWASP Top 10 Hardened)
 app.use((req, res, next) => {
